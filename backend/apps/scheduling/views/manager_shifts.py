@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import json
-
 from django.contrib import messages
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count, Prefetch
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.decorators import manager_required
 from apps.accounts.models import User, UserRole
+from apps.frontend.shell import render_app
 
 from ..models import Assignment, Position, Shift
 from ..services import shifts_for_manager
@@ -129,23 +128,35 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
     )
     employees = list(employee_qs)
 
-    return render(
+    return render_app(
         request,
-        "manager/manager-shifts.html",
-        {
+        entry="manager-shifts",
+        title="Shift Management",
+        description="PlanShift - Manage employee shifts",
+        body_class="manager-shifts-page",
+        nav_active="manager_shifts",
+        data={
             "view": period.view,
-            "anchor": period.anchor,
-            "start": period.start,
-            "end": period.end,
-            "period_label": period.label,
-            "today": today,
-            "positions": positions,
-            "employees": employees,
-            "selected_positions": selected_positions,
-            "status": status,
-            "understaffed": understaffed,
-            "shifts_json": json.dumps(_build_shift_payload(shift_qs), cls=DjangoJSONEncoder),
-            "employees_json": json.dumps(_build_employee_payload(employees), cls=DjangoJSONEncoder),
+            "anchor": period.anchor.isoformat(),
+            "start": period.start.isoformat(),
+            "end": period.end.isoformat(),
+            "today": today.isoformat(),
+            "periodLabel": period.label,
+            "positions": [{"id": p.id, "name": p.name} for p in positions],
+            "employees": _build_employee_payload(employees),
+            "shifts": _build_shift_payload(shift_qs),
+            "filters": {
+                "positions": selected_positions,
+                "status": status,
+                "understaffed": understaffed,
+            },
+            "urls": {
+                "create": reverse("create_shift"),
+                "update": reverse("update_shift", args=[0]),
+                "delete": reverse("delete_shift", args=[0]),
+                "publish": reverse("publish_shift", args=[0]),
+                "publishAll": reverse("publish_all_shifts"),
+            },
         },
     )
 

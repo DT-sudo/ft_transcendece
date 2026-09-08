@@ -1,5 +1,19 @@
 # Demo/development image: runs the Django dev server with DEBUG on so the
 # one-click demo logins work. Not intended as a production image.
+
+# ── Stage 1: build the React/Tailwind bundle ──
+FROM node:22-slim AS frontend
+
+WORKDIR /build
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/vite.config.js ./
+COPY frontend/src ./src
+RUN npm run build
+
+# ── Stage 2: Django ──
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -11,6 +25,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+COPY --from=frontend /build/dist ./frontend/dist
 
 # Run as a non-root user; /app/data holds the SQLite file (mounted as a volume).
 RUN useradd --create-home app \

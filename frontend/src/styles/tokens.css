@@ -1,0 +1,59 @@
+/* ============================================================
+   Design tokens
+   ------------------------------------------------------------
+   Everything inside @theme becomes both a CSS variable and a
+   Tailwind utility namespace: --color-primary powers bg-primary,
+   text-primary, border-primary, and so on.
+   ============================================================ */
+
+@theme {
+  /* Palette */
+  --color-background: hsl(210 20% 98%);
+  --color-foreground: hsl(222 47% 11%);
+  --color-card: hsl(0 0% 100%);
+  --color-primary: hsl(221 83% 53%);
+  --color-primary-hover: hsl(221 83% 45%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(210 40% 96%);
+  --color-secondary-foreground: hsl(222 47% 11%);
+  --color-muted: hsl(210 40% 96%);
+  --color-muted-foreground: hsl(215 16% 47%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-hover: hsl(0 84% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(214 32% 91%);
+  --color-hover: hsl(210 40% 98%);
+
+  /* Status */
+  --color-warning: hsl(38 92% 50%);
+  --color-info: hsl(199 89% 48%);
+
+  /* Shift status */
+  --color-shift-published: hsl(142 71% 45%);
+  --color-shift-published-bg: hsl(142 71% 95%);
+  --color-shift-past: hsl(215 16% 75%);
+  --color-shift-past-bg: hsl(210 40% 96%);
+  --color-shift-future: hsl(221 83% 53%);
+  --color-shift-future-bg: hsl(221 83% 96%);
+
+  /* Radii */
+  --radius-card: 0.5rem;
+  --radius-panel: 1rem;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgb(0 0 0 / 0.1);
+  --shadow-menu: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-modal: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-header: 0 10px 22px -18px rgb(0 0 0 / 0.18);
+}
+
+/* ── Layout constants (not utility namespaces, measured at runtime) ── */
+:root {
+  --legend-bar-height: 42px;
+  --header-sticky-height: 0px;
+  --toolbar-sticky-height: 0px;
+  --manager-calendar-fill-height: calc(100vh - 60px - 60px - 54px - 2rem);
+}

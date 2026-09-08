@@ -1,0 +1,143 @@
+/* ============================================================
+   App shell: header nav, manager calendar layout, legend bar
+   ============================================================ */
+
+@layer components {
+  /* ── Header nav ── */
+
+  .nav-link {
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-card);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .nav-link:hover {
+    background-color: var(--color-muted);
+    color: var(--color-foreground);
+  }
+
+  .nav-link-active {
+    background-color: transparent;
+    color: var(--color-foreground);
+    border-bottom: 2px solid var(--color-primary);
+    border-radius: 0;
+  }
+
+  /* ── Manager shifts: sidebar + calendar ── */
+
+  .manager-calendar-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  /* Sidebar and calendar card both fill the viewport below the toolbar */
+  .manager-calendar-fill {
+    height: var(--manager-calendar-fill-height);
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .manager-calendar-fill .calendar-grid {
+    flex: 1 1 auto;
+    height: 100%;
+  }
+
+  @media (max-width: 1024px) {
+    .manager-calendar-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .manager-calendar-layout > .manager-calendar-fill:first-child {
+      height: auto;
+      min-height: 0;
+    }
+  }
+
+  .employee-sidebar-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background-color: var(--color-card);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+
+  .employee-sidebar-item-active {
+    border-color: hsl(38 92% 50% / 0.55);
+    box-shadow: 0 0 0 3px hsl(38 92% 50% / 0.12);
+  }
+
+  /* ── Fixed position legend bar ── */
+
+  .legend-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--legend-bar-height);
+    z-index: 44;
+    background-color: var(--color-card);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 12px rgb(0 0 0 / 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    overflow: hidden;
+  }
+
+  .position-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background-color: var(--position-bg);
+    border: 2px solid var(--position-border);
+    flex: 0 0 auto;
+  }
+
+  .position-swatch-draft {
+    background-color: var(--color-muted);
+    border-color: var(--color-border);
+    border-style: dashed;
+  }
+
+  /* ── Shifts toolbar: filters | period | actions ── */
+
+  .shifts-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+    overflow: visible;
+  }
+
+  @media (max-width: 768px) {
+    .shifts-toolbar {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "center" "left" "right";
+      gap: 0.75rem;
+    }
+
+    .shifts-toolbar-left   { grid-area: left;   justify-self: stretch; }
+    .shifts-toolbar-center { grid-area: center; justify-self: center; }
+    .shifts-toolbar-right  { grid-area: right;  justify-self: stretch; }
+
+    .calendar-period {
+      max-width: 100%;
+      white-space: normal;
+      overflow: visible;
+    }
+  }
+}

@@ -1,0 +1,35 @@
+/* ============================================================
+   Base
+   ============================================================ */
+
+@layer base {
+  html {
+    overflow-y: scroll;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 { font-size: 2rem;    font-weight: 700; }
+  h2 { font-size: 1.5rem;  font-weight: 600; }
+  h3 { font-size: 1.25rem; font-weight: 600; }
+
+  /* Login page backdrop */
+  body.auth-body {
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 20% 10%, rgb(59 130 246 / 0.18), transparent 60%),
+      radial-gradient(900px 500px at 80% 30%, rgb(16 185 129 / 0.14), transparent 60%),
+      var(--color-background);
+  }
+
+  /* Manager calendar reserves room for the fixed legend bar */
+  body.manager-shifts-page {
+    padding-bottom: var(--legend-bar-height);
+  }
+}

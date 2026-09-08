@@ -5,10 +5,33 @@ A shift-scheduling web application for hourly-employment teams — coffee shops,
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Building a rota by hand is mostly conflict-checking: does this person hold the right position, are they already booked, did they ask for the day off, is the shift now over capacity? PlanShift moves those checks into the application layer so an invalid schedule cannot be saved in the first place.
+
+![Manager weekly view](docs/screenshots/manager-week.png)
+
+*Manager weekly view — overlapping shifts placed side by side in lanes, with each employee's scheduled hours in the sidebar.*
+
+<details>
+<summary><b>More screenshots</b></summary>
+
+<br>
+
+![Manager monthly view](docs/screenshots/manager-month.png)
+
+*Monthly view — published shifts in colour, unpublished drafts greyed out.*
+
+<br>
+
+![Employee calendar](docs/screenshots/employee.png)
+
+*Employee calendar — only published shifts the employee is assigned to, with unavailable days marked in red.*
+
+</details>
 
 ## Features
 
@@ -40,13 +63,20 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 
 ## Architecture
 
-Server-rendered Django with a vanilla-JavaScript front end — no build step, no bundler, no framework runtime.
+A React front end on a Django back end. Django owns authentication, the scheduling
+rules and every write; React owns the whole rendered page. There is no REST layer and no
+client-side router: each Django view renders one HTML shell that mounts a single React
+entry point and hands it a JSON payload, so the app keeps Django's session auth, CSRF
+protection and POST-redirect-flash-message flow while the UI is entirely component-based.
 
 ```
 ├── backend/
 │   ├── config/                 # settings, root URLconf, WSGI/ASGI
 │   └── apps/
 │       ├── accounts/           # custom User model, roles, auth, role decorators
+│       ├── frontend/
+│       │   ├── shell.py        # render_app(): page shell + JSON bootstrap payload
+│       │   └── templatetags/   # {% vite_asset %} — manifest → <script>/<link>
 │       └── scheduling/
 │           ├── models.py       # Position, Shift, Assignment, EmployeeUnavailability
 │           ├── services.py     # scheduling rules + query helpers
@@ -55,12 +85,16 @@ Server-rendered Django with a vanilla-JavaScript front end — no build step, no
 │           ├── management/     # seed_demo command
 │           └── views/          # employee, manager_shifts, manager_resources
 ├── frontend/
-│   ├── templates/              # Django templates and partials
-│   └── static/
-│       ├── css/styles.css      # design tokens + components
-│       └── js/manager-shifts/  # calendar rendering, layout, modals
+│   ├── templates/app.html      # the one Django template: <div id="root"> + payload
+│   ├── vite.config.js          # one build input per page
+│   └── src/
+│       ├── entries/            # login · manager-shifts · manager-employees · employee-shifts
+│       ├── pages/              # page components (calendar, team table, modals)
+│       ├── components/         # shell, modals, menus, toasts, calendar primitives
+│       ├── app/                # dates, lane layout, position palette, CSRF/fetch
+│       └── styles/             # Tailwind theme tokens + component layer
 ├── docker/entrypoint.sh        # migrate + seed, then start the server
-├── Dockerfile
+├── Dockerfile                  # stage 1 builds the bundle, stage 2 runs Django
 ├── docker-compose.yml
 └── manage.py                   # wrapper so commands run from the project root
 ```
@@ -69,10 +103,31 @@ Views stay thin: they parse the request and render. Business rules live in `serv
 
 ### Notable implementation details
 
-- **State injection instead of a load-time API round trip.** Django serialises the initial shift and employee data into `<script type="application/json">` blocks and `data-*` attributes. The client reads them synchronously on boot, so the calendar paints without a fetch.
-- **Greedy lane placement for overlapping shifts.** `manager-shifts/core.js` sorts a day's shifts by start time and drops each into the first lane whose previous shift has ended, allocating a new lane only when none is free. Lane index and count become absolute CSS coordinates on the chip.
-- **Deterministic position colours.** Chip colours are derived from the position ID (`hue = (id * 47) % 360`) rather than stored in the database, so a new position is immediately distinguishable without a migration or a colour picker. The calendar legend lists only the positions present in the visible period.
-- **Async unavailability toggle.** Employee day toggles go through the Fetch API and return a `JsonResponse`; only the affected cell re-renders, and the server re-validates the date on every call.
+- **State injection instead of a load-time API round trip.** `render_app()` serialises the user, navigation, flash messages, CSRF token, action URLs and the page's own data into one `<script type="application/json">` block. React reads it synchronously on boot, so the calendar paints without a fetch and no REST layer is needed.
+- **Forms stay native.** Every write (create, edit, publish, delete, employee CRUD) is a real `<form method="post">` rendered by React, so Django's CSRF middleware, form validation, redirect and flash messages keep working unchanged — the messages arrive with the next payload and become toasts.
+- **Greedy lane placement for overlapping shifts.** `src/app/shifts.js` sorts a day's shifts by start time and drops each into the first lane whose previous shift has ended, allocating a new lane only when none is free. Lane index and count become absolute CSS coordinates on the chip, and the day's column widens with its lane count.
+- **Deterministic position colours.** Chip colours are derived from the position ID (`hue = (id * 47) % 360`) rather than stored in the database, so a new position is immediately distinguishable without a migration or a colour picker. The palette is emitted as inline custom properties that the `.shift-chip-position` rule consumes. The calendar legend lists only the positions present in the visible period.
+- **One dismissal stack for overlays.** Modals and popovers register in a shared layer stack (`src/components/escape.js`), so Escape and backdrop clicks always resolve the top-most layer first — a position picker closes before the shift modal it lives in.
+- **Async unavailability toggle.** Employee day toggles go through the Fetch API and return a `JsonResponse`; React updates the cell and the chip list from local state, and the server re-validates the date on every call.
+
+### Styling
+
+Tailwind CSS v4 with the design tokens declared once in `src/styles/tokens.css`:
+
+```css
+@theme {
+  --color-primary: hsl(221 83% 53%);
+  --color-muted-foreground: hsl(215 16% 47%);
+  --radius-card: 0.5rem;
+}
+```
+
+Because they live in `@theme`, the same token powers a utility in markup (`text-muted-foreground`)
+and hand-written CSS (`var(--color-muted-foreground)`). Layout, spacing and typography are
+Tailwind utilities in JSX; recurring or structural pieces — buttons, form controls, cards,
+tables, menus, shift chips, the week/month grids — stay as component classes in
+`src/styles/components/`, where CSS does what utilities cannot: sticky grid headers,
+container queries that shed chip detail as a cell narrows, and scrollbar styling.
 
 ## Data model
 
@@ -140,15 +195,16 @@ cd planshift
 docker compose up
 ```
 
-That is the whole setup. The container applies migrations and seeds a month of demo
-data on first boot, so <http://127.0.0.1:8000/> opens on a populated schedule.
+That is the whole setup — the image builds the front-end bundle in its own stage, and the
+container applies migrations and seeds a month of demo data on first boot, so
+<http://127.0.0.1:8000/> opens on a populated schedule.
 
 The image runs Django's development server with `DEBUG` enabled so the one-click demo
 logins work — it is a demo environment, not a production image.
 
-### With a local Python environment
+### With a local environment
 
-Requires **Python 3.12+**.
+Requires **Python 3.12+** and **Node 20+** (the front end is a Vite build).
 
 ```bash
 git clone https://github.com/DT-sudo/planshift.git
@@ -156,14 +212,33 @@ cd planshift
 
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-
 pip install -r requirements.txt
+
+cd frontend && npm install && npm run build && cd ..
+
 python manage.py migrate
 python manage.py seed_demo         # optional: demo positions, staff and shifts
 python manage.py runserver
 ```
 
 The app is served at <http://127.0.0.1:8000/>.
+
+Django serves the bundle from `frontend/dist` and resolves hashed filenames through Vite's
+manifest, so **the front end must be built once before the first run** and rebuilt after any
+change under `frontend/src`.
+
+### Working on the front end
+
+For hot module reload, run Vite alongside Django and point Django at the dev server:
+
+```bash
+cd frontend && npm run dev          # terminal 1 — http://localhost:5173
+VITE_DEV_SERVER_URL=http://localhost:5173 python manage.py runserver   # terminal 2
+```
+
+Keep browsing <http://127.0.0.1:8000/>: Django then loads the modules from Vite instead of
+`dist`, and edits appear without a rebuild or a page reload. Unset the variable to go back
+to the built bundle.
 
 ### Demo accounts
 
@@ -190,6 +265,7 @@ All settings fall back to development defaults; override through the environment
 | `DB_ENGINE` | `django.db.backends.sqlite3` |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | SQLite defaults |
 | `SEED_DEMO_DATA` | `1` (Docker entrypoint only) |
+| `VITE_DEV_SERVER_URL` | empty (serve the built bundle) |
 
 
 ## Tests

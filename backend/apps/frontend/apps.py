@@ -1,0 +1,6 @@
+from django.apps import AppConfig
+
+
+class FrontendConfig(AppConfig):
+    name = "apps.frontend"
+    label = "frontend"

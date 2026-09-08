@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import json
-
 from django.core.exceptions import ValidationError
-from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.decorators import employee_required
+from apps.frontend.shell import render_app
 
 from ..models import Assignment, EmployeeUnavailability
 from ..services import shifts_for_employee
@@ -47,21 +44,21 @@ def employee_shifts_view(request: HttpRequest) -> HttpResponse:
         ).values_list("date", flat=True)
     )
 
-    return render(
+    return render_app(
         request,
-        "employee/employee-shifts.html",
-        {
-            "anchor": anchor,
-            "start": start,
-            "end": end,
-            "period_label": period_label,
-            "today": today,
-            "toggle_url": reverse("employee_unavailability_toggle"),
-            "shifts_json": json.dumps(shifts_payload, cls=DjangoJSONEncoder),
-            "unavailable_json": json.dumps(
-                [d.isoformat() for d in unavailable_days],
-                cls=DjangoJSONEncoder,
-            ),
+        entry="employee-shifts",
+        title="My Shifts",
+        description="Employee shift calendar",
+        nav_active="employee_shifts",
+        data={
+            "anchor": anchor.isoformat(),
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "today": today.isoformat(),
+            "periodLabel": period_label,
+            "shifts": shifts_payload,
+            "unavailable": [day.isoformat() for day in unavailable_days],
+            "urls": {"toggleUnavailability": reverse("employee_unavailability_toggle")},
         },
     )
 

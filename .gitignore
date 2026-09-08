@@ -32,7 +32,7 @@ ENV/
 db.sqlite3
 db.sqlite3-journal
 /media/
-/staticfiles/
+staticfiles/
 local_settings.py
 
 # Environment / secrets
