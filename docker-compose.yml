@@ -1,16 +1,52 @@
+# One command brings the whole stack up:  docker compose up --build
+#
+# Only the proxy publishes ports. Django is reachable solely on the internal
+# `planshift` network, so every connection from a browser or a script arrives
+# over TLS, as the subject requires.
+
 services:
   web:
     build: .
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      DEBUG: "1"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
-      TIME_ZONE: "Europe/Prague"
+      SECRET_KEY: "${SECRET_KEY:-dev-secret-key-change-me}"
+      DEBUG: "${DEBUG:-1}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,web}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-https://localhost:8443,https://127.0.0.1:8443}"
+      TIME_ZONE: "${TIME_ZONE:-Europe/Prague}"
       DB_NAME: "/app/data/db.sqlite3"
-      SEED_DEMO_DATA: "1"
+      SEED_DEMO_DATA: "${SEED_DEMO_DATA:-1}"
+      ENABLE_DEMO_LOGIN: "${ENABLE_DEMO_LOGIN:-1}"
+      SECURE_COOKIES: "${SECURE_COOKIES:-1}"
+      HTTPS_PORT: "${HTTPS_PORT:-8443}"
     volumes:
       - db_data:/app/data
+    networks:
+      - planshift
+    restart: unless-stopped
+
+  proxy:
+    image: nginx:1.27-alpine
+    depends_on:
+      - web
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    environment:
+      HTTPS_PORT: "${HTTPS_PORT:-8443}"
+    volumes:
+      - ./docker/nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./docker/nginx/entrypoint.sh:/docker-entrypoint-init.sh:ro
+      - tls_certs:/etc/nginx/certs
+    entrypoint: ["/bin/sh", "/docker-entrypoint-init.sh"]
+    networks:
+      - planshift
+    restart: unless-stopped
+
+networks:
+  planshift:
 
 volumes:
   db_data:
+  tls_certs:

@@ -1,0 +1,67 @@
+# TLS terminator in front of Django.
+#
+# The subject requires every connection reaching the backend from outside to be
+# encrypted, so this is the only service that publishes a port. Django itself
+# listens on the internal compose network only and learns the original scheme
+# from X-Forwarded-Proto (see SECURE_PROXY_SSL_HEADER in settings.py).
+
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout 65;
+    server_tokens   off;
+
+    # Vite emits hashed asset filenames, so a large body is never needed here.
+    client_max_body_size 4m;
+
+    upstream django {
+        server web:8000;
+    }
+
+    # Anything arriving over plain HTTP is bounced to HTTPS; nothing is served.
+    server {
+        listen 80;
+        server_name _;
+        return 301 https://$host:${HTTPS_PORT}$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        http2 on;
+        server_name _;
+
+        ssl_certificate     /etc/nginx/certs/planshift.crt;
+        ssl_certificate_key /etc/nginx/certs/planshift.key;
+
+        # TLS 1.2 is kept for compatibility; everything older is refused.
+        ssl_protocols       TLSv1.2 TLSv1.3;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers off;
+        ssl_session_cache   shared:SSL:10m;
+        ssl_session_timeout 1h;
+
+        location / {
+            proxy_pass http://django;
+
+            proxy_set_header Host              $http_host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            # Tells Django the request arrived over TLS, so it builds https://
+            # URLs and accepts the CSRF origin.
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Host  $http_host;
+            proxy_set_header X-Forwarded-Port  $server_port;
+
+            proxy_redirect off;
+            proxy_read_timeout 60s;
+        }
+    }
+}
