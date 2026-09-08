@@ -60,6 +60,3 @@ yarn-error.log*
 *.swo
 
 # Note: PDFs (e.g. ft_trans.pdf) are intentionally tracked.
-
-# Screenshots (kept locally, not tracked)
-docs/screenshots/

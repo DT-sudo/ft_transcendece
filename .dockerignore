@@ -1,0 +1,31 @@
+# Never bake secrets, local state or build output into the image.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+*.pdf
+
+# Installed inside the image / built in the frontend stage
+**/node_modules
+frontend/dist
+
+# Local database — the container uses the /app/data volume instead
+*.sqlite3
+*.sqlite3-journal
+backend/db.sqlite3
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+.DS_Store
+.idea/
+.vscode/
+docs/
+staticfiles/
+.pytest_cache/
+.coverage
+htmlcov/
