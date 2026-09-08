@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("login/", views.login_view, name="login"),
+    path("signup/", views.signup_view, name="signup"),
     path("logout/", views.logout_view, name="logout"),
     path("manager/employees/", views.manager_employees, name="manager_employees"),
     path("manager/employees/create/", views.manager_employees_create, name="manager_employees_create"),
@@ -14,7 +15,7 @@ urlpatterns = [
     path("manager/employees/<int:user_id>/delete/", views.employee_delete, name="employee_delete"),
 ]
 
-if settings.DEBUG:
+if settings.ENABLE_DEMO_LOGIN:
     from . import debug_views
 
     urlpatterns += [

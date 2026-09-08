@@ -79,7 +79,7 @@ def ensure_demo_accounts() -> tuple[User, User]:
 
 @require_GET
 def demo_login(request: HttpRequest, role: str) -> HttpResponse:
-    if not settings.DEBUG:
+    if not settings.ENABLE_DEMO_LOGIN:
         return redirect("login")
     manager, employee = ensure_demo_accounts()
     user = manager if role == "manager" else employee
