@@ -1,0 +1,1940 @@
+/* ============================================================
+   ShiftSync – Styles
+   ============================================================
+   Sections (in order):
+     1.  Design Tokens (CSS variables)
+     2.  Reset & Base
+     3.  Layout & Page Structure
+     4.  Navigation
+     5.  Buttons
+     6.  Form Controls
+     7.  Cards
+     8.  Tables
+     9.  Badges
+    10.  Dropdown & Multiselect
+    11.  Tag Chips  (employee-chip / date-chip)
+    12.  Switch
+    13.  Shift Chips
+    14.  Calendar – Shared
+    15.  Calendar – Toolbar
+    16.  Calendar – Week View
+    17.  Calendar – Month View
+    18.  Manager Shifts Page  (layout + employee sidebar + position legend)
+    19.  Modals
+    20.  Toast Notifications
+    21.  Team Page  (employees toolbar + filters + empty state)
+    22.  Auth Page
+    23.  Utility Classes
+    24.  Responsive Breakpoints
+   ============================================================ */
+
+
+/* ============================================================
+   1. Design Tokens
+   ============================================================ */
+
+:root {
+  /* Palette */
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(222, 47%, 11%);
+  --card: hsl(0, 0%, 100%);
+  --primary: hsl(221, 83%, 53%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 96%);
+  --secondary-foreground: hsl(222, 47%, 11%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(215, 16%, 47%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(214, 32%, 91%);
+  --radius: 0.5rem;
+
+  /* Status */
+  --warning: hsl(38, 92%, 50%);
+  --info: hsl(199, 89%, 48%);
+
+  /* Shift status */
+  --shift-published: hsl(142, 71%, 45%);
+  --shift-published-bg: hsl(142, 71%, 95%);
+  --shift-past: hsl(215, 16%, 75%);
+  --shift-past-bg: hsl(210, 40%, 96%);
+  --shift-future: hsl(221, 83%, 53%);
+  --shift-future-bg: hsl(221, 83%, 96%);
+
+  /* Interactive */
+  --hover-bg: hsl(210, 40%, 98%);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-header: 0 10px 22px -18px rgba(0, 0, 0, 0.18);
+
+  /* Layout constants */
+  --legend-bar-height: 42px;
+}
+
+
+/* ============================================================
+   2. Reset & Base
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  overflow-y: scroll;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: 2rem;   font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem;font-weight: 600; }
+
+
+/* ============================================================
+   3. Layout & Page Structure
+   ============================================================ */
+
+/* ── Header ── */
+
+.header {
+  background-color: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-header);
+  padding: 0.4rem 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 45;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  grid-column: 1;
+}
+
+.header-avatar {
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-foreground);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  justify-self: center;
+  grid-column: 2;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-self: end;
+  grid-column: 3;
+}
+
+.header-user-trigger {
+  gap: 0;
+  padding: 0;
+}
+
+.header-avatar {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ── Main Content ── */
+
+.main-content {
+  --page-padding: 1rem;
+  padding: var(--page-padding);
+}
+
+.main-content.main-content-tight-top {
+  padding-top: 0;
+}
+
+/* ── Sticky page-level toolbar card ── */
+
+.card.page-toolbar-card {
+  position: sticky;
+  top: calc(var(--header-sticky-height, 0px) - 1px);
+  z-index: 44;
+  margin-left: calc(-1 * var(--page-padding));
+  margin-right: calc(-1 * var(--page-padding));
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  overflow: visible;
+  padding: 0.55rem var(--page-padding);
+}
+
+.page-toolbar-card .form-label {
+  margin-bottom: 0;
+}
+
+
+/* ============================================================
+   4. Navigation
+   ============================================================ */
+
+.nav-link {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+.nav-link.active {
+  background-color: transparent;
+  color: var(--foreground);
+  border-bottom: 2px solid var(--primary);
+  border-radius: 0;
+}
+
+
+/* ============================================================
+   5. Buttons
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: hsl(221, 83%, 45%);
+}
+
+.btn-outline,
+.btn-ghost {
+  background-color: transparent;
+  color: var(--foreground);
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+}
+
+.btn-destructive {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background-color: hsl(0, 84%, 50%);
+}
+
+/* Shared hover for outline / ghost / modal-close / dropdown items */
+.btn-outline:hover:not(:disabled),
+.btn-ghost:hover:not(:disabled),
+.modal-close:hover,
+.dropdown-item:not(.dropdown-item-static):hover {
+  background-color: var(--muted);
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+/* Icon button with destructive colour (ghost + red icon) */
+.btn-icon-destructive {
+  color: var(--destructive);
+}
+
+/* Full-width button helper */
+.btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+
+/* ============================================================
+   6. Form Controls
+   ============================================================ */
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 0.375rem;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+.form-input {
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px hsl(221, 83%, 53%, 0.1);
+}
+
+.form-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+}
+
+.form-error {
+  border-color: var(--destructive);
+}
+
+.form-error-message {
+  font-size: 0.75rem;
+  color: var(--destructive);
+  margin-top: 0.25rem;
+}
+
+/* Multiselect trigger error state */
+.multiselect.form-error .multiselect-trigger {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px hsl(0, 84%, 60%, 0.12);
+}
+
+
+/* ============================================================
+   7. Cards
+   ============================================================ */
+
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-header.card-header-tight {
+  padding: 0.625rem 1.5rem 0.625rem 1rem;
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
+.card-content-compact {
+  padding: 0.75rem;
+}
+
+
+/* ============================================================
+   8. Tables
+   ============================================================ */
+
+.table-container {
+  overflow-x: auto;
+}
+
+.table-container-scrollable {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+/* Table with sticky header row */
+.table-sticky-header thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table-fixed {
+  table-layout: fixed;
+}
+
+.table-fixed th,
+.table-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  background-color: var(--muted);
+}
+
+.table td {
+  color: var(--foreground);
+}
+
+.table tr:hover td {
+  background-color: var(--hover-bg);
+}
+
+/* Action cell inside a table row (flex row of buttons) */
+.position-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+/* Prevents dropdown menus inside table cells from being clipped */
+.table-actions-cell {
+  overflow: visible !important;
+}
+
+
+/* ============================================================
+   9. Badges
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.badge-default {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.badge-success {
+  background-color: var(--shift-published-bg);
+  color: var(--shift-published);
+  border-color: hsl(142, 71%, 45%, 0.3);
+}
+
+.badge-outline {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+
+/* ============================================================
+   10. Dropdown & Multiselect
+   ============================================================ */
+
+/* ── Shared positioning container ── */
+
+.dropdown,
+.multiselect {
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Dropdown menu panel ── */
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 2000;
+  min-width: 160px;
+  margin-top: 0.25rem;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  display: none;
+}
+
+.dropdown-menu.open,
+.multiselect.open .multiselect-menu {
+  display: block;
+}
+
+/* Higher z-index for dropdowns that escape table stacking contexts */
+.dropdown-menu-fixed {
+  z-index: 3000;
+}
+
+/* ── Dropdown items ── */
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropdown-item-destructive {
+  color: var(--destructive);
+}
+
+/* Static (non-interactive) dropdown item variants */
+.dropdown-item-static {
+  cursor: default;
+  color: var(--muted-foreground);
+}
+
+.dropdown-item-title {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 0.25rem 0;
+}
+
+/* ── Multiselect trigger (button that opens the menu) ── */
+
+.multiselect-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.multiselect-full {
+  display: block;
+  width: 100%;
+}
+
+.multiselect-full .multiselect-trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* Selected-chips area inside the trigger */
+.multiselect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-height: 1.25rem;
+}
+
+/* ── Multiselect dropdown menu ── */
+
+.multiselect-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 220px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  padding: 0.5rem;
+  z-index: 1000;
+  display: none;
+}
+
+/* Scrollable position list inside the shift-create modal */
+#shiftPositionMultiMenu {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.multiselect-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.multiselect-item:hover {
+  background: var(--muted);
+}
+
+/* Hint text shown inside an empty multiselect menu */
+.multiselect-hint {
+  padding: 0.5rem 0.75rem;
+}
+
+/* ── Multiselect action bar (apply/clear buttons) ── */
+
+.multiselect-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.multiselect-actions .btn-primary {
+  margin-left: auto;
+}
+
+.multiselect-actions-right {
+  justify-content: flex-end;
+}
+
+.multiselect-actions-right .btn-primary {
+  margin-left: 0;
+}
+
+
+/* ============================================================
+   11. Tag Chips  (employee-chip / date-chip)
+   ============================================================ */
+
+/* Base pill-shaped tag used for employee selections and unavailable-day list */
+.employee-chip,
+.date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.chip-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chip-text {
+  white-space: nowrap;
+}
+
+/* Wrapping container for a list of date chips */
+.date-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+
+/* ============================================================
+   12. Switch  (toggle input)
+   ============================================================ */
+
+.switch {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Hide native checkbox visually */
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.switch-slider {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 24px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  position: relative;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.switch-slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: transform 120ms ease;
+}
+
+.switch input:checked + .switch-slider {
+  background: var(--primary);
+  border-color: hsl(221, 83%, 53%, 0.45);
+}
+
+.switch input:checked + .switch-slider::after {
+  transform: translateX(20px);
+}
+
+
+/* ============================================================
+   13. Shift Chips
+   ============================================================ */
+
+/* ── Base chip ── */
+
+.shift-chip {
+  display: block;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    box-shadow 0.12s cubic-bezier(0.2, 0.9, 0.2, 1),
+    transform 0.12s cubic-bezier(0.2, 0.9, 0.2, 1);
+  will-change: box-shadow, transform;
+  line-height: 1.15;
+}
+
+.shift-chip:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Absolutely-positioned variant used in the week timed view */
+.shift-chip-timed {
+  position: absolute;
+  margin: 0;
+  z-index: 1;
+}
+
+/* Highlight ring when an employee is selected in the sidebar */
+.shift-chip-employee-highlight {
+  box-shadow: 0 0 0 2px var(--warning), 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Colour variants ── */
+
+.shift-chip-future,
+.shift-chip-published {
+  background-color: var(--shift-future-bg);
+  color: var(--shift-future);
+  border: 1px solid hsl(221, 83%, 53%, 0.2);
+}
+
+.shift-chip-past {
+  background-color: var(--shift-past-bg);
+  color: var(--shift-past);
+  border: 1px solid hsl(215, 16%, 75%, 0.2);
+}
+
+.shift-chip-draft {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border: 2px dashed var(--border);
+}
+
+/* Position-coloured chip (colour injected via inline CSS variables) */
+.shift-chip-position {
+  background-color: var(--position-bg);
+  color: var(--position-fg);
+  border-color: var(--position-border);
+}
+
+.shift-chip-past.shift-chip-position {
+  opacity: 0.75;
+}
+
+/* ── Content layout inside a chip ── */
+
+.shift-chip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.shift-chip-position-name {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shift-chip-qty {
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.shift-chip-time {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-chip-duration-row {
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Manager month-view chips (compact card-in-cell layout) ── */
+
+#monthGrid .manager-month-shift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 calc(0.25rem + var(--slot-scrollbar-safe)) 0.25rem 0.25rem;
+}
+
+#monthGrid .manager-month-shift-chip {
+  margin-bottom: 0;
+  height: 30px;
+  padding: 0.1rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+#monthGrid .manager-month-shift-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+#monthGrid .manager-month-shift-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#monthGrid .manager-month-shift-name {
+  font-weight: 600;
+  font-size: 0.7rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#monthGrid .manager-month-shift-sep {
+  opacity: 0.75;
+  flex: 0 0 auto;
+}
+
+#monthGrid .manager-month-shift-qty {
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#monthGrid .manager-month-shift-time {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Responsive chip content via CSS Container Queries ── */
+
+@container (max-width: 150px) {
+  #monthGrid .manager-month-shift-sep,
+  #monthGrid .manager-month-shift-time {
+    display: none;
+  }
+}
+
+@container (max-width: 110px) {
+  #monthGrid .manager-month-shift-qty {
+    display: none;
+  }
+}
+
+
+/* ============================================================
+   14. Calendar – Shared
+   ============================================================ */
+
+/* ── Base grid wrapper ── */
+
+.calendar-grid {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Header row cells (day-of-week labels) ── */
+
+.calendar-header-cell,
+.week-time-corner,
+.week-time-day-header {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--foreground);
+  background-color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+/* ── Day cells ── */
+
+.calendar-cell {
+  min-height: 120px;
+  padding: 0.5rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+/* ── Date number label inside each cell ── */
+
+.calendar-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Navigation controls and period label (shared by all calendar pages) ── */
+
+.calendar-nav,
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calendar-period {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  min-width: 200px;
+  text-align: center;
+}
+
+/* ── Cell state modifiers ── */
+
+/* Today highlight */
+.calendar-cell-today {
+  background-color: var(--shift-future-bg);
+}
+
+/* Employee-marked unavailable day */
+.calendar-cell-unavailable {
+  background-color: hsl(0, 84%, 97%);
+  box-shadow: inset 0 0 0 2px hsl(0, 84%, 60%, 0.2);
+}
+
+/* Date label colour override for unavailable cells in month view */
+.calendar-grid-month .calendar-cell.calendar-cell-unavailable .calendar-date {
+  color: var(--destructive);
+}
+
+/* Days that fall outside the displayed month */
+.calendar-cell-other-month .calendar-date {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  opacity: 0.45;
+}
+
+
+/* ============================================================
+   15. Calendar – Toolbar
+   ============================================================ */
+
+/* Three-zone grid: [filters/nav] [period label] [right controls] */
+.shifts-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  overflow: visible;
+}
+
+.shifts-toolbar-left,
+.shifts-toolbar-right {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shifts-toolbar-left  { justify-self: start; }
+
+.shifts-toolbar-right {
+  justify-self: end;
+  justify-content: flex-end;
+}
+
+.shifts-toolbar-center {
+  justify-self: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.shifts-toolbar-center .calendar-period {
+  min-width: 0;
+  max-width: clamp(160px, 32vw, 520px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+
+/* ============================================================
+   16. Calendar – Week View
+   ============================================================ */
+
+/* ── Grid definition ── */
+
+.calendar-grid-week-time {
+  --week-hour-label-width: 72px;
+  --week-day-col-width: 240px;
+  --week-time-hour-height: 56px;
+  grid-template-columns: var(--week-hour-label-width) repeat(7, var(--week-day-col-width));
+  grid-template-rows: auto repeat(24, var(--week-time-hour-height));
+  height: clamp(520px, 72vh, 980px);
+  overflow: auto;
+  position: relative;
+}
+
+/* ── Sticky header: top-left corner & day headers ── */
+
+.week-time-corner,
+.week-time-day-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+/* Corner cell is also sticky horizontally */
+.week-time-corner {
+  left: 0;
+  z-index: 60;
+}
+
+.week-time-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Sticky hour labels on the left ── */
+
+.week-time-hour-label {
+  position: sticky;
+  left: 0;
+  z-index: 25;
+  background-color: var(--muted);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Body cells ── */
+
+.week-time-cell {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+.week-time-cell:hover {
+  background-color: var(--hover-bg);
+}
+
+/* ── Absolutely-positioned layer that holds timed shift chips ── */
+
+.week-shifts-layer {
+  position: relative;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Re-enable pointer events for chips inside the vertical (timed) layer */
+.week-shifts-layer-vertical .shift-chip {
+  pointer-events: auto;
+}
+
+
+/* ============================================================
+   17. Calendar – Month View
+   ============================================================ */
+
+/* ── Grid definition ── */
+
+.calendar-grid-month {
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: 32px repeat(6, minmax(140px, 1fr));
+  height: clamp(520px, 72vh, 980px);
+  overflow: auto;
+  --slot-scrollbar-safe: 8px;
+}
+
+/* ── Header cells ── */
+
+.calendar-grid-month .calendar-header-cell {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* Inside #monthGrid the header cells are centred flex containers */
+#monthGrid.calendar-grid-month .calendar-header-cell {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove right border on the last column */
+.calendar-grid-month .calendar-header-cell:nth-child(7),
+.calendar-cell:nth-child(7n) {
+  border-right: none;
+}
+
+/* ── Day cells ── */
+
+.calendar-grid-month .calendar-cell {
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+}
+
+.calendar-grid-month .calendar-cell::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.calendar-grid-month .calendar-cell::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.28);
+  border-radius: 999px;
+}
+
+.calendar-grid-month .calendar-cell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Date label inside month cells ── */
+
+.calendar-grid-month .calendar-date {
+  margin-bottom: 0;
+  padding: 0.25rem 0.25rem 0.15rem;
+}
+
+/* ── Shift chips inside month cells (account for scrollbar gutter) ── */
+
+.calendar-grid-month .calendar-cell > .shift-chip {
+  margin: 0 calc(0.25rem + var(--slot-scrollbar-safe)) 0.15rem 0.25rem;
+}
+
+/* ── Stretch grids to fill the view container ── */
+
+body.manager-shifts-page #weekGrid.calendar-grid-week-time,
+body.manager-shifts-page #monthGrid.calendar-grid-month {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+body.manager-shifts-page #monthGrid.calendar-grid-month {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+
+/* ============================================================
+   18. Manager Shifts Page  (layout · sidebar · position legend)
+   ============================================================ */
+
+/* ── Page-level override ── */
+
+body.manager-shifts-page .main-content {
+  padding-bottom: var(--legend-bar-height);
+}
+
+/* ── Two-column layout: sidebar + main calendar ── */
+
+.manager-calendar-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.manager-calendar-main {
+  min-width: 0;
+}
+
+/* ── Employee sidebar ── */
+
+.manager-employee-sidebar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.manager-shifts-page .manager-employee-sidebar {
+  height: var(--manager-calendar-fill-height, calc(100vh - 60px - 60px - 54px - 2rem));
+  min-height: 400px;
+}
+
+.employee-sidebar-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem;
+}
+
+.employee-sidebar-controls .form-group {
+  margin-bottom: 0;
+}
+
+.employee-sidebar-controls .form-label {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.employee-sidebar-controls .form-input {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.employee-sidebar-controls .form-select {
+  padding: 0.375rem 2rem 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.employee-sidebar-list {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.employee-sidebar-empty {
+  padding: 0.75rem;
+}
+
+.employee-sidebar-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  cursor: pointer;
+}
+
+.employee-sidebar-item.active {
+  border-color: hsl(38, 92%, 50%, 0.55);
+  box-shadow: 0 0 0 3px hsl(38, 92%, 50%, 0.12);
+}
+
+.employee-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: var(--secondary);
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.employee-sidebar-meta {
+  min-width: 0;
+}
+
+.employee-sidebar-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-sidebar-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.125rem;
+}
+
+.employee-position-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-sidebar-hours {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+
+/* Collapse sidebar to full-width on medium screens */
+@media (max-width: 1024px) {
+  .manager-calendar-layout {
+    grid-template-columns: 1fr;
+  }
+
+  body.manager-shifts-page .manager-employee-sidebar {
+    height: auto;
+  }
+
+  .employee-sidebar-list {
+    max-height: 320px;
+  }
+}
+
+/* ── Position Legend ── */
+
+.position-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.position-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.position-legend-item-draft {
+  order: -1;
+}
+
+.position-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background-color: var(--position-bg);
+  border: 2px solid var(--position-border);
+  flex: 0 0 auto;
+}
+
+.position-swatch.position-swatch-draft {
+  background-color: var(--muted);
+  border-color: var(--border);
+  border-style: dashed;
+}
+
+/* ── Fixed bottom legend bar ── */
+
+#positionLegendBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--legend-bar-height);
+  z-index: 44;
+  background-color: var(--card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  overflow: hidden;
+}
+
+body.manager-shifts-page #weekView,
+body.manager-shifts-page #monthView {
+  height: var(--manager-calendar-fill-height, calc(100vh - 60px - 60px - 54px - 2rem));
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ============================================================
+   19. Modals
+   ============================================================ */
+
+/* ── Overlay backdrop ── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 5000;
+}
+
+/* ── Modal panel ── */
+
+.modal {
+  background-color: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Size variant */
+.modal-lg {
+  max-width: 720px;
+}
+
+/* ── Create-shift modal overrides (wider panel, no overflow clipping) ── */
+
+#createShiftModal .modal {
+  overflow: visible;
+  max-height: none;
+  max-width: 720px;
+}
+
+#createShiftModal .modal-header {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+}
+
+#createShiftModal .modal-body {
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+#createShiftModal #employeeMultiList {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+#createShiftModal .switch {
+  width: auto;
+  justify-content: flex-start;
+}
+
+#createShiftModal .modal-footer {
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+
+/* ============================================================
+   20. Toast Notifications
+   ============================================================ */
+
+.toast-container {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 6000;
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 420px;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--background);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.toast-title {
+  font-weight: 700;
+}
+
+.toast-desc {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  margin-top: 0.125rem;
+}
+
+.toast-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  margin-top: 0.25rem;
+  background: var(--primary);
+}
+
+.toast.error .toast-dot { background: var(--destructive); }
+.toast.info  .toast-dot { background: var(--info); }
+
+
+/* ============================================================
+   21. Team Page  (employees toolbar · filters · empty state)
+   ============================================================ */
+
+/* ── Employees-page top toolbar ── */
+
+.employees-toolbar,
+.employees-toolbar-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.employees-toolbar       { justify-content: space-between; }
+.employees-toolbar-group { min-width: 0; }
+
+/* Grow modifier for a filter input to fill available space */
+.filter-group-grow {
+  flex: 1 1 auto;
+  min-width: 100px;
+}
+
+/* ── Generic filter / search row ── */
+
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Empty state placeholder ── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+}
+
+.empty-state-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state-description {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+}
+
+/* Inline form preview box (used in manage-positions modal) */
+.preview-box {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  background: linear-gradient(180deg, var(--muted), transparent);
+}
+
+
+/* ============================================================
+   22. Auth Page
+   ============================================================ */
+
+/* ── Page background ── */
+
+.auth-body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(59, 130, 246, 0.18), transparent 60%),
+    radial-gradient(900px  500px at 80% 30%, rgba(16, 185, 129, 0.14), transparent 60%),
+    var(--background);
+}
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ── Login card ── */
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.5rem);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.10);
+  padding: 1.75rem;
+}
+
+
+.auth-header {
+  text-align: center;
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.auth-subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+}
+
+.auth-form {
+  margin-top: 0.75rem;
+}
+
+/* ── Divider ("or" separator between form sections) ── */
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border);
+}
+
+.divider-text {
+  padding: 0 1rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+
+
+/* ============================================================
+   23. Utility Classes
+   ============================================================ */
+
+.flex            { display: flex; }
+.flex-1          { flex: 1; }
+.flex-col        { flex-direction: column; }
+.items-center    { align-items: center; }
+.justify-between { justify-content: space-between; }
+.min-w-0         { min-width: 0; }
+.gap-2           { gap: 0.5rem; }
+.gap-3           { gap: 0.75rem; }
+.gap-4           { gap: 1rem; }
+.text-sm         { font-size: 0.875rem; }
+.font-medium     { font-weight: 500; }
+.mb-0            { margin-bottom: 0; }
+.mt-1            { margin-top: 0.25rem; }
+.mt-2            { margin-top: 0.5rem; }
+.mt-3            { margin-top: 0.75rem; }
+.mt-4            { margin-top: 1rem; }
+.mb-2            { margin-bottom: 0.5rem; }
+.mb-3            { margin-bottom: 0.75rem; }
+.hidden          { display: none !important; }
+
+/* Muted placeholder / helper text */
+.form-input::placeholder,
+.text-muted,
+.multiselect-placeholder {
+  color: var(--muted-foreground);
+}
+
+/* demo-login section spacing (login page) */
+.demo-login-section {
+  margin-top: 1rem;
+}
+
+
+/* ============================================================
+   24. Responsive Breakpoints
+   ============================================================ */
+
+/* ── ≤ 1024px  (already handled inline for the manager sidebar above) ── */
+
+@media (max-width: 1024px) {
+  .shifts-toolbar-center .calendar-period {
+    max-width: clamp(140px, 26vw, 360px);
+  }
+}
+
+/* ── ≤ 768px ── */
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.4rem 0.75rem;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .header-user {
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .header-user > .text-sm {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Toolbar stacks vertically: period on top, then left controls, then right */
+  .shifts-toolbar {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "center"
+      "left"
+      "right";
+    gap: 0.75rem;
+  }
+
+  .shifts-toolbar-left   { grid-area: left;   justify-self: stretch; }
+  .shifts-toolbar-center { grid-area: center; text-align: center; }
+  .shifts-toolbar-right  { grid-area: right;  justify-self: stretch; }
+
+  .shifts-toolbar-center .calendar-period {
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .table {
+    font-size: 0.75rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}
+
+/* ── ≤ 480px ── */
+
+@media (max-width: 480px) {
+  .header-user > .text-sm {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+

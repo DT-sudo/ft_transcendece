@@ -1,0 +1,2 @@
+# Core framework (asgiref and sqlparse are installed automatically as dependencies)
+Django>=6.0,<6.1
