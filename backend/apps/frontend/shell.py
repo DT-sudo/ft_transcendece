@@ -58,7 +58,13 @@ def render_app(
         "csrfToken": get_token(request),
         "user": _user_context(request.user),
         "nav": _nav_links(request.user, nav_active),
-        "urls": {"logout": reverse("logout")},
+        # Present on every page so the footer can link the Privacy Policy and
+        # Terms of Service from anywhere, signed in or not.
+        "urls": {
+            "logout": reverse("logout"),
+            "privacy": reverse("privacy_policy"),
+            "terms": reverse("terms_of_service"),
+        },
         "messages": [
             {"level": message.level_tag, "text": message.message}
             for message in get_messages(request)

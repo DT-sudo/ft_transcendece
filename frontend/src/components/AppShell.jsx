@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { getBootstrap } from '../app/bootstrap.js';
 import { ConfirmModal } from './Modal.jsx';
 import { Dropdown } from './Menus.jsx';
+import { Footer } from './Footer.jsx';
 import { PostForm } from './PostForm.jsx';
 import { ToastProvider } from './Toasts.jsx';
 import { usePublishedHeight } from './hooks.js';
@@ -77,9 +78,13 @@ export function AppShell({ children }) {
 
   return (
     <ToastProvider initialMessages={messages || []}>
-      <Header user={user} nav={nav} onLogout={() => setConfirmLogout(true)} />
+      <div className="page-with-footer">
+        <Header user={user} nav={nav} onLogout={() => setConfirmLogout(true)} />
 
-      {children}
+        <div className="flex-1">{children}</div>
+
+        <Footer />
+      </div>
 
       <PostForm formRef={logoutFormRef} action={urls?.logout || '/logout/'} />
 

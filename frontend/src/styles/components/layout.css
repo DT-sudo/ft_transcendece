@@ -141,3 +141,76 @@
     }
   }
 }
+
+/* ============================================================
+   Site footer + legal documents
+   ============================================================ */
+
+@layer components {
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding: 1.25rem 1rem;
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-card);
+  }
+
+  .footer-link {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    text-decoration: none;
+  }
+
+  .footer-link:hover {
+    color: var(--color-foreground);
+    text-decoration: underline;
+  }
+
+  /* Readable measure for long-form legal prose */
+  .legal-page {
+    max-width: 46rem;
+    margin-inline: auto;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .legal-section + .legal-section {
+    margin-top: 2rem;
+  }
+
+  .legal-section h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .legal-section p,
+  .legal-section li {
+    color: var(--color-foreground);
+    line-height: 1.7;
+  }
+
+  .legal-section p + p {
+    margin-top: 0.75rem;
+  }
+
+  .legal-section ul {
+    margin-top: 0.75rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+
+  .legal-section li + li {
+    margin-top: 0.5rem;
+  }
+
+  /* Pages that own the full viewport so the footer sits at the bottom */
+  .page-with-footer {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+}

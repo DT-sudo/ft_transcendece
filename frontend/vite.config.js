@@ -24,6 +24,8 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       input: {
         login: resolve(import.meta.dirname, 'src/entries/login.jsx'),
+        signup: resolve(import.meta.dirname, 'src/entries/signup.jsx'),
+        legal: resolve(import.meta.dirname, 'src/entries/legal.jsx'),
         'manager-shifts': resolve(import.meta.dirname, 'src/entries/manager-shifts.jsx'),
         'manager-employees': resolve(import.meta.dirname, 'src/entries/manager-employees.jsx'),
         'employee-shifts': resolve(import.meta.dirname, 'src/entries/employee-shifts.jsx'),
