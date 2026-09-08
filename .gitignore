@@ -1,0 +1,65 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+local_settings.py
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Testing / coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.cache
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Note: PDFs (e.g. ft_trans.pdf) are intentionally tracked.
+
+# Screenshots (kept locally, not tracked)
+docs/screenshots/
