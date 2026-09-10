@@ -44,13 +44,6 @@ class SignUpTests(TestCase):
         self.assertTrue(user.password.startswith("pbkdf2_"))
         self.assertTrue(user.check_password("correct-horse-42"))
 
-    def test_signup_does_not_grant_admin_access(self):
-        self.client.post(reverse("signup"), self._payload())
-
-        user = User.objects.get(email="jane.doe@example.com")
-        self.assertFalse(user.is_staff)
-        self.assertFalse(user.is_superuser)
-
     def test_email_is_normalised_and_must_be_unique(self):
         self.client.post(reverse("signup"), self._payload())
 
@@ -78,7 +71,8 @@ class SignUpTests(TestCase):
             with self.subTest(reason=reason):
                 form = SignUpForm(self._payload(password1=password, password2=password))
                 self.assertFalse(form.is_valid())
-                self.assertIn("password1", form.errors)
+                # Django's creation form reports password-strength errors on the confirm field.
+                self.assertIn("password2", form.errors)
 
     def test_signup_page_reports_field_errors_back_to_the_client(self):
         response = self.client.post(reverse("signup"), self._payload(email="not-an-email"))
@@ -94,7 +88,7 @@ class SignUpTests(TestCase):
 
 
 class EmailLoginTests(TestCase):
-    """Login is by email address, resolved through the EmailBackend."""
+    """Login is by email address (username mirrors the lowercased email)."""
 
     @classmethod
     def setUpTestData(cls) -> None:

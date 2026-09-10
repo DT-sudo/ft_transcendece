@@ -18,11 +18,8 @@
     color: var(--color-foreground);
   }
 
-  /* Sticky, full-bleed toolbar card that sits under the header */
+  /* Full-bleed toolbar card that sits under the header */
   .page-toolbar-card {
-    position: sticky;
-    top: calc(var(--header-sticky-height) - 1px);
-    z-index: 44;
     margin-inline: -1rem;
     border-inline: none;
     border-top: none;
@@ -188,6 +185,23 @@
     background: var(--color-muted);
   }
 
+  .multiselect-item-disabled {
+    cursor: not-allowed;
+    color: var(--color-muted-foreground);
+  }
+
+  .multiselect-item-disabled:hover {
+    background: transparent;
+  }
+
+  .availability-flag {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-destructive-hover);
+  }
+
   .multiselect-actions {
     display: flex;
     gap: 0.5rem;
@@ -209,6 +223,12 @@
     border: 1px solid var(--color-border);
     font-size: 0.75rem;
     line-height: 1.25;
+  }
+
+  .tag-chip-warning {
+    background: hsl(0 84% 97%);
+    border-color: hsl(0 84% 60% / 0.35);
+    color: var(--color-destructive-hover);
   }
 
   .chip-remove {

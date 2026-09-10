@@ -4,7 +4,7 @@ import { addDays, addMonths, navigateWith } from '../../app/dates.js';
 import { CalendarNav } from '../../components/Calendar.jsx';
 import { Plus } from '../../components/Icons.jsx';
 import { SelectPopover } from '../../components/Menus.jsx';
-import { CsrfInput } from '../../components/PostForm.jsx';
+import { CsrfInput } from '../../components/Field.jsx';
 
 function positionLabel(positions, selected) {
   if (selected.length === 0 || selected.length === positions.length) return 'All positions';
@@ -72,7 +72,7 @@ function PositionFilter({ positions, selected, onApply }) {
   );
 }
 
-export function ShiftsToolbar({ data, onCreateShift, ref }) {
+export function ShiftsToolbar({ data, onCreateShift }) {
   const { view, anchor, today, periodLabel, positions, filters, urls } = data;
 
   const step = (direction) =>
@@ -82,7 +82,7 @@ export function ShiftsToolbar({ data, onCreateShift, ref }) {
     });
 
   return (
-    <div className="card page-toolbar-card" ref={ref}>
+    <div className="card page-toolbar-card">
       <div className="shifts-toolbar">
         <div className="shifts-toolbar-left flex min-w-0 flex-wrap items-center gap-3 justify-self-start">
           <div className="flex items-center gap-2">

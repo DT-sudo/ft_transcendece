@@ -1,9 +1,7 @@
+import os
 from pathlib import Path
 
-import os
-
 from .env import env_bool, env_list, load_dotenv
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -17,16 +15,18 @@ DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    # First, so `runserver` serves both HTTP and WebSockets through Daphne (ASGI).
+    "daphne",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.accounts.apps.AccountsConfig",
-    "apps.frontend.apps.FrontendConfig",
-    "apps.legal.apps.LegalConfig",
-    "apps.scheduling.apps.SchedulingConfig",
+    "apps.accounts",
+    "apps.frontend",
+    "apps.legal",
+    "apps.scheduling",
+    "apps.realtime",
 ]
 
 MIDDLEWARE = [
@@ -41,23 +41,30 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+# One template: the React shell. It reads only what render_app() passes in.
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [PROJECT_ROOT / "frontend" / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ],
-        },
     }
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+# ── Live updates ────────────────────────────────────────────────────────────
+# The channel layer carries WebSocket broadcasts between server processes via
+# Redis. Without REDIS_URL (local runs, tests) it falls back to an in-process
+# layer, which only reaches sockets served by the same process.
+REDIS_URL = os.environ.get("REDIS_URL", "")
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 DATABASES = {
     "default": {
@@ -70,13 +77,8 @@ DATABASES = {
     }
 }
 
-# Accounts are addressed by email; the model keeps `username` in sync with it,
-# so both backends resolve the same user. ModelBackend stays second so the
-# seeded/superuser accounts can still authenticate by username.
-AUTHENTICATION_BACKENDS = [
-    "apps.accounts.auth_backends.EmailBackend",
-    "django.contrib.auth.backends.ModelBackend",
-]
+AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "login"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -87,27 +89,18 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
-USE_I18N = True
 USE_TZ = True
-
-STATIC_URL = "/static/"
-
-# React/Tailwind bundle built by Vite (frontend/). Set VITE_DEV_SERVER_URL to
-# http://localhost:5173 to load the modules from `npm run dev` instead.
-FRONTEND_DIR = PROJECT_ROOT / "frontend"
-FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
-VITE_DEV_SERVER_URL = os.environ.get("VITE_DEV_SERVER_URL", "")
-
-STATICFILES_DIRS = [FRONTEND_DIST_DIR]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "accounts.User"
+# React/Tailwind bundle built by Vite (frontend/). Set VITE_DEV_SERVER_URL to
+# http://localhost:5173 to load the modules from `npm run dev` instead.
+FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
+VITE_DEV_SERVER_URL = os.environ.get("VITE_DEV_SERVER_URL", "")
 
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"
-LOGOUT_REDIRECT_URL = "login"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [FRONTEND_DIST_DIR]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ── TLS ─────────────────────────────────────────────────────────────────────
 # nginx terminates TLS and proxies to Django over the container network, so
@@ -115,7 +108,6 @@ LOGOUT_REDIRECT_URL = "login"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 HTTPS_PORT = os.environ.get("HTTPS_PORT", "8443")
-
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     [f"https://{host}:{HTTPS_PORT}" for host in ALLOWED_HOSTS if host != "*"],
@@ -126,13 +118,6 @@ CSRF_TRUSTED_ORIGINS = env_list(
 SECURE_COOKIES = env_bool("SECURE_COOKIES", True)
 SESSION_COOKIE_SECURE = SECURE_COOKIES
 CSRF_COOKIE_SECURE = SECURE_COOKIES
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
-
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = "same-origin"
-X_FRAME_OPTIONS = "DENY"
 
 # HSTS is only safe once TLS is definitely in place, so it stays off in DEBUG.
 if not DEBUG:

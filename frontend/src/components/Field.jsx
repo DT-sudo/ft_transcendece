@@ -1,3 +1,10 @@
+import { getBootstrap } from '../app/http.js';
+
+/** Hidden CSRF field for forms that submit natively. */
+export function CsrfInput() {
+  return <input type="hidden" name="csrfmiddlewaretoken" value={getBootstrap().csrfToken} readOnly />;
+}
+
 /**
  * Labelled input with its validation message.
  *
@@ -6,15 +13,7 @@
  * character. `aria-invalid` and `aria-describedby` tie the message to the input
  * for screen readers.
  */
-export function Field({
-  id,
-  label,
-  error,
-  hint,
-  required = false,
-  children,
-  ...inputProps
-}) {
+export function Field({ id, label, error, hint, required = false, ...inputProps }) {
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ');
@@ -26,16 +25,14 @@ export function Field({
         {required ? <span aria-hidden="true"> *</span> : null}
       </label>
 
-      {children ?? (
-        <input
-          id={id}
-          className={`form-input ${error ? 'form-error' : ''}`}
-          required={required}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={describedBy || undefined}
-          {...inputProps}
-        />
-      )}
+      <input
+        id={id}
+        className={`form-input ${error ? 'form-error' : ''}`}
+        required={required}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={describedBy || undefined}
+        {...inputProps}
+      />
 
       {hint ? (
         <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">

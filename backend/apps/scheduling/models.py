@@ -7,18 +7,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-def _validate_time_range_and_capacity(*, start_time, end_time, capacity) -> None:
-    errors: dict[str, str] = {}
-    if start_time and end_time and start_time >= end_time:
-        errors["end_time"] = "End time must be after start time."
-    if capacity is not None and capacity < 1:
-        errors["capacity"] = "Capacity must be at least 1."
-    if errors:
-        raise ValidationError(errors)
-
 class Position(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    is_active = models.BooleanField(default=True) 
 
     def clean(self) -> None:
         name = (self.name or "").strip()
@@ -57,12 +47,16 @@ class Shift(models.Model):
 
     class Meta:
         ordering = ["date", "start_time"]
+
     def clean(self) -> None:
-        _validate_time_range_and_capacity(
-            start_time=self.start_time,
-            end_time=self.end_time,
-            capacity=self.capacity,
-        )
+        errors = {}
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            errors["end_time"] = "End time must be after start time."
+        if self.capacity is not None and self.capacity < 1:
+            errors["capacity"] = "Capacity must be at least 1."
+        if errors:
+            raise ValidationError(errors)
+
     @property
     def is_past(self) -> bool:
         dt_end = datetime.combine(self.date, self.end_time, tzinfo=timezone.get_current_timezone())

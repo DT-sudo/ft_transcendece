@@ -1,4 +1,4 @@
-import { getBootstrap } from '../../app/bootstrap.js';
+import { getBootstrap } from '../../app/http.js';
 import { AppShell } from '../../components/AppShell.jsx';
 
 /**

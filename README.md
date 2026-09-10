@@ -57,7 +57,7 @@ mark days they are unavailable, which immediately blocks any assignment on that 
 - Draft/publish workflow — drafts are manager-only until published.
 - Four scheduling rules enforced server-side inside one transaction.
 - Team and position management, with one-time generated credentials.
-- Employee self-service unavailability.
+- Employee self-service unavailability, pushed live to open manager calendars over WebSockets.
 - Email + password sign-up and login, with passwords stored only as salted PBKDF2 hashes.
 - End-to-end HTTPS, with plain HTTP redirected to TLS.
 - Accessible Privacy Policy and Terms of Service.
@@ -144,7 +144,6 @@ cd frontend && npm install && npm run build && cd ..
 
 python manage.py migrate
 python manage.py seed_demo         # optional: demo positions, staff and shifts
-python manage.py createsuperuser   # optional: your own manager account
 python manage.py runserver
 ```
 
@@ -195,7 +194,7 @@ While `ENABLE_DEMO_LOGIN` is on, two seeded accounts let you explore without any
 
 **How the work was organised.** The project was split along feature boundaries that map onto the
 directory layout, so two people rarely touched the same file: the scheduling rule engine
-(`services.py` / `use_cases.py`), the manager calendar, the team-and-positions area, and the
+(`services.py`), the manager calendar, the team-and-positions area, and the
 auth/legal/infrastructure layer. Each feature was taken end to end by its owner — model, view,
 React page and tests — which kept the interfaces between areas explicit.
 
@@ -235,10 +234,13 @@ container queries that shed chip detail as a cell narrows, and scrollbar styling
 |---|---|
 | **Django 6** | Batteries included, and every battery here is one the subject requires: session auth, CSRF middleware, password hashing and validators, an ORM with migrations, and form validation. Building the same guarantees on a microframework would have been the actual project. |
 | **nginx 1.27** | TLS terminator. Keeping TLS out of the application means Django never handles certificates, and the proxy is the only service that publishes a port. |
+| **Django Channels + Daphne** | WebSockets for live updates. Channels adds consumers and group broadcasting on top of Django. Daphne is its ASGI server and also sits behind `runserver`, so one process serves both HTTP and WebSockets. |
+| **Redis 7** | The channel layer that carries broadcasts between server processes. Pure pub/sub with persistence off. Without `REDIS_URL`, local runs and tests use an in-process layer. |
 
-The dependency list is deliberately one line (`Django`). Everything else — the `.env` loader, the
-email auth backend, the Vite manifest template tag — is ~30 lines of project code, which is easier
-to explain at evaluation than an extra dependency.
+The dependency list is deliberately short: Django, plus Channels, Daphne and channels-redis for
+WebSockets. Everything else — the `.env` loader, the email auth backend, the Vite manifest template
+tag — is ~30 lines of project code, which is easier to explain at evaluation than an extra
+dependency.
 
 ### Database
 
@@ -260,9 +262,12 @@ configuration.
 - **Forms stay native.** Every write is a real `<form method="post">` rendered by React, so Django's
   form validation and CSRF middleware work unchanged. Only the unavailability toggle uses `fetch`,
   because it must not reload the calendar.
-- **Rules live in one place.** All four scheduling rules are functions in `services.py`, called
-  inside the `transaction.atomic()` block in `use_cases.py`. Views parse requests and render; they
-  never contain business logic.
+- **Live updates over one WebSocket per page.** Writes stay plain HTTP. Once a change commits, the
+  view broadcasts a small event (`notify_managers()` in `apps/realtime/events.py`, run from
+  `transaction.on_commit`), and open pages patch their state from it. When an employee changes
+  their availability, it reaches every open manager calendar without a reload.
+- **Rules live in one place.** All four scheduling rules and the transactional `save_shift()` are
+  functions in `services.py`. Views parse requests and render; they never contain business logic.
 
 ---
 
@@ -280,7 +285,6 @@ erDiagram
     Position {
         int id PK
         string name UK
-        bool is_active
     }
     User {
         int id PK
@@ -321,8 +325,8 @@ erDiagram
 
 | Table | Key fields | Notes |
 |---|---|---|
-| `User` (`accounts.User`) | `username` (unique, mirrors `email`), `email`, `password` (PBKDF2 hash), `role` (`manager`/`employee`), `employee_id` (unique, auto-generated `EMP-######`), `position_id` (FK, nullable) | Extends `AbstractUser`, so Django's auth, permissions and admin work unchanged |
-| `Position` | `name` (unique, ≤25 chars), `is_active` (bool) | The organisational directory of roles a shift can require |
+| `User` (`accounts.User`) | `username` (unique, mirrors `email`), `email`, `password` (PBKDF2 hash), `role` (`manager`/`employee`), `employee_id` (unique, auto-generated `EMP-######`), `position_id` (FK, nullable) | Extends `AbstractUser`, so Django's auth and password hashing work unchanged |
+| `Position` | `name` (unique, ≤25 chars) | The organisational directory of roles a shift can require |
 | `Shift` | `date`, `start_time`, `end_time`, `capacity` (positive int), `status` (`draft`/`published`), `position_id`, `created_by`, `updated_at` | `Meta.ordering = ["date", "start_time"]` |
 | `Assignment` | `shift_id`, `employee_id` | Join table; unique together as `unique_employee_per_shift` |
 | `EmployeeUnavailability` | `employee_id`, `date` (indexed) | Unique together as `unique_employee_unavailability_day` |
@@ -351,7 +355,7 @@ code: one employee per shift, and one unavailability record per employee per day
 | Feature | Description | Owner |
 |---|---|---|
 | Sign up | Public registration of a manager account with full name, email and password. Server validates uniqueness, format and password strength; the account is created and logged in atomically. | `dtereshc` |
-| Email + password login | Authentication by email address via a custom `EmailBackend`. Case-insensitive, and runs the hasher even for unknown addresses so response time does not reveal whether an account exists. | `dtereshc` |
+| Email + password login | Authentication by email address: every account's `username` mirrors its lowercased email, so the login form lowercases the input and Django's default backend does the rest. Case-insensitive, and the hasher runs even for unknown addresses so response time does not reveal whether an account exists. | `dtereshc` |
 | Logout with confirmation | POST-based logout behind a confirmation modal. | `dtereshc` |
 | Role-based routing | After login, managers land on the schedule and employees on their own calendar; every view is gated by a role decorator. | `<login2>` |
 
@@ -367,6 +371,7 @@ code: one employee per shift, and one unavailability record per employee per day
 | Team management | Create, edit and delete employees; reset a password. Generated passwords are shown exactly once and stored only as a hash. | `<login4>` |
 | Position management | Create and delete the positions employees can hold, with deletion blocked while shifts require them. | `<login4>` |
 | Workload sidebar | Lists active employees with their scheduled hours for the visible period and highlights a person's shifts on click. | `<login2>` |
+| Live availability | When an employee marks or clears a day, open manager calendars update within a second. The sidebar lists that employee's unavailable days, the shift form greys them out for that date, and a toast says who changed what. A status dot shows whether the live connection is up. | `dtereshc` |
 
 ### Employee
 
@@ -397,7 +402,7 @@ Every assignment passes four checks in `backend/apps/scheduling/services.py`:
 | `_check_no_overlap` | An employee cannot hold two shifts whose time ranges overlap; back-to-back shifts are allowed. |
 
 If any check fails, `ValidationError` propagates out of the `transaction.atomic()` block in
-`use_cases.py` and the whole write is rolled back, so a shift is never left half-assigned.
+`save_shift()` and the whole write is rolled back, so a shift is never left half-assigned.
 
 ---
 
@@ -408,41 +413,43 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 │   ├── config/
 │   │   ├── settings.py         # env-driven config, TLS/cookie hardening
 │   │   ├── env.py              # minimal .env loader (no dependency)
+│   │   ├── asgi.py             # HTTP + WebSocket routing (Channels)
 │   │   └── urls.py             # root URLconf
 │   └── apps/
-│       ├── accounts/           # custom User, roles, signup/login, EmailBackend
-│       │   ├── auth_backends.py
-│       │   ├── forms.py        # SignUpForm, EmailAuthenticationForm, employee CRUD
-│       │   ├── views/          # auth.py · employees.py · helpers.py
+│       ├── accounts/           # custom User, roles, signup/login
+│       │   ├── forms.py        # SignUpForm, EmailAuthenticationForm, EmployeeForm
+│       │   ├── views.py        # role decorators, auth, demo logins, employee directory
 │       │   └── tests.py        # auth, validation and legal-page tests
 │       ├── frontend/
-│       │   ├── shell.py        # render_app(): page shell + JSON bootstrap payload
+│       │   ├── shell.py        # render_app(): page shell + JSON payload; flash redirects
 │       │   └── templatetags/   # {% vite_asset %} — manifest → <script>/<link>
 │       ├── legal/
 │       │   ├── documents.py    # Privacy Policy / Terms content
 │       │   └── views.py
+│       ├── realtime/
+│       │   ├── consumers.py    # WebSocket consumer + /ws/schedule/ route
+│       │   └── events.py       # notify_managers(): broadcast once the write commits
 │       └── scheduling/
 │           ├── models.py       # Position, Shift, Assignment, EmployeeUnavailability
-│           ├── services.py     # the four scheduling rules + query helpers
-│           ├── use_cases.py    # transactional save/publish orchestration
+│           ├── services.py     # the four scheduling rules, save/publish, query helpers
 │           ├── tests.py        # rule and visibility tests
-│           └── views/          # employee, manager_shifts, manager_resources
+│           └── views.py        # manager calendar + writes, positions, employee calendar
 ├── frontend/
 │   ├── templates/app.html      # the one Django template: <div id="root"> + payload
-│   ├── vite.config.js          # one build input per page
+│   ├── vite.config.js          # one build input: src/main.jsx
 │   └── src/
-│       ├── entries/            # login · signup · legal · manager-* · employee-shifts
+│       ├── main.jsx            # mounts the page named in the payload
 │       ├── pages/              # auth, legal, calendar, team table, modals
-│       ├── components/         # shell, footer, fields, modals, menus, toasts
-│       ├── app/                # dates, lane layout, palette, CSRF/fetch, validation
+│       ├── components/         # shell + footer, fields, modals, menus, toasts, hooks
+│       ├── app/                # dates, shifts (lanes, palette, availability), http, validation, live socket
 │       └── styles/             # Tailwind theme tokens + component layer
 ├── docker/
 │   ├── entrypoint.sh           # migrate + seed, then start the server
 │   └── nginx/                  # TLS terminator: config template + cert generation
 ├── Dockerfile                  # stage 1 builds the bundle, stage 2 runs Django
-├── docker-compose.yml          # web + proxy, one command
+├── docker-compose.yml          # web + redis + proxy, one command
 ├── .env.example                # committed template; .env itself is ignored
-└── manage.py                   # wrapper so commands run from the project root
+└── manage.py                   # Django CLI, run from the project root
 ```
 
 ### Notable implementation details
@@ -457,7 +464,7 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
   (`hue = (id * 47) % 360`) rather than being stored, so a new position is immediately
   distinguishable without a migration or a colour picker.
 - **One dismissal stack for overlays.** Modals and popovers register in a shared layer stack
-  (`src/components/escape.js`), so Escape and backdrop clicks always resolve the top-most layer
+  (`src/components/hooks.js`), so Escape and backdrop clicks always resolve the top-most layer
   first.
 
 ---
@@ -479,6 +486,10 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
   manager's shift ID returns 404 rather than granting access.
 - **Role-gated views.** `manager_required` / `employee_required` guard every view; unauthenticated
   access redirects to login.
+- **WebSocket access.** Sockets authenticate with the same session cookie. Anonymous sockets and
+  sockets opened from another site (Origin not in `ALLOWED_HOSTS`) are refused. Only managers join
+  the group that receives availability changes. Under Docker, the socket goes through the same TLS
+  proxy (`wss://`).
 - **Secrets.** `SECRET_KEY`, database credentials and host configuration come from `.env`, which is
   ignored by both Git and Docker. The built-in defaults are development-only.
 - **Demo logins are opt-in.** The one-click demo buttons bypass password entry, so they are gated
@@ -514,7 +525,7 @@ Required minimum: **14 points** (Major = 2 pts, Minor = 1 pt).
 
 **What I contributed.** The overall architecture: the decision to render one React entry per Django
 view with an injected JSON payload rather than building a REST API, and the layering that keeps
-views thin, rules in `services.py` and transaction boundaries in `use_cases.py`. I wrote the
+views thin and rules and transaction boundaries in `services.py`. I wrote the
 scheduling rule engine and its tests, the authentication layer (sign-up, the email backend, the
 password-validation wiring), the shared client/server validation, and the TLS/deployment setup.
 
@@ -556,19 +567,22 @@ docker compose exec web python manage.py test apps
 python manage.py test apps
 ```
 
-29 tests covering:
+35 tests covering:
 
 - **Scheduling rules** — all four checks, including the boundary case that back-to-back shifts are
   permitted while overlapping ones are not, and that duplicate IDs are deduplicated before the
   capacity check.
 - **Visibility** — the draft/published split between the manager and employee views.
 - **Sign-up** — role assignment, email normalisation and uniqueness, password hashing, rejection of
-  weak and mismatched passwords, and that registration grants no admin access.
+  weak and mismatched passwords.
 - **Login** — email authentication, case-insensitivity, wrong password, unknown address, and
   inactive accounts.
 - **Server-side validation** — invalid email, missing position and duplicate email posted directly
   to the endpoint, bypassing the browser.
 - **Legal pages** — public reachability, non-placeholder content, and footer links on every page.
+- **Live updates** — the WebSocket consumer (anonymous refused, managers receive events, employees
+  don't), a broadcast on every successful availability toggle and none on a rejected one, and the
+  availability data in the manager page.
 
 ---
 
@@ -623,10 +637,14 @@ written by hand.
 
 - The TLS certificate is self-signed, so browsers show a warning. A real deployment would use a
   certificate from a public CA (e.g. Let's Encrypt).
-- The Docker image runs Django's development server. It is a demo/evaluation environment; a
-  production deployment would put Gunicorn or uWSGI behind the same proxy.
+- The Docker image runs Django's development server (`runserver`, served by Daphne). It is a
+  demo/evaluation environment; a production deployment would run Daphne or Uvicorn workers behind
+  the same proxy.
+- Live updates cover employee availability only. Shift changes by other managers still appear on
+  the next reload. Events sent while a page is offline are not replayed: after reconnecting, the
+  page shows a toast asking for a reload.
 - There is no password-reset-by-email flow. A manager resets an employee's password and hands over
-  the new one; a manager who loses their own password needs a superuser.
+  the new one; a manager who loses their own password needs `python manage.py changepassword <email>`.
 - Positions and employees form a single shared organisational directory rather than being scoped
   per manager. Shifts are scoped per manager.
 - SQLite serialises writes. This is ample for the intended scale but would need PostgreSQL for a

@@ -1,16 +1,44 @@
-"""Shared page shell: every view renders one React entry plus a JSON payload."""
+"""Shared page shell: every view renders one React entry plus a JSON payload.
+
+Also holds the two ways a view answers a form POST: a flash message + redirect
+(shown as a toast) or, for the auth pages, field errors re-rendered in place.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
+from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 APP_TEMPLATE = "app.html"
+
+
+def flash_redirect(request: HttpRequest, level: int, text: str, to: str) -> HttpResponse:
+    """Add a flash message and redirect; the message arrives as a toast."""
+    messages.add_message(request, level, text)
+    return redirect(to)
+
+
+def first_form_error(form, default: str) -> str:
+    """First error on a form as one line, for flows that redirect instead of re-rendering."""
+    for name, errors in form.errors.items():
+        if not errors:
+            continue
+        if name in form.fields:
+            label = form.fields[name].label or name.replace("_", " ").title()
+            return f"{label}: {errors[0]}"
+        return errors[0]
+    return default
+
+
+def field_errors(form) -> dict[str, str]:
+    """Flatten a form's field errors into {field: first message} for React."""
+    return {name: errors[0] for name, errors in form.errors.items() if errors}
 
 
 def _nav_links(user, active: str) -> list[dict[str, Any]]:
@@ -47,7 +75,7 @@ def _user_context(user) -> dict[str, Any] | None:
 def render_app(
     request: HttpRequest,
     *,
-    entry: str,
+    page: str,
     title: str,
     data: dict[str, Any] | None = None,
     description: str = "",
@@ -55,6 +83,7 @@ def render_app(
     nav_active: str = "",
 ) -> HttpResponse:
     bootstrap = {
+        "page": page,
         "csrfToken": get_token(request),
         "user": _user_context(request.user),
         "nav": _nav_links(request.user, nav_active),
@@ -79,7 +108,6 @@ def render_app(
             "page_title": title,
             "page_description": description,
             "body_class": body_class,
-            "vite_entry": f"src/entries/{entry}.jsx",
             "bootstrap": bootstrap,
         },
     )

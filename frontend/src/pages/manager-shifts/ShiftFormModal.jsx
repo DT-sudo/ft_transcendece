@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { isUnavailable } from '../../app/shifts.js';
 import { Modal } from '../../components/Modal.jsx';
 import { SelectPopover } from '../../components/Menus.jsx';
-import { CsrfInput } from '../../components/PostForm.jsx';
+import { CsrfInput } from '../../components/Field.jsx';
 import { useToast } from '../../components/Toasts.jsx';
 
 const FORM_ID = 'shiftForm';
 
-function EmployeeChips({ employees, selectedIds, onRemove, hasPosition }) {
+function EmployeeChips({ employees, selectedIds, unavailableIds, onRemove, hasPosition }) {
   if (!selectedIds.length) {
     return (
       <span className="text-muted-foreground">
@@ -21,9 +22,10 @@ function EmployeeChips({ employees, selectedIds, onRemove, hasPosition }) {
       {selectedIds.map((id) => {
         const employee = employees.find((item) => String(item.id) === String(id));
         const name = employee?.name || 'Employee';
+        const unavailable = unavailableIds.has(String(id));
 
         return (
-          <span className="tag-chip" key={id}>
+          <span className={`tag-chip ${unavailable ? 'tag-chip-warning' : ''}`} key={id}>
             <span
               className="chip-remove"
               role="button"
@@ -43,7 +45,10 @@ function EmployeeChips({ employees, selectedIds, onRemove, hasPosition }) {
             >
               x
             </span>
-            <span className="whitespace-nowrap">{name}</span>
+            <span className="whitespace-nowrap">
+              {name}
+              {unavailable ? ' (unavailable)' : ''}
+            </span>
           </span>
         );
       })}
@@ -52,7 +57,7 @@ function EmployeeChips({ employees, selectedIds, onRemove, hasPosition }) {
 }
 
 /** Create/edit shift form. Submits natively so the server keeps owning the rules. */
-export function ShiftFormModal({ mode, initial, positions, employees, action, returnView, onClose }) {
+export function ShiftFormModal({ mode, initial, positions, employees, availability, action, returnView, onClose }) {
   const showToast = useToast();
   const [form, setForm] = useState(initial);
 
@@ -64,6 +69,22 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
     () => employees.filter((employee) => String(employee.position_id ?? '') === String(form.positionId ?? '')),
     [employees, form.positionId],
   );
+
+  // Recomputed whenever the date changes or an employee updates their availability live.
+  const unavailableIds = useMemo(
+    () =>
+      new Set(
+        employees
+          .filter((employee) => isUnavailable(availability, employee.id, form.date))
+          .map((employee) => String(employee.id)),
+      ),
+    [employees, availability, form.date],
+  );
+
+  const availableEmployees = positionEmployees.filter((employee) => !unavailableIds.has(String(employee.id)));
+  const unavailableSelectedNames = form.employeeIds
+    .filter((id) => unavailableIds.has(String(id)))
+    .map((id) => employees.find((employee) => String(employee.id) === String(id))?.name || 'Employee');
 
   const selectedPosition = positions.find((position) => String(position.id) === String(form.positionId));
 
@@ -87,6 +108,12 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
     if (form.startTime && form.endTime && form.startTime >= form.endTime) {
       event.preventDefault();
       showToast('error', 'Invalid time range', 'End time must be after start time.');
+      return;
+    }
+    // Mirrors the server's availability rule; the server still rejects it on its own.
+    if (unavailableSelectedNames.length) {
+      event.preventDefault();
+      showToast('error', 'Employee unavailable', `${unavailableSelectedNames.join(', ')} cannot work on this date.`);
     }
   };
 
@@ -111,7 +138,7 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
         <form id={FORM_ID} method="post" action={action} onSubmit={handleSubmit}>
           <CsrfInput />
           <input type="hidden" name="return_view" value={returnView} readOnly />
-          <input type="hidden" name="position_id" value={form.positionId ?? ''} readOnly />
+          <input type="hidden" name="position" value={form.positionId ?? ''} readOnly />
           {form.employeeIds.map((id) => (
             <input key={id} type="hidden" name="employee_ids" value={id} readOnly />
           ))}
@@ -221,6 +248,7 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
               <EmployeeChips
                 employees={employees}
                 selectedIds={form.employeeIds}
+                unavailableIds={unavailableIds}
                 hasPosition={Boolean(form.positionId)}
                 onRemove={(id) => toggleEmployee(id, false)}
               />
@@ -236,16 +264,27 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
                   </div>
                 ) : (
                   <div className="max-h-70 overflow-y-auto">
-                    {positionEmployees.map((employee) => (
-                      <label className="multiselect-item" key={employee.id}>
-                        <input
-                          type="checkbox"
-                          checked={form.employeeIds.some((id) => String(id) === String(employee.id))}
-                          onChange={(event) => toggleEmployee(employee.id, event.target.checked)}
-                        />
-                        {employee.name}
-                      </label>
-                    ))}
+                    {positionEmployees.map((employee) => {
+                      const checked = form.employeeIds.some((id) => String(id) === String(employee.id));
+                      const unavailable = unavailableIds.has(String(employee.id));
+
+                      return (
+                        <label
+                          className={`multiselect-item ${unavailable ? 'multiselect-item-disabled' : ''}`}
+                          key={employee.id}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            // Still clickable when already picked, so the pick can be removed.
+                            disabled={unavailable && !checked}
+                            onChange={(event) => toggleEmployee(employee.id, event.target.checked)}
+                          />
+                          <span className="min-w-0 flex-auto truncate">{employee.name}</span>
+                          {unavailable ? <span className="availability-flag">Unavailable</span> : null}
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -253,11 +292,11 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
                   <button
                     className="btn btn-ghost btn-sm"
                     type="button"
-                    disabled={!positionEmployees.length}
+                    disabled={!availableEmployees.length}
                     onClick={() =>
                       setForm((current) => ({
                         ...current,
-                        employeeIds: positionEmployees.map((employee) => String(employee.id)),
+                        employeeIds: availableEmployees.map((employee) => String(employee.id)),
                       }))
                     }
                   >
@@ -274,6 +313,13 @@ export function ShiftFormModal({ mode, initial, positions, employees, action, re
               </>
             )}
           </SelectPopover>
+
+          {unavailableSelectedNames.length ? (
+            <p className="form-error-text mt-1.5" role="alert">
+              {unavailableSelectedNames.join(', ')} {unavailableSelectedNames.length === 1 ? 'is' : 'are'}{' '}
+              unavailable on this date. Remove them before saving.
+            </p>
+          ) : null}
         </div>
       </div>
     </Modal>

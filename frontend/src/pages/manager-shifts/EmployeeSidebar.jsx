@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react';
 
-import { formatHours } from '../../app/dates.js';
-import { initialsFromName, positionPalette } from '../../app/positions.js';
+import { formatDate, formatDuration } from '../../app/dates.js';
+import { initialsFromName, positionPalette, unavailableDaysBetween } from '../../app/shifts.js';
 
 const UNASSIGNED = '__none__';
+const MAX_LISTED_DAYS = 3;
+
+const LIVE_LABELS = {
+  connecting: 'Connecting…',
+  live: 'Live',
+  offline: 'Reconnecting…',
+};
 
 function matchesFilter(employee, filter) {
   if (!filter) return true;
@@ -12,8 +19,38 @@ function matchesFilter(employee, filter) {
   return String(positionId) === String(filter);
 }
 
-/** Team list for the visible period: scheduled hours plus shift highlighting. */
-export function EmployeeSidebar({ employees, positions, minutesByEmployee, activeEmployeeId, onToggleEmployee }) {
+function formatDayList(days) {
+  const listed = days.slice(0, MAX_LISTED_DAYS).map((day) => formatDate(day, { year: false })).join(', ');
+  const rest = days.length - MAX_LISTED_DAYS;
+  return rest > 0 ? `${listed} +${rest}` : listed;
+}
+
+function LiveIndicator({ status }) {
+  return (
+    <span
+      className={`live-indicator live-indicator-${status}`}
+      role="status"
+      title="Employee availability updates in real time"
+    >
+      <span className="live-indicator-dot" aria-hidden="true" />
+      {LIVE_LABELS[status]}
+    </span>
+  );
+}
+
+/** Team list for the visible period: scheduled hours, unavailable days and shift highlighting. */
+export function EmployeeSidebar({
+  employees,
+  positions,
+  minutesByEmployee,
+  availability,
+  periodStart,
+  periodEnd,
+  flashedEmployeeId,
+  liveStatus,
+  activeEmployeeId,
+  onToggleEmployee,
+}) {
   const [positionFilter, setPositionFilter] = useState('');
 
   const visible = useMemo(
@@ -25,15 +62,17 @@ export function EmployeeSidebar({ employees, positions, minutesByEmployee, activ
           key: String(employee.id ?? ''),
           displayName: String(employee.name || '') || 'Employee',
           minutes: minutesByEmployee.get(String(employee.id ?? '')) || 0,
+          unavailableDays: unavailableDaysBetween(availability, employee.id, periodStart, periodEnd),
         }))
         .sort((a, b) => a.displayName.localeCompare(b.displayName) || a.key.localeCompare(b.key)),
-    [employees, positionFilter, minutesByEmployee],
+    [employees, positionFilter, minutesByEmployee, availability, periodStart, periodEnd],
   );
 
   return (
     <aside className="card manager-calendar-fill mt-3" aria-label="Employees">
-      <div className="border-b border-border px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h3 className="card-title">Employees</h3>
+        <LiveIndicator status={liveStatus} />
       </div>
 
       <div className="border-b border-border p-2">
@@ -62,14 +101,21 @@ export function EmployeeSidebar({ employees, positions, minutesByEmployee, activ
         ) : (
           visible.map((employee) => {
             const active = String(activeEmployeeId || '') === employee.key;
+            const flashed = flashedEmployeeId === employee.key;
+            const unavailableText = employee.unavailableDays.length
+              ? `Unavailable: ${formatDayList(employee.unavailableDays)}`
+              : '';
+
             return (
               <button
                 key={employee.key}
                 type="button"
                 role="listitem"
                 aria-pressed={active}
-                aria-label={`Highlight shifts for ${employee.displayName}`}
-                className={`employee-sidebar-item ${active ? 'employee-sidebar-item-active' : ''}`}
+                aria-label={`Highlight shifts for ${employee.displayName}${unavailableText ? `. ${unavailableText}` : ''}`}
+                className={`employee-sidebar-item ${active ? 'employee-sidebar-item-active' : ''} ${
+                  flashed ? 'employee-sidebar-item-updated' : ''
+                }`}
                 onClick={() => onToggleEmployee(employee.key)}
               >
                 <div className="avatar" aria-hidden="true">
@@ -87,10 +133,13 @@ export function EmployeeSidebar({ employees, positions, minutesByEmployee, activ
                     </span>
                     {employee.minutes > 0 ? (
                       <span className="shrink-0 text-xs font-bold text-muted-foreground tabular-nums">
-                        {formatHours(employee.minutes)}
+                        {formatDuration(employee.minutes)}
                       </span>
                     ) : null}
                   </div>
+                  {unavailableText ? (
+                    <div className="employee-sidebar-unavailable truncate">{unavailableText}</div>
+                  ) : null}
                 </div>
               </button>
             );

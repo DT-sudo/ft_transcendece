@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounts.debug_views import ensure_demo_accounts
+from apps.accounts.views import ensure_demo_accounts
 from apps.accounts.models import User, UserRole
 from apps.scheduling.models import Assignment, EmployeeUnavailability, Position, Shift, ShiftStatus
 from apps.scheduling.services import assign_employees_to_shift

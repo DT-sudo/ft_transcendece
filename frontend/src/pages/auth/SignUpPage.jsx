@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { getBootstrap } from '../../app/bootstrap.js';
+import { getBootstrap } from '../../app/http.js';
 import {
   MIN_PASSWORD_LENGTH,
   collectErrors,
@@ -10,7 +10,7 @@ import {
   validatePasswordConfirmation,
 } from '../../app/validation.js';
 import { Field } from '../../components/Field.jsx';
-import { CsrfInput } from '../../components/PostForm.jsx';
+import { CsrfInput } from '../../components/Field.jsx';
 import { AuthLayout, FormError } from './AuthLayout.jsx';
 
 // Same rules the Django SignUpForm applies, so the browser and the server

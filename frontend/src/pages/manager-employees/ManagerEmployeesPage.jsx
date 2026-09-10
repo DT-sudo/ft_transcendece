@@ -1,13 +1,11 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { getBootstrap } from '../../app/bootstrap.js';
-import { urlFromTemplate } from '../../app/http.js';
-import { initialsFromName } from '../../app/positions.js';
+import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
+import { initialsFromName } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { Dropdown } from '../../components/Menus.jsx';
 import { MoreVertical, Plus } from '../../components/Icons.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
-import { PostForm } from '../../components/PostForm.jsx';
 import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeModals.jsx';
 
 function EmployeeRow({ employee, onEdit, onResetPassword, onDelete }) {
@@ -80,19 +78,11 @@ export function ManagerEmployeesPage() {
   const { data } = getBootstrap();
   const { employees, positions, credentials, urls } = data;
 
-  const resetFormRef = useRef(null);
-  const deleteFormRef = useRef(null);
-
   const [employeeForm, setEmployeeForm] = useState(null);
   const [showPositions, setShowPositions] = useState(false);
   const [showCredentials, setShowCredentials] = useState(Boolean(credentials));
   const [pendingReset, setPendingReset] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
-
-  const submitWith = (formRef, template, id) => {
-    formRef.current.action = urlFromTemplate(template, id);
-    formRef.current.submit();
-  };
 
   return (
     <AppShell>
@@ -182,9 +172,6 @@ export function ManagerEmployeesPage() {
         </div>
       </main>
 
-      <PostForm formRef={resetFormRef} action={urls.resetPassword} />
-      <PostForm formRef={deleteFormRef} action={urls.delete} />
-
       {employeeForm ? (
         <EmployeeFormModal
           mode={employeeForm.mode}
@@ -209,7 +196,7 @@ export function ManagerEmployeesPage() {
           message="Are you sure you want to reset the password for:"
           detail={`${pendingReset.employeeId} (${pendingReset.email})`}
           onCancel={() => setPendingReset(null)}
-          onConfirm={() => submitWith(resetFormRef, urls.resetPassword, pendingReset.id)}
+          onConfirm={() => submitPost(urlFromTemplate(urls.resetPassword, pendingReset.id))}
         />
       ) : null}
 
@@ -222,7 +209,7 @@ export function ManagerEmployeesPage() {
           confirmText="Yes, delete"
           destructive
           onCancel={() => setPendingDelete(null)}
-          onConfirm={() => submitWith(deleteFormRef, urls.delete, pendingDelete.id)}
+          onConfirm={() => submitPost(urlFromTemplate(urls.delete, pendingDelete.id))}
         />
       ) : null}
     </AppShell>

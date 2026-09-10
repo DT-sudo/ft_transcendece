@@ -16,8 +16,4 @@ urlpatterns = [
 ]
 
 if settings.ENABLE_DEMO_LOGIN:
-    from . import debug_views
-
-    urlpatterns += [
-        path("login/demo/<str:role>/", debug_views.demo_login, name="demo_login"),
-    ]
+    urlpatterns.append(path("login/demo/<str:role>/", views.demo_login, name="demo_login"))

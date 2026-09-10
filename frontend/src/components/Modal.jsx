@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { X } from './Icons.jsx';
-import { isTopLayer, pushLayer } from './escape.js';
+import { isTopLayer, pushLayer } from './hooks.js';
 
 // Modals stack: Escape and the backdrop only close the top-most one.
 const BASE_Z_INDEX = 5000;
@@ -71,7 +71,6 @@ export function ConfirmModal({
   maxWidth = '520px',
   onCancel,
   onConfirm,
-  confirmForm,
 }) {
   return (
     <Modal title={title} onClose={onCancel} maxWidth={maxWidth}>
@@ -86,9 +85,8 @@ export function ConfirmModal({
         </button>
         <button
           className={`btn ${destructive ? 'btn-destructive' : 'btn-primary'}`}
-          type={confirmForm ? 'submit' : 'button'}
-          form={confirmForm}
-          onClick={confirmForm ? undefined : onConfirm}
+          type="button"
+          onClick={onConfirm}
         >
           {confirmText}
         </button>

@@ -1,5 +1,5 @@
-import { formatDateDMY, formatDurationMinutes, shiftDurationMinutes } from '../../app/dates.js';
-import { initialsFromName } from '../../app/positions.js';
+import { formatDuration, formatDate, shiftDurationMinutes } from '../../app/dates.js';
+import { initialsFromName } from '../../app/shifts.js';
 import { CalendarIcon } from '../../components/Icons.jsx';
 import { Modal } from '../../components/Modal.jsx';
 
@@ -35,12 +35,12 @@ export function ShiftDetailsModal({ shift, assignedEmployees, onClose, onEdit, o
         <div className="flex items-center gap-3">
           <CalendarIcon className="text-muted-foreground" />
           <div>
-            <div className="font-medium">{formatDateDMY(shift.date)}</div>
+            <div className="font-medium">{formatDate(shift.date)}</div>
             <div className="text-sm text-muted-foreground">
               {shift.start_time}-{shift.end_time}
             </div>
             <div className="text-sm text-muted-foreground">
-              Duration: {formatDurationMinutes(shiftDurationMinutes(shift))}
+              Duration: {formatDuration(shiftDurationMinutes(shift))}
             </div>
           </div>
         </div>

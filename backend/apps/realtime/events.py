@@ -1,0 +1,32 @@
+"""Push schedule changes to the pages that are open right now."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.db import transaction
+
+logger = logging.getLogger(__name__)
+
+# Employees and positions are one shared directory today, so every manager sees
+# every employee's availability. Becomes a per-organization group later.
+MANAGERS_GROUP = "managers"
+
+
+def _send(group: str, event: dict[str, Any]) -> None:
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    try:
+        async_to_sync(layer.group_send)(group, {"type": "schedule.event", "event": event})
+    except Exception:
+        # The write has already committed; a broadcast failure must not turn it into an error.
+        logger.exception("Could not broadcast %s", event.get("type"))
+
+
+def notify_managers(event: dict[str, Any]) -> None:
+    """Send `event` to every connected manager once the current transaction commits."""
+    transaction.on_commit(lambda: _send(MANAGERS_GROUP, event))

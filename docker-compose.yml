@@ -20,8 +20,20 @@ services:
       ENABLE_DEMO_LOGIN: "${ENABLE_DEMO_LOGIN:-1}"
       SECURE_COOKIES: "${SECURE_COOKIES:-1}"
       HTTPS_PORT: "${HTTPS_PORT:-8443}"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      - redis
     volumes:
       - db_data:/app/data
+    networks:
+      - planshift
+    restart: unless-stopped
+
+  # Channel layer for WebSocket broadcasts. Pure pub/sub with nothing to
+  # persist, and like Django it is reachable only on the internal network.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
     networks:
       - planshift
     restart: unless-stopped

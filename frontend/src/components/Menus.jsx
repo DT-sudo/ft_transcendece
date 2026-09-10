@@ -9,7 +9,7 @@ const FIXED_MENU_MIN_WIDTH = 160;
  * Button + menu panel. `fixed` lifts the menu out of clipping ancestors
  * (table cells with their own scroll container) by positioning it viewport-fixed.
  */
-export function Dropdown({ trigger, children, fixed = false, menuClassName = '' }) {
+export function Dropdown({ trigger, children, fixed = false }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState(null);
   const triggerRef = useRef(null);
@@ -46,7 +46,7 @@ export function Dropdown({ trigger, children, fixed = false, menuClassName = '' 
       {open ? (
         <div
           ref={menuRef}
-          className={`dropdown-menu ${fixed ? 'dropdown-menu-fixed' : ''} ${menuClassName}`}
+          className={`dropdown-menu ${fixed ? 'dropdown-menu-fixed' : ''}`}
           style={fixed && position ? { top: position.top, left: position.left, right: 'auto' } : undefined}
         >
           {typeof children === 'function' ? children({ close: () => setOpen(false) }) : children}
@@ -57,25 +57,15 @@ export function Dropdown({ trigger, children, fixed = false, menuClassName = '' 
 }
 
 /** Multiselect-styled popover: an outline button that opens a panel below it. */
-export function SelectPopover({
-  label,
-  children,
-  full = false,
-  disabled = false,
-  ariaLabel,
-  menuClassName = '',
-  triggerClassName = '',
-  className = '',
-}) {
+export function SelectPopover({ label, children, full = false, ariaLabel, menuClassName = '', className = '' }) {
   const [open, setOpen] = useState(false);
   const containerRef = useDismiss(open, () => setOpen(false));
 
   return (
     <div className={`multiselect ${full ? 'multiselect-full' : ''} ${className}`} ref={containerRef}>
       <button
-        className={`btn btn-outline btn-sm multiselect-trigger ${triggerClassName}`}
+        className="btn btn-outline btn-sm multiselect-trigger"
         type="button"
-        disabled={disabled}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}

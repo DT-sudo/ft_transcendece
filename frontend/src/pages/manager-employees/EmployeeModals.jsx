@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { urlFromTemplate } from '../../app/http.js';
+import { submitPost, urlFromTemplate } from '../../app/http.js';
+import { CsrfInput } from '../../components/Field.jsx';
 import { Trash } from '../../components/Icons.jsx';
 import { ConfirmModal, Modal } from '../../components/Modal.jsx';
-import { CsrfInput, PostForm } from '../../components/PostForm.jsx';
 
 function PositionSelect({ id, positions, value, onChange }) {
   return (
@@ -106,19 +106,6 @@ export function EmployeeFormModal({ mode, action, initial = EMPTY_EMPLOYEE, posi
   );
 }
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    textarea.remove();
-  }
-}
-
 export function CredentialsModal({ credentials, onClose }) {
   const rows = [
     { label: 'Login', value: credentials.login },
@@ -146,7 +133,7 @@ export function CredentialsModal({ credentials, onClose }) {
                 <button
                   className="btn btn-ghost btn-sm"
                   type="button"
-                  onClick={() => copyText(row.value)}
+                  onClick={() => navigator.clipboard.writeText(row.value)}
                 >
                   Copy
                 </button>
@@ -165,12 +152,6 @@ export function CredentialsModal({ credentials, onClose }) {
 
 export function PositionsModal({ positions, urls, onClose }) {
   const [pendingDelete, setPendingDelete] = useState(null);
-  const deleteFormRef = useRef(null);
-
-  const submitDelete = () => {
-    deleteFormRef.current.action = urlFromTemplate(urls.positionDelete, pendingDelete.id);
-    deleteFormRef.current.submit();
-  };
 
   return (
     <>
@@ -194,7 +175,6 @@ export function PositionsModal({ positions, urls, onClose }) {
                 placeholder="New position name (e.g., Barista)"
                 required
               />
-              <input type="hidden" name="is_active" value="on" readOnly />
               <button className="btn btn-primary btn-sm" type="submit">
                 Add position
               </button>
@@ -242,8 +222,6 @@ export function PositionsModal({ positions, urls, onClose }) {
         </div>
       </Modal>
 
-      <PostForm formRef={deleteFormRef} action={urls.positionDelete} />
-
       {pendingDelete ? (
         <ConfirmModal
           title="Delete position"
@@ -253,7 +231,7 @@ export function PositionsModal({ positions, urls, onClose }) {
           confirmText="Yes, delete"
           destructive
           onCancel={() => setPendingDelete(null)}
-          onConfirm={submitDelete}
+          onConfirm={() => submitPost(urlFromTemplate(urls.positionDelete, pendingDelete.id))}
         />
       ) : null}
     </>

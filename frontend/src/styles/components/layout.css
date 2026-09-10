@@ -36,10 +36,10 @@
     align-items: start;
   }
 
-  /* Sidebar and calendar card both fill the viewport below the toolbar */
+  /* Sidebar and calendar card both fill the viewport left below the header,
+     toolbar and legend bar (≈ 11rem together). */
   .manager-calendar-fill {
-    height: var(--manager-calendar-fill-height);
-    min-height: 400px;
+    height: max(400px, calc(100vh - 11rem));
     display: flex;
     flex-direction: column;
   }
@@ -77,6 +77,60 @@
   .employee-sidebar-item-active {
     border-color: hsl(38 92% 50% / 0.55);
     box-shadow: 0 0 0 3px hsl(38 92% 50% / 0.12);
+  }
+
+  .employee-sidebar-unavailable {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-destructive-hover);
+  }
+
+  /* A live change from an employee briefly outlines their row. */
+  .employee-sidebar-item-updated {
+    border-color: var(--color-primary);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .employee-sidebar-item-updated {
+      animation: employee-sidebar-flash 1.6s ease-out;
+    }
+  }
+
+  @keyframes employee-sidebar-flash {
+    from {
+      box-shadow: 0 0 0 4px hsl(221 83% 53% / 0.35);
+    }
+    to {
+      box-shadow: 0 0 0 0 hsl(221 83% 53% / 0);
+    }
+  }
+
+  /* ── Live connection indicator ── */
+
+  .live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    white-space: nowrap;
+  }
+
+  .live-indicator-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-shift-past);
+  }
+
+  .live-indicator-live .live-indicator-dot {
+    background: var(--color-shift-published);
+  }
+
+  .live-indicator-offline .live-indicator-dot {
+    background: var(--color-warning);
   }
 
   /* ── Fixed position legend bar ── */

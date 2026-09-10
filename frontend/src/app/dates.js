@@ -79,36 +79,18 @@ export function shiftDurationMinutes(shift) {
   return Math.max(0, parseTimeToMinutes(shift?.end_time) - parseTimeToMinutes(shift?.start_time));
 }
 
-export function formatDurationMinutes(minutes) {
-  const total = Math.max(0, parseInt(minutes, 10) || 0);
-  const hours = Math.floor(total / 60);
-  const rest = total % 60;
-
-  if (hours > 0 && rest > 0) return `${hours}h ${rest}m`;
-  if (hours > 0) return `${hours}h`;
-  return `${rest}m`;
+/** "8h", "7h 30m", "45m". */
+export function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return [hours && `${hours}h`, (rest || !hours) && `${rest}m`].filter(Boolean).join(' ');
 }
 
-export function formatHours(minutes) {
-  const rounded = Math.round((minutes / 60) * 10) / 10;
-  return `${String(rounded).replace(/\.0$/, '')}h`;
-}
-
-export function formatDateDMY(iso) {
+/** "Sat, 19 Sept" or, with the year, "Sat, 19 Sept 2026". */
+export function formatDate(iso, { year = true } = {}) {
   const date = dateFromISO(iso);
   if (!date) return String(iso || '');
-  return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
-}
-
-export function formatPrettyDate(iso) {
-  const date = dateFromISO(iso);
-  if (!date) return String(iso || '');
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: year ? 'numeric' : undefined });
 }
 
 /** Merge query parameters into the current URL and reload the page. */

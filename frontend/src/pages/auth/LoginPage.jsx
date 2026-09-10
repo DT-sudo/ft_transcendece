@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-import { getBootstrap } from '../../app/bootstrap.js';
+import { getBootstrap } from '../../app/http.js';
 import { collectErrors, validateEmail, validateRequired } from '../../app/validation.js';
 import { Field } from '../../components/Field.jsx';
-import { CsrfInput } from '../../components/PostForm.jsx';
+import { CsrfInput } from '../../components/Field.jsx';
 import { AuthLayout, FormError } from './AuthLayout.jsx';
 
 const VALIDATORS = {

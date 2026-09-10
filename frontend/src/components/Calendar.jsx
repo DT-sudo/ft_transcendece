@@ -3,16 +3,16 @@ import { useMemo } from 'react';
 import { WEEKDAY_LABELS, monthMatrix } from '../app/dates.js';
 import { ChevronLeft, ChevronRight } from './Icons.jsx';
 
-export function CalendarNav({ onPrev, onToday, onNext, prevLabel = 'Previous period', nextLabel = 'Next period' }) {
+export function CalendarNav({ onPrev, onToday, onNext }) {
   return (
     <div className="flex items-center gap-2">
-      <button className="btn btn-outline btn-icon" type="button" onClick={onPrev} aria-label={prevLabel}>
+      <button className="btn btn-outline btn-icon" type="button" onClick={onPrev} aria-label="Previous period">
         <ChevronLeft />
       </button>
       <button className="btn btn-outline btn-sm" type="button" onClick={onToday}>
         Today
       </button>
-      <button className="btn btn-outline btn-icon" type="button" onClick={onNext} aria-label={nextLabel}>
+      <button className="btn btn-outline btn-icon" type="button" onClick={onNext} aria-label="Next period">
         <ChevronRight />
       </button>
     </div>
@@ -20,19 +20,11 @@ export function CalendarNav({ onPrev, onToday, onNext, prevLabel = 'Previous per
 }
 
 /** Six-week month grid shared by the manager and employee calendars. */
-export function MonthCalendar({
-  anchorISO,
-  todayISO,
-  ariaLabel,
-  className = '',
-  dayClassName,
-  renderDay,
-  onDayClick,
-}) {
+export function MonthCalendar({ anchorISO, todayISO, ariaLabel, dayClassName, renderDay, onDayClick }) {
   const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO]);
 
   return (
-    <div className={`calendar-grid calendar-grid-month ${className}`} aria-label={ariaLabel}>
+    <div className="calendar-grid calendar-grid-month" aria-label={ariaLabel}>
       {WEEKDAY_LABELS.map((label) => (
         <div className="calendar-header-cell" key={label}>
           {label}
