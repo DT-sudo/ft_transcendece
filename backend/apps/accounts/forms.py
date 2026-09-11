@@ -4,8 +4,6 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, BaseUserCreationForm
 from django.core.exceptions import ValidationError
 
-from apps.scheduling.models import Position
-
 from .models import User, UserRole
 
 
@@ -78,7 +76,6 @@ class EmployeeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["email"].required = True
-        self.fields["position"].queryset = Position.objects.order_by("name")
         self.fields["position"].required = True
 
     def clean_email(self) -> str:

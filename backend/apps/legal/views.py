@@ -8,7 +8,7 @@ prose lives in `documents.py` and is rendered by the shared React shell.
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.http import require_GET
 
-from apps.frontend.shell import render_app
+from apps.shell import render_app
 
 
 @require_GET
@@ -17,6 +17,5 @@ def legal_page(request: HttpRequest, document: dict) -> HttpResponse:
         request,
         page="legal",
         title=document["title"],
-        description=document["summary"],
         data={"document": document},
     )

@@ -22,15 +22,7 @@ function useModalLayer(onClose) {
   return { zIndex: BASE_Z_INDEX + layer.depth, isTop: layer.isTop };
 }
 
-export function Modal({
-  title,
-  onClose,
-  children,
-  footer,
-  maxWidth = '500px',
-  className = '',
-  titleExtra = null,
-}) {
+export function Modal({ title, onClose, children, footer, maxWidth = '500px', titleExtra = null }) {
   const { zIndex, isTop } = useModalLayer(onClose);
 
   return (
@@ -41,7 +33,7 @@ export function Modal({
         if (event.target === event.currentTarget && isTop()) onClose?.();
       }}
     >
-      <div className={`modal ${className}`} style={{ maxWidth }} role="dialog" aria-modal="true">
+      <div className="modal" style={{ maxWidth }} role="dialog" aria-modal="true">
         <div className="modal-header">
           <div className="flex min-w-0 items-center gap-3">
             <h2 className="modal-title truncate">{title}</h2>
@@ -60,20 +52,9 @@ export function Modal({
   );
 }
 
-export function ConfirmModal({
-  title,
-  message,
-  detail,
-  footnote,
-  confirmText = 'Yes',
-  cancelText = 'No',
-  destructive = false,
-  maxWidth = '520px',
-  onCancel,
-  onConfirm,
-}) {
+export function ConfirmModal({ title, message, detail, footnote, confirmText = 'Yes', destructive = false, onCancel, onConfirm }) {
   return (
-    <Modal title={title} onClose={onCancel} maxWidth={maxWidth}>
+    <Modal title={title} onClose={onCancel}>
       <div className="modal-body">
         <p className="text-sm">{message}</p>
         {detail ? <p className="mt-2 font-medium">{detail}</p> : null}
@@ -81,7 +62,7 @@ export function ConfirmModal({
       </div>
       <div className="modal-footer">
         <button className="btn btn-outline" type="button" onClick={onCancel}>
-          {cancelText}
+          No
         </button>
         <button
           className={`btn ${destructive ? 'btn-destructive' : 'btn-primary'}`}

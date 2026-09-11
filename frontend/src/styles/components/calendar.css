@@ -1,5 +1,5 @@
 /* ============================================================
-   Shift chips and calendar grids
+   Shift chips and the month calendar
    ============================================================ */
 
 @layer components {
@@ -12,32 +12,17 @@
     align-items: stretch;
     justify-content: flex-start;
     width: 100%;
-    text-align: left;
+    text-align: start;
     padding: 0.375rem 0.5rem;
     font-size: 0.75rem;
     font-weight: 500;
     border-radius: var(--radius-card);
     cursor: pointer;
     line-height: 1.15;
-    transition:
-      box-shadow 0.12s cubic-bezier(0.2, 0.9, 0.2, 1),
-      transform 0.12s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .shift-chip:hover {
     box-shadow: var(--shadow-card);
-  }
-
-  /* Absolutely positioned variant used by the week time grid */
-  .shift-chip-timed {
-    position: absolute;
-    margin: 0;
-    z-index: 1;
-    overflow: hidden;
-  }
-
-  .shift-chip-highlight {
-    box-shadow: 0 0 0 2px var(--color-warning), 0 2px 10px rgb(0 0 0 / 0.12);
   }
 
   .shift-chip-future,
@@ -59,23 +44,6 @@
     border: 2px dashed var(--color-border);
   }
 
-  /* Position colour is injected as inline custom properties */
-  .shift-chip-position {
-    background-color: var(--position-bg);
-    color: var(--position-fg);
-    border-color: var(--position-border);
-  }
-
-  .shift-chip-past.shift-chip-position {
-    opacity: 0.75;
-  }
-
-  .shift-chip-time,
-  .shift-chip-qty,
-  .shift-chip-duration {
-    font-variant-numeric: tabular-nums;
-  }
-
   .shift-chip-truncate {
     min-width: 0;
     overflow: hidden;
@@ -83,8 +51,7 @@
     white-space: nowrap;
   }
 
-  /* ── Manager month chips (compact, container-query driven) ── */
-
+  /* Manager chips: one compact row that sheds detail as the cell narrows */
   .month-shift-chip {
     height: 30px;
     padding: 0.1rem 0.25rem;
@@ -108,20 +75,25 @@
     }
   }
 
-  /* ── Calendar shared ── */
+  /* ── Month calendar: 7 columns, a sticky weekday row, 6 week rows ── */
 
   .calendar-grid {
     display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: 32px repeat(6, minmax(140px, 1fr));
+    height: clamp(520px, 72vh, 980px);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     overflow: auto;
   }
 
-  .calendar-header-cell,
-  .week-corner,
-  .week-day-header {
-    padding: 0.75rem;
-    text-align: center;
+  .calendar-header-cell {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -133,18 +105,24 @@
   }
 
   .calendar-cell {
-    min-height: 120px;
-    padding: 0.5rem;
+    overflow: auto;
+    scrollbar-width: thin;
     border-right: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-card);
   }
 
+  /* The weekday row counts as the first 7 siblings, so every 7th element ends a row. */
+  .calendar-header-cell:nth-child(7),
+  .calendar-cell:nth-child(7n) {
+    border-right: none;
+  }
+
   .calendar-date {
+    padding: 0.25rem 0.25rem 0.15rem;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-foreground);
-    margin-bottom: 0.5rem;
   }
 
   .calendar-cell-today {
@@ -177,129 +155,10 @@
     white-space: nowrap;
   }
 
-  /* ── Week (time) grid ── */
-
-  .calendar-grid-week {
-    --week-hour-label-width: 72px;
-    --week-day-col-width: 240px;
-    --week-hour-height: 56px;
-    grid-template-rows: auto repeat(24, var(--week-hour-height));
-    height: clamp(520px, 72vh, 980px);
-    position: relative;
-  }
-
-  .week-corner,
-  .week-day-header {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-  }
-
-  .week-corner {
-    left: 0;
-    z-index: 60;
-  }
-
-  .week-day-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .week-hour-label {
-    position: sticky;
-    left: 0;
-    z-index: 25;
-    background-color: var(--color-muted);
-    border-right: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-foreground);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .week-cell {
-    border-right: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-card);
-  }
-
-  .week-cell:hover {
-    background-color: var(--color-hover);
-  }
-
-  .week-shifts-layer {
-    position: relative;
-    z-index: 5;
-    pointer-events: none;
-  }
-
-  .week-shifts-layer .shift-chip {
-    pointer-events: auto;
-  }
-
-  /* ── Month grid ── */
-
-  .calendar-grid-month {
-    --slot-scrollbar-safe: 8px;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    grid-template-rows: 32px repeat(6, minmax(140px, 1fr));
-    height: clamp(520px, 72vh, 980px);
-  }
-
-  .calendar-grid-month .calendar-header-cell {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .calendar-grid-month .calendar-header-cell:nth-child(7),
-  .calendar-grid-month .calendar-cell:nth-child(7n) {
-    border-right: none;
-  }
-
-  .calendar-grid-month .calendar-cell {
-    min-height: 0;
-    overflow: auto;
-    padding: 0;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(15 23 42 / 0.28) transparent;
-  }
-
-  .calendar-grid-month .calendar-cell::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .calendar-grid-month .calendar-cell::-webkit-scrollbar-thumb {
-    background-color: rgb(15 23 42 / 0.28);
-    border-radius: 999px;
-  }
-
-  .calendar-grid-month .calendar-cell::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .calendar-grid-month .calendar-date {
-    margin-bottom: 0;
-    padding: 0.25rem 0.25rem 0.15rem;
-  }
-
-  /* Chip stack inside a month cell, offset for the scrollbar gutter */
   .month-cell-shifts {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    padding: 0 calc(0.25rem + var(--slot-scrollbar-safe)) 0.25rem 0.25rem;
+    padding: 0 0.25rem 0.25rem;
   }
 }

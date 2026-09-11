@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
 from apps.accounts.models import User, UserRole
-from apps.frontend.shell import first_form_error
+from apps.shell import first_form_error
 
 from .forms import ShiftForm
 from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
@@ -84,13 +84,9 @@ def save_shift(shift: Shift, post_data) -> Shift:
     return saved
 
 
-def publish_shift(shift: Shift) -> bool:
-    """Publish a draft; returns False when it was already published."""
-    if shift.status == ShiftStatus.PUBLISHED:
-        return False
+def publish_shift(shift: Shift) -> None:
     shift.status = ShiftStatus.PUBLISHED
     shift.save(update_fields=["status", "updated_at"])
-    return True
 
 
 def publish_shifts_in_period(*, manager_id: int, start: date, end: date) -> int:
@@ -130,5 +126,4 @@ def shifts_for_employee(*, employee_id: int, start: date, end: date):
             status=ShiftStatus.PUBLISHED,
         )
         .select_related("position")
-        .distinct()
     )

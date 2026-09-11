@@ -1,76 +1,21 @@
-import { useState } from 'react';
-
 import { getBootstrap } from '../../app/http.js';
-import {
-  MIN_PASSWORD_LENGTH,
-  collectErrors,
-  validateEmail,
-  validateFullName,
-  validatePassword,
-  validatePasswordConfirmation,
-} from '../../app/validation.js';
-import { Field } from '../../components/Field.jsx';
-import { CsrfInput } from '../../components/Field.jsx';
+import { CsrfInput, Field } from '../../components/Field.jsx';
 import { AuthLayout, FormError } from './AuthLayout.jsx';
 
-// Same rules the Django SignUpForm applies, so the browser and the server
-// disagree only when the server knows something extra (e.g. email taken).
-const VALIDATORS = {
-  fullName: (value) => validateFullName(value),
-  email: (value) => validateEmail(value),
-  password1: (value, values) =>
-    validatePassword(value, { email: values.email, fullName: values.fullName }),
-  password2: (value, values) => validatePasswordConfirmation(values.password1, value),
-};
-
-// Django field name -> the name this form uses for it.
-const SERVER_FIELDS = { full_name: 'fullName', email: 'email', password1: 'password1', password2: 'password2' };
-
-function mapServerErrors(fieldErrors = {}) {
-  const mapped = {};
-  for (const [field, message] of Object.entries(fieldErrors)) {
-    mapped[SERVER_FIELDS[field] || field] = message;
-  }
-  return mapped;
-}
-
+/** Native form: the browser checks required/type/length, Django validates and re-renders field errors. */
 export function SignUpPage() {
-  const { data, messages } = getBootstrap();
-
-  const [values, setValues] = useState({
-    fullName: data.values?.fullName || '',
-    email: data.values?.email || '',
-    password1: '',
-    password2: '',
-  });
-  const [touched, setTouched] = useState({});
-  const [serverErrors, setServerErrors] = useState(mapServerErrors(data.fieldErrors));
-
-  const errors = collectErrors(values, VALIDATORS);
-
-  const update = (field) => (event) => {
-    setValues({ ...values, [field]: event.target.value });
-    setServerErrors({ ...serverErrors, [field]: '' });
-  };
-  const blur = (field) => () => setTouched({ ...touched, [field]: true });
-  const errorFor = (field) => serverErrors[field] || (touched[field] ? errors[field] : '');
-
-  const submit = (event) => {
-    if (Object.keys(errors).length > 0) {
-      event.preventDefault();
-      setTouched({ fullName: true, email: true, password1: true, password2: true });
-    }
-  };
+  const { data, messages, urls } = getBootstrap();
+  const errors = data.fieldErrors;
 
   return (
     <AuthLayout
       title="Create your account"
       subtitle="Set up a manager account and start scheduling your team"
-      messages={messages || []}
+      messages={messages}
     >
       <FormError message={data.error} />
 
-      <form className="mt-3" method="post" action={data.urls.signup} noValidate onSubmit={submit}>
+      <form className="mt-3" method="post" action={data.urls.signup}>
         <CsrfInput />
 
         <Field
@@ -81,10 +26,9 @@ export function SignUpPage() {
           placeholder="Jane Doe"
           autoComplete="name"
           required
-          value={values.fullName}
-          error={errorFor('fullName')}
-          onChange={update('fullName')}
-          onBlur={blur('fullName')}
+          minLength={2}
+          defaultValue={data.values.fullName}
+          error={errors.full_name}
         />
 
         <Field
@@ -96,10 +40,8 @@ export function SignUpPage() {
           autoComplete="email"
           hint="You will use this address to sign in."
           required
-          value={values.email}
-          error={errorFor('email')}
-          onChange={update('email')}
-          onBlur={blur('email')}
+          defaultValue={data.values.email}
+          error={errors.email}
         />
 
         <Field
@@ -109,12 +51,10 @@ export function SignUpPage() {
           label="Password"
           placeholder="At least 8 characters"
           autoComplete="new-password"
-          hint={`Minimum ${MIN_PASSWORD_LENGTH} characters, not entirely numeric, and not similar to your name or email.`}
+          hint="Minimum 8 characters, not entirely numeric, and not similar to your name or email."
           required
-          value={values.password1}
-          error={errorFor('password1')}
-          onChange={update('password1')}
-          onBlur={blur('password1')}
+          minLength={8}
+          error={errors.password1}
         />
 
         <Field
@@ -125,10 +65,8 @@ export function SignUpPage() {
           placeholder="Repeat your password"
           autoComplete="new-password"
           required
-          value={values.password2}
-          error={errorFor('password2')}
-          onChange={update('password2')}
-          onBlur={blur('password2')}
+          minLength={8}
+          error={errors.password2}
         />
 
         <button type="submit" className="btn btn-primary w-full">
@@ -138,11 +76,11 @@ export function SignUpPage() {
 
       <p className="mt-5 text-center text-xs text-muted-foreground">
         By creating an account you agree to our{' '}
-        <a className="underline hover:text-foreground" href={getBootstrap().urls?.terms || '/terms/'}>
+        <a className="underline hover:text-foreground" href={urls.terms}>
           Terms of Service
         </a>{' '}
         and{' '}
-        <a className="underline hover:text-foreground" href={getBootstrap().urls?.privacy || '/privacy/'}>
+        <a className="underline hover:text-foreground" href={urls.privacy}>
           Privacy Policy
         </a>
         .

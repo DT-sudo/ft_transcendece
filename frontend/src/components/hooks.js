@@ -54,14 +54,3 @@ export function useDismiss(open, onDismiss) {
 
   return ref;
 }
-
-/** Restore a fresh page when the browser serves it from the back/forward cache. */
-export function useReloadOnBackForward() {
-  useEffect(() => {
-    const onPageShow = (event) => {
-      if (event.persisted) window.location.reload();
-    };
-    window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, []);
-}

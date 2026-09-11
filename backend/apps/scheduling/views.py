@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from django.contrib import messages
@@ -17,7 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.views import employee_required, manager_required
 from apps.accounts.models import User, UserRole
-from apps.frontend.shell import first_form_error, flash_redirect, render_app
+from apps.shell import first_form_error, flash_redirect, render_app
 from apps.realtime.events import notify_managers
 
 from .forms import PositionForm
@@ -47,29 +46,6 @@ def _month_bounds(anchor: date) -> tuple[date, date]:
     return start, next_month - timedelta(days=1)
 
 
-@dataclass(frozen=True)
-class Period:
-    view: str
-    anchor: date
-    start: date
-    end: date
-    label: str
-
-
-def _period(view_raw: str | None, anchor: date) -> Period:
-    if (view_raw or "").lower() == "month":
-        start, end = _month_bounds(anchor)
-        return Period("month", anchor, start, end, anchor.strftime("%B %Y"))
-
-    start = anchor - timedelta(days=anchor.weekday())
-    end = start + timedelta(days=6)
-    if (start.month, start.year) == (end.month, end.year):
-        label = f"{start:%d}. - {end:%d}. {start:%b}"
-    else:
-        label = f"{start:%d}. {start:%b} - {end:%d}. {end:%b}"
-    return Period("week", anchor, start, end, label)
-
-
 # ── Manager calendar ────────────────────────────────────────────────────────
 
 
@@ -77,10 +53,9 @@ def _manager_shift_or_404(request: HttpRequest, shift_id: int) -> Shift:
     return get_object_or_404(Shift, pk=shift_id, created_by=request.user)
 
 
-def _calendar_url(request: HttpRequest, shift: Shift) -> str:
-    """The manager calendar, in the view the form was opened from, showing the shift's date."""
-    view = request.POST.get("return_view", "week")
-    return f"{reverse('manager_shifts')}?view={view if view in {'week', 'month'} else 'week'}&date={shift.date.isoformat()}"
+def _calendar_url(shift: Shift) -> str:
+    """The manager calendar showing the shift's month."""
+    return f"{reverse('manager_shifts')}?date={shift.date.isoformat()}"
 
 
 def _shift_payload(shift_qs) -> list[dict]:
@@ -120,7 +95,8 @@ def _unavailability_payload(*, since: date) -> dict[str, list[str]]:
 @require_GET
 def manager_shifts(request: HttpRequest) -> HttpResponse:
     today = timezone.localdate()
-    period = _period(request.GET.get("view"), _parse_date(request.GET.get("date"), today))
+    anchor = _parse_date(request.GET.get("date"), today)
+    start, end = _month_bounds(anchor)
 
     selected_positions = [int(p) for p in request.GET.getlist("positions") if p.isdigit()]
     status = (request.GET.get("status") or "").lower()
@@ -128,8 +104,8 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
 
     shift_qs = shifts_for_manager(
         manager_id=request.user.id,
-        start=period.start,
-        end=period.end,
+        start=start,
+        end=end,
         position_ids=selected_positions or None,
         status=status or None,
         understaffed_only=understaffed,
@@ -144,16 +120,12 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
         request,
         page="manager-shifts",
         title="Shift Management",
-        description="PlanShift - Manage employee shifts",
-        body_class="manager-shifts-page",
         nav_active="manager_shifts",
         data={
-            "view": period.view,
-            "anchor": period.anchor.isoformat(),
-            "start": period.start.isoformat(),
-            "end": period.end.isoformat(),
+            "anchor": anchor.isoformat(),
+            "start": start.isoformat(),
+            "end": end.isoformat(),
             "today": today.isoformat(),
-            "periodLabel": period.label,
             "positions": [{"id": p.id, "name": p.name} for p in Position.objects.order_by("name")],
             "employees": [
                 {
@@ -165,7 +137,7 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
                 for e in employees
             ],
             # Not bounded by the visible period: the shift form can be set to any upcoming date.
-            "unavailability": _unavailability_payload(since=min(period.start, today)),
+            "unavailability": _unavailability_payload(since=min(start, today)),
             "shifts": _shift_payload(shift_qs),
             "filters": {"positions": selected_positions, "status": status, "understaffed": understaffed},
             "urls": {
@@ -189,7 +161,7 @@ def save_shift_view(request: HttpRequest, shift_id: int | None = None) -> HttpRe
     except ValidationError as exc:
         return flash_redirect(request, messages.ERROR, " ".join(exc.messages), "manager_shifts")
     return flash_redirect(
-        request, messages.SUCCESS, "Shift updated." if is_update else "Shift created.", _calendar_url(request, saved)
+        request, messages.SUCCESS, "Shift updated." if is_update else "Shift created.", _calendar_url(saved)
     )
 
 
@@ -204,17 +176,16 @@ def delete_shift(request: HttpRequest, shift_id: int) -> HttpResponse:
 @require_POST
 def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
     shift = _manager_shift_or_404(request, shift_id)
-    if publish_shift(shift):
-        return flash_redirect(request, messages.SUCCESS, "Shift published.", _calendar_url(request, shift))
-    return flash_redirect(request, messages.INFO, "Shift is already published.", _calendar_url(request, shift))
+    publish_shift(shift)
+    return flash_redirect(request, messages.SUCCESS, "Shift published.", _calendar_url(shift))
 
 
 @manager_required
 @require_POST
 def publish_all_shifts(request: HttpRequest) -> HttpResponse:
-    """Publish all draft shifts in the visible date range."""
-    period = _period(request.POST.get("view"), _parse_date(request.POST.get("date"), timezone.localdate()))
-    count = publish_shifts_in_period(manager_id=request.user.id, start=period.start, end=period.end)
+    """Publish all draft shifts in the visible month."""
+    start, end = _month_bounds(_parse_date(request.POST.get("date"), timezone.localdate()))
+    count = publish_shifts_in_period(manager_id=request.user.id, start=start, end=end)
     if count:
         return flash_redirect(request, messages.SUCCESS, f"Published {count} shift{'s' if count != 1 else ''}.", "manager_shifts")
     return flash_redirect(request, messages.INFO, "No draft shifts to publish.", "manager_shifts")
@@ -263,14 +234,10 @@ def employee_shifts_view(request: HttpRequest) -> HttpResponse:
         request,
         page="employee-shifts",
         title="My Shifts",
-        description="Employee shift calendar",
         nav_active="employee_shifts",
         data={
             "anchor": anchor.isoformat(),
-            "start": start.isoformat(),
-            "end": end.isoformat(),
             "today": today.isoformat(),
-            "periodLabel": anchor.strftime("%B %Y"),
             "shifts": [
                 {
                     "id": s.id,

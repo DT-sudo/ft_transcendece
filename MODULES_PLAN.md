@@ -60,7 +60,7 @@ authorization hole, and an evaluator can find it in two clicks.
 - React 19 renders every page (`frontend/src/pages/**`, one `src/main.jsx` entry that picks the page from the payload).
 - Django 6 handles routing, auth, forms, ORM, CSRF and sessions (`backend/apps/**`).
 - Nothing missing. At evaluation, be ready to explain the state-injection pattern
-  (`render_app()` in `backend/apps/frontend/shell.py`). Don't also claim the two *Minor* framework
+  (`render_app()` in `backend/apps/shell.py`). Don't also claim the two *Minor* framework
   modules, because they overlap with this Major.
 
 ### 2.2 Minor: ORM — ✅ 100%
@@ -76,7 +76,7 @@ authorization hole, and an evaluator can find it in two clicks.
 | Search (text query) | ❌ | No `q` parameter anywhere |
 | Sorting (user-controlled) | ❌ | Only fixed `Meta.ordering`. Team table headers aren't sortable |
 | Pagination | ❌ | Team table loads every employee (`User.objects.filter(role=EMPLOYEE)`) |
-| Week/month navigation | ⚠️ Not pagination | The server loads only the visible period, but it's calendar navigation, not a result list split into pages |
+| Month navigation | ⚠️ Not pagination | The server loads only the visible period, but it's calendar navigation, not a result list split into pages |
 
 A calendar can't be meaningfully paginated or sorted: it's always ordered by time. So the module
 needs a **list/table surface**. The cheapest one is a "List" view of shifts: it reuses the existing
@@ -117,10 +117,10 @@ notifications. Toasts count as the UI layer only.
 |---|---|
 | Tokens: palette, radii, shadows, one font family (`styles/tokens.css`) | Typography **scale** tokens (sizes/weights/line-heights) |
 | 8 SVG icons (`Icons.jsx`) | A real icon set (bell, user, search, sort, globe, lock, upload…) |
-| React components: `Modal`, `ConfirmModal`, `Dropdown`, `SelectPopover`, `Field`, `ToastProvider`, `CalendarNav`, `MonthCalendar`, `AppShell`, `Footer`, `PostForm` | `Button`, `Badge`, `Avatar`, `Card`, `Table` exist only as **CSS class strings** repeated in JSX (`className="btn btn-primary"`), not as components |
+| React components: `Modal`, `ConfirmModal`, `Dropdown`, `SelectPopover`, `Field`, `ToastProvider`, `CalendarNav`, `MonthCalendar`, `AppShell`, `Footer` | `Button`, `Badge`, `Avatar`, `Card`, `Table` exist only as **CSS class strings** repeated in JSX (`className="btn btn-primary"`), not as components |
 | | A showcase/documentation page to demo at evaluation |
 
-You can reach 10 by count, but `PostForm`, `AppShell` and `Footer` are plumbing and layout, not
+You can reach 10 by count, but `AppShell` and `Footer` are plumbing and layout, not
 design-system primitives. The first thing an evaluator asks is "show me your Button component",
 and there isn't one yet.
 
@@ -149,11 +149,10 @@ Groundwork exists: `Field` wires `aria-invalid`/`aria-describedby`, toasts use `
 | Issue | Where | WCAG SC |
 |---|---|---|
 | Modal has no initial focus, focus trap or focus return | `components/Modal.jsx` (no focus code at all) | 2.4.3, 2.1.2 |
-| Clickable `<div>`s are mouse-only: day cells (**the employee's unavailability toggle**) and week-grid slots | `Calendar.jsx`, `ShiftGrids.jsx` (WeekGrid) | 2.1.1 |
+| Clickable `<div>`s are mouse-only: day cells (**the employee's unavailability toggle**) | `Calendar.jsx` | 2.1.1 |
 | `role="button"` span with no `tabIndex`/key handler | `ShiftFormModal.jsx:29` | 2.1.1, 4.1.2 |
 | `role="menu"` without arrow-key navigation or focus management | `Menus.jsx:88` | 4.1.2 |
 | Destructive button: white on `hsl(0 84% 60%)` ≈ **3.8:1** (needs 4.5:1) | `tokens.css` | 1.4.3 |
-| Position chip colours come from `hue = id*47 % 360`, so text contrast varies per hue | `app/shifts.js` (`positionPalette`) | 1.4.3 |
 | Draft vs. published and positions are told apart mainly by colour | calendar CSS | 1.4.1 |
 | Toasts auto-dismiss after 3 s (errors after 5 s) with no pause | `Toasts.jsx:7-8` | 2.2.1 |
 | No skip link, and headings/landmarks are inconsistent | all pages | 2.4.1, 1.3.1 |
@@ -170,23 +169,23 @@ Groundwork exists: `Field` wires `aria-invalid`/`aria-describedby`, toasts use `
 
 ### 2.11 Minor: 2FA — ❌ 0%
 
-Nothing exists. Note: the demo-login buttons bypass passwords, so they need handling for 2FA to
-count as "complete". (The Django admin was removed on 2026-09-10, so it is no longer a bypass.)
+Nothing exists. (The Django admin and the one-click demo login were removed on 2026-09-10, so
+neither is a bypass to close.)
 
 ### 2.12 Minor: i18n (≥3 languages) — ❌ ~5%
 
 - `USE_I18N=True` is Django's default. There's no `LocaleMiddleware`, no `.po` files and no client
   i18n.
 - All strings are hard-coded in JSX, in Django flash messages, in `legal/documents.py` (271 lines)
-  and in date labels: `WEEKDAY_LABELS` in `app/dates.js:1`, and server-side `strftime("%B %Y")`
+  (date labels already come from `Intl.DateTimeFormat` on the client since 2026-09-10)
   period labels in `scheduling/views.py`.
 
 ### 2.13 Minor: RTL — ❌ 0%
 
 - No `dir` attribute. There are 17 physical-direction usages (`left/right`, `ml-/mr-/pl-/pr-`) in
   `frontend/src`, the toasts are pinned `right-4`, and the chevron icons don't flip.
-- One piece of good news: `WeekGrid` places cells with explicit CSS `gridColumn` indices, and CSS
-  Grid mirrors those automatically under `direction: rtl`.
+- One piece of good news: the month grid is CSS Grid, which mirrors automatically under
+  `direction: rtl`, and the component CSS already uses logical properties.
 
 ---
 
@@ -288,8 +287,7 @@ classes.
 - Frontend: `src/app/i18n.js` (i18next initialized from the bootstrap locale), JSON catalogs in
   `src/locales/{en,ar,xx}.json`, a `LanguageSwitcher` in the header that changes language
   client-side instantly and persists it with a POST to `/settings/language/`.
-- Dates: replace `WEEKDAY_LABELS` and the server `strftime` period labels with `Intl.DateTimeFormat`
-  on the client.
+- Dates: already on `Intl.DateTimeFormat` (`formatMonth`, `WEEKDAY_LABELS`, `formatDate` in `app/dates.js`).
 - CI grep: fail on new physical-direction classes.
 
 **Done when:** switching language flips `lang`/`dir` without a reload, and the header and login
@@ -375,7 +373,7 @@ it → remove user → user loses access.
   there's no ORM injection.
 - **Members/Team page:** `q` over name / email / employee ID, filter by position / role / active,
   sortable column headers (`aria-sort`), paginated.
-- **New "List" view for shifts** next to Week/Month in `ShiftsToolbar`: a table with the existing
+- **New "List" view for shifts** next to the month view in `ShiftsToolbar`: a table with the existing
   filters plus a date range, sortable by date / position / staffing / status, paginated. It
   doubles as the **accessible alternative** to the calendar grid for WCAG.
 - Design-system additions (with B): `DataTable`, `SortHeader`, `Pagination`, `SearchInput`
@@ -482,13 +480,13 @@ Two-browser test the evaluator will run: the employee marks a day unavailable, a
     flashes.
   - A toast names who changed what.
   - A Live / Reconnecting indicator shows the connection state.
-- Not done yet: unavailable markers inside the week/month grid cells themselves (sidebar only).
+- Not done yet: unavailable markers inside the month grid cells themselves (sidebar only).
 
 Then, once Organization lands, the "shared workspace" is the organization's schedule. Deliver all
 three of these so the module can't be argued away:
 
 1. **Live updates.** When anyone in the org creates, edits, publishes or deletes a shift, or an
-   employee toggles unavailability, every open calendar (manager week/month/list, employee month)
+   employee toggles unavailability, every open calendar (manager month/list, employee month)
    refreshes its data through `usePageData().refresh()` without a reload, and open modals keep
    their state.
 2. **Presence.** Avatars of who else is viewing the schedule, and which week: "Anna and Tom are
@@ -498,7 +496,7 @@ three of these so the module can't be argued away:
    If it changed meanwhile, the server rejects the save and the modal offers "Reload changes /
    Overwrite".
 
-**Changes:** `Shift` version check in `services.save_shift`; `WeekShiftChip`/`MonthShiftChip` (`ShiftGrids.jsx`) "being edited"
+**Changes:** `Shift` version check in `services.save_shift`; `MonthShiftChip` (`ShiftGrids.jsx`) "being edited"
 indicator; `PresenceBar` component; employee calendar subscribes too.
 
 **Evaluation demo:** two browsers, two managers of the same org, side by side.
@@ -536,8 +534,7 @@ state machine, profile visibility across orgs.
 3. **Disable / regenerate codes:** requires the password + a current code.
 4. **Admin reset:** an org admin can reset a member's 2FA (permission `member.reset_2fa`),
    which notifies the user.
-5. **Close bypasses:** make demo login refuse accounts that have 2FA enabled (the Django admin
-   no longer exists).
+5. **Close bypasses:** none left — the Django admin and the demo login no longer exist.
 
 **Tests:** full login with TOTP, a replayed code, a recovery code used once, lockout after 5,
 admin bypass closed.
@@ -545,7 +542,7 @@ admin bypass closed.
 #### Step 3.3: WCAG 2.1 AA remediation · Major · **B** · 6 pd (the riskiest module)
 
 **Changes**
-- **Keyboard:** day cells and week slots become `<button>`s, or a `role="grid"` with roving
+- **Keyboard:** day cells become `<button>`s, or a `role="grid"` with roving
   `tabindex` and arrow/Home/End/PageUp/PageDown. Enter creates or opens. `Menus` gets the
   APG menu pattern (arrow keys, Escape returns focus). Remove every `role="button"` span.
 - **Screen readers:** each shift chip gets an accessible name ("Barista, Mon 14 Sep, 09:00–13:00,
@@ -592,8 +589,8 @@ admin bypass closed.
 - `dir="rtl"` on `<html>` from the locale. The `rtl:` variant covers exceptions: flip directional
   icons (chevrons, arrows), **swap the meaning of prev/next** in `CalendarNav`, toasts move to
   `end`, dropdowns align to `end`, the time axis moves to the right.
-- Verify the grid mirroring in `WeekGrid` and `MonthCalendar` (explicit `gridColumn` mirrors
-  automatically, so check that sticky offsets and scrollbars follow). Check `Modal` close-button
+- Verify the grid mirroring in `MonthCalendar` (CSS Grid mirrors automatically, so check that
+  sticky offsets and scrollbars follow). Check `Modal` close-button
   placement, form layouts, table column order, and the `DataTable` sort icon.
 - **Seamless switching:** the language switcher changes `i18n` + `document.dir` in place, with no
   reload, and the page payload is re-fetched via JSON mode to pick up server-localized labels.

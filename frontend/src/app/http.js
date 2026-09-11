@@ -10,9 +10,7 @@ export function getBootstrap() {
 }
 
 // "/manager/shifts/0/delete/" + 12 -> "/manager/shifts/12/delete/"
-export function urlFromTemplate(template, id) {
-  return String(template || '').replace('/0/', `/${id}/`);
-}
+export const urlFromTemplate = (template, id) => template.replace('/0/', `/${id}/`);
 
 /**
  * POST `fields` as a regular form submission, for actions the server answers
@@ -45,7 +43,7 @@ export async function postForm(url, data) {
       Accept: 'application/json',
       'X-CSRFToken': getBootstrap().csrfToken,
     },
-    body: new URLSearchParams(data || {}),
+    body: new URLSearchParams(data),
   });
 
   const payload = await response.json().catch(() => ({}));

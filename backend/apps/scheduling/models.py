@@ -8,13 +8,7 @@ from django.db import models
 from django.utils import timezone
 
 class Position(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def clean(self) -> None:
-        name = (self.name or "").strip()
-        if len(name) > 25:
-            raise ValidationError({"name": "Position name must be max 25 characters."})
-        self.name = name
+    name = models.CharField(max_length=25, unique=True)
 
     def __str__(self) -> str:
         return self.name
@@ -82,9 +76,6 @@ class Assignment(models.Model):
             ),
         ]
 
-    def __str__(self) -> str:
-        return f"{self.employee.employee_id} -> {self.shift_id}"
-
 class EmployeeUnavailability(models.Model):
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -101,6 +92,3 @@ class EmployeeUnavailability(models.Model):
                 name="unique_employee_unavailability_day"
             ),
         ]
-
-    def __str__(self) -> str:
-        return f"{self.employee.employee_id} unavailable on {self.date.isoformat()}"

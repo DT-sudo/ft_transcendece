@@ -36,15 +36,7 @@ export function useLiveEvents(onEvent, { onReconnect } = {}) {
         setStatus('live');
       };
 
-      socket.onmessage = (message) => {
-        let event;
-        try {
-          event = JSON.parse(message.data);
-        } catch {
-          return;
-        }
-        handlers.current.onEvent(event);
-      };
+      socket.onmessage = (message) => handlers.current.onEvent(JSON.parse(message.data));
 
       socket.onclose = () => {
         if (stopped) return;

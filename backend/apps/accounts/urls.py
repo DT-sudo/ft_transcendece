@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.urls import path
 
 from . import views
@@ -14,6 +13,3 @@ urlpatterns = [
     path("manager/employees/<int:user_id>/reset-password/", views.reset_employee_password, name="reset_employee_password"),
     path("manager/employees/<int:user_id>/delete/", views.employee_delete, name="employee_delete"),
 ]
-
-if settings.ENABLE_DEMO_LOGIN:
-    urlpatterns.append(path("login/demo/<str:role>/", views.demo_login, name="demo_login"))

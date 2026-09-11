@@ -43,7 +43,7 @@
   }
 
   .table th {
-    text-align: left;
+    text-align: start;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -60,28 +60,9 @@
     background-color: var(--color-hover);
   }
 
-  .table-fixed th,
-  .table-fixed td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  /* ── Dropdown menu and checkbox lists ── */
 
-  .table-sticky-header thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  /* Dropdown menus inside cells must not be clipped */
-  .table-actions-cell {
-    overflow: visible !important;
-  }
-
-  /* ── Dropdown & multiselect ── */
-
-  .dropdown,
-  .multiselect {
+  .dropdown {
     position: relative;
     display: inline-block;
   }
@@ -89,7 +70,7 @@
   .dropdown-menu {
     position: absolute;
     top: 100%;
-    right: 0;
+    inset-inline-end: 0;
     z-index: 2000;
     min-width: 160px;
     margin-top: 0.25rem;
@@ -97,12 +78,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-menu);
-  }
-
-  .dropdown-menu-fixed {
-    position: fixed;
-    z-index: 3000;
-    margin-top: 0;
   }
 
   .dropdown-item {
@@ -117,7 +92,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    text-align: left;
+    text-align: start;
   }
 
   .dropdown-item-destructive {
@@ -135,43 +110,6 @@
     margin: 0.25rem 0;
   }
 
-  .multiselect-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .multiselect-full,
-  .multiselect-full .multiselect-trigger {
-    display: flex;
-    width: 100%;
-  }
-
-  .multiselect-full .multiselect-trigger {
-    justify-content: space-between;
-  }
-
-  .multiselect-menu {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    left: 0;
-    min-width: 220px;
-    background: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
-    box-shadow: 0 12px 28px rgb(0 0 0 / 0.12);
-    padding: 0.5rem;
-    z-index: 1000;
-  }
-
-  .multiselect-menu-scroll {
-    max-height: 280px;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
   .multiselect-item {
     display: flex;
     align-items: center;
@@ -185,15 +123,6 @@
     background: var(--color-muted);
   }
 
-  .multiselect-item-disabled {
-    cursor: not-allowed;
-    color: var(--color-muted-foreground);
-  }
-
-  .multiselect-item-disabled:hover {
-    background: transparent;
-  }
-
   .availability-flag {
     flex: 0 0 auto;
     margin-inline-start: auto;
@@ -202,56 +131,7 @@
     color: var(--color-destructive-hover);
   }
 
-  .multiselect-actions {
-    display: flex;
-    gap: 0.5rem;
-    border-top: 1px solid var(--color-border);
-    padding-top: 0.5rem;
-    margin-top: 0.5rem;
-  }
-
-  /* ── Tag chips (selected employees, unavailable days) ── */
-
-  .tag-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-    background: var(--color-secondary);
-    color: var(--color-secondary-foreground);
-    border: 1px solid var(--color-border);
-    font-size: 0.75rem;
-    line-height: 1.25;
-  }
-
-  .tag-chip-warning {
-    background: hsl(0 84% 97%);
-    border-color: hsl(0 84% 60% / 0.35);
-    color: var(--color-destructive-hover);
-  }
-
-  .chip-remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 9999px;
-    background: rgb(0 0 0 / 0.05);
-    border: none;
-    color: inherit;
-    font-size: 0.75rem;
-    line-height: 1;
-    cursor: pointer;
-    flex: 0 0 auto;
-  }
-
-  .chip-remove:hover {
-    background: rgb(0 0 0 / 0.1);
-  }
-
-  /* ── Modals ── */
+    /* ── Modals ── */
 
   .modal-overlay {
     position: fixed;
@@ -318,15 +198,6 @@
   }
 
   /* The shift form hosts popovers, so it must not clip its own body */
-  .modal-overflow-visible,
-  .modal-overflow-visible .modal-body {
-    overflow: visible;
-  }
-
-  .modal-overflow-visible {
-    max-height: none;
-  }
-
   /* ── Toasts ── */
 
   .toast {

@@ -53,7 +53,7 @@ mark days they are unavailable, which immediately blocks any assignment on that 
 
 ### Key features
 
-- Weekly hour grid and monthly overview, with overlapping shifts laid out side by side in lanes.
+- Monthly calendar overview with the team list beside it.
 - Draft/publish workflow — drafts are manager-only until published.
 - Four scheduling rules enforced server-side inside one transaction.
 - Team and position management, with one-time generated credentials.
@@ -125,8 +125,6 @@ the file.
 | `HTTPS_PORT` / `HTTP_PORT` | `8443` / `8080` | Ports the nginx proxy publishes |
 | `SECURE_HSTS_SECONDS` | `31536000` | HSTS lifetime (applied only when `DEBUG=0`) |
 | `SEED_DEMO_DATA` | `1` | Seed demo positions, staff and shifts on boot |
-| `ENABLE_DEMO_LOGIN` | value of `DEBUG` | Show the one-click demo login buttons |
-| `VITE_DEV_SERVER_URL` | empty | Point Django at the Vite dev server for HMR |
 
 ### Step-by-step: running locally without Docker
 
@@ -151,20 +149,14 @@ This serves plain HTTP on <http://127.0.0.1:8000/> for development only — it h
 `SECURE_COOKIES=0` in `.env` or the browser will refuse to store the session cookie. **Use the
 Docker stack for anything that needs to match the deployed setup**, including evaluation.
 
-Rebuild the bundle (`npm run build`) after any change under `frontend/src`, or run Vite alongside
-Django for hot reload:
-
-```bash
-cd frontend && npm run dev                                              # terminal 1
-VITE_DEV_SERVER_URL=http://localhost:5173 python manage.py runserver    # terminal 2
-```
+Rebuild the bundle (`npm run build`) after any change under `frontend/src`.
 
 ### Accounts
 
 Anyone can open a **manager** account from the sign-up page. Employees do not self-register: their
 manager creates the account, and the generated password is displayed exactly once.
 
-While `ENABLE_DEMO_LOGIN` is on, two seeded accounts let you explore without any setup:
+`seed_demo` (run on every Docker boot while `SEED_DEMO_DATA=1`) creates two accounts you can sign in with:
 
 | Role | Email | Password |
 |---|---|---|
@@ -219,12 +211,12 @@ blockers.
 
 | Technology | Why |
 |---|---|
-| **React 19** | The calendar is a genuinely stateful UI — modals stack, chips are laid out in lanes, cells toggle asynchronously. Component state is the right model for that, and React's ecosystem is the one the team already knew. |
+| **React 19** | The calendar is a genuinely stateful UI — modals stack, cells toggle asynchronously. Component state is the right model for that, and React's ecosystem is the one the team already knew. |
 | **Vite 8** | Near-instant dev server with HMR, and a manifest-based production build. One build input per page keeps each page's JavaScript to what it actually needs. |
 | **Tailwind CSS 4** | Required styling solution. v4 declares design tokens in `@theme`, so a single token drives both a utility class in JSX (`text-muted-foreground`) and hand-written CSS (`var(--color-muted-foreground)`) — no duplicated palette. |
 
 Layout, spacing and typography are Tailwind utilities in JSX. Recurring or structural pieces —
-buttons, form controls, cards, tables, menus, shift chips, the week/month grids — stay as component
+buttons, form controls, cards, tables, menus, shift chips, the month grid — stay as component
 classes in `src/styles/components/`, where CSS does what utilities cannot: sticky grid headers,
 container queries that shed chip detail as a cell narrows, and scrollbar styling.
 
@@ -256,7 +248,7 @@ configuration.
 ### Significant technical choices
 
 - **No REST layer, no client-side router.** Each Django view renders one HTML shell that mounts a
-  single React entry and hands it a JSON payload (`render_app()` in `apps/frontend/shell.py`). The
+  single React entry and hands it a JSON payload (`render_app()` in `apps/shell.py`). The
   page paints without a load-time API round trip, and the app keeps Django's session auth, CSRF
   protection and POST-redirect-flash-message flow while the UI stays fully component-based.
 - **Forms stay native.** Every write is a real `<form method="post">` rendered by React, so Django's
@@ -356,21 +348,20 @@ code: one employee per shift, and one unavailability record per employee per day
 |---|---|---|
 | Sign up | Public registration of a manager account with full name, email and password. Server validates uniqueness, format and password strength; the account is created and logged in atomically. | `dtereshc` |
 | Email + password login | Authentication by email address: every account's `username` mirrors its lowercased email, so the login form lowercases the input and Django's default backend does the rest. Case-insensitive, and the hasher runs even for unknown addresses so response time does not reveal whether an account exists. | `dtereshc` |
-| Logout with confirmation | POST-based logout behind a confirmation modal. | `dtereshc` |
+| Logout | POST-based logout from the user menu. | `dtereshc` |
 | Role-based routing | After login, managers land on the schedule and employees on their own calendar; every view is gated by a role decorator. | `<login2>` |
 
 ### Manager
 
 | Feature | Description | Owner |
 |---|---|---|
-| Weekly calendar | Hour grid for a week; overlapping shifts are placed side by side in lanes and the day column widens with its lane count. | `<login2>` |
-| Monthly calendar | Month overview with published shifts in colour and drafts greyed out. | `<login2>` |
+| Monthly calendar | Month overview: published shifts in blue, drafts dashed and grey. | `<login2>` |
 | Create / edit / delete shifts | Modal form for date, times, position and capacity, with client and server validation. | `<login3>` |
 | Draft and publish workflow | Shifts start as drafts visible only to managers; publishing pushes a date range to employee calendars in one action. | `<login3>` |
 | Employee assignment | Staff are assigned inline; the server rejects any combination that breaks a rule and explains why. | `dtereshc` |
 | Team management | Create, edit and delete employees; reset a password. Generated passwords are shown exactly once and stored only as a hash. | `<login4>` |
 | Position management | Create and delete the positions employees can hold, with deletion blocked while shifts require them. | `<login4>` |
-| Workload sidebar | Lists active employees with their scheduled hours for the visible period and highlights a person's shifts on click. | `<login2>` |
+| Team sidebar | Lists active employees with their position and their unavailable days in the visible month. | `<login2>` |
 | Live availability | When an employee marks or clears a day, open manager calendars update within a second. The sidebar lists that employee's unavailable days, the shift form greys them out for that date, and a toast says who changed what. A status dot shows whether the live connection is up. | `dtereshc` |
 
 ### Employee
@@ -385,7 +376,7 @@ code: one employee per shift, and one unavailability record per employee per day
 | Feature | Description | Owner |
 |---|---|---|
 | Scheduling rule engine | Position match, capacity, availability and overlap checks, all inside the transaction that saves the shift. | `dtereshc` |
-| Two-sided form validation | Shared rules in `src/app/validation.js` mirror the Django forms, so the user sees errors inline and the server still rejects anything that bypasses the browser. | `dtereshc` |
+| Two-sided form validation | The browser enforces `required`, `type="email"` and `minLength` before submitting; Django validates everything again and re-renders field errors inline. | `dtereshc` |
 | HTTPS everywhere | nginx terminates TLS with a self-signed certificate generated on first boot; HTTP is redirected; cookies are `Secure`. | `dtereshc` |
 | Privacy Policy & Terms | Public, project-specific legal pages linked from the footer of every page. | `<login4>` |
 | Flash messages as toasts | Django messages arrive in the page payload and become dismissible toasts. | `<login4>` |
@@ -418,11 +409,9 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 │   └── apps/
 │       ├── accounts/           # custom User, roles, signup/login
 │       │   ├── forms.py        # SignUpForm, EmailAuthenticationForm, EmployeeForm
-│       │   ├── views.py        # role decorators, auth, demo logins, employee directory
+│       │   ├── views.py        # role decorators, auth, employee directory
 │       │   └── tests.py        # auth, validation and legal-page tests
-│       ├── frontend/
-│       │   ├── shell.py        # render_app(): page shell + JSON payload; flash redirects
-│       │   └── templatetags/   # {% vite_asset %} — manifest → <script>/<link>
+│       ├── shell.py            # render_app(): page shell + JSON payload; flash redirects
 │       ├── legal/
 │       │   ├── documents.py    # Privacy Policy / Terms content
 │       │   └── views.py
@@ -441,7 +430,7 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 │       ├── main.jsx            # mounts the page named in the payload
 │       ├── pages/              # auth, legal, calendar, team table, modals
 │       ├── components/         # shell + footer, fields, modals, menus, toasts, hooks
-│       ├── app/                # dates, shifts (lanes, palette, availability), http, validation, live socket
+│       ├── app/                # dates, shifts (availability, per-employee stats), http, live socket
 │       └── styles/             # Tailwind theme tokens + component layer
 ├── docker/
 │   ├── entrypoint.sh           # migrate + seed, then start the server
@@ -457,13 +446,7 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 - **State injection instead of a load-time API round trip.** `render_app()` serialises the user,
   navigation, flash messages, CSRF token, action URLs and the page's own data into one
   `<script type="application/json">` block, read synchronously on boot.
-- **Greedy lane placement for overlapping shifts.** `src/app/shifts.js` sorts a day's shifts by
-  start time and drops each into the first lane whose previous shift has ended, allocating a new
-  lane only when none is free.
-- **Deterministic position colours.** Chip colours derive from the position ID
-  (`hue = (id * 47) % 360`) rather than being stored, so a new position is immediately
-  distinguishable without a migration or a colour picker.
-- **One dismissal stack for overlays.** Modals and popovers register in a shared layer stack
+- **One dismissal stack for overlays.** Modals and the user menu register in a shared layer stack
   (`src/components/hooks.js`), so Escape and backdrop clicks always resolve the top-most layer
   first.
 
@@ -492,8 +475,6 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
   proxy (`wss://`).
 - **Secrets.** `SECRET_KEY`, database credentials and host configuration come from `.env`, which is
   ignored by both Git and Docker. The built-in defaults are development-only.
-- **Demo logins are opt-in.** The one-click demo buttons bypass password entry, so they are gated
-  behind `ENABLE_DEMO_LOGIN` and default to off whenever `DEBUG=0`.
 
 ---
 
@@ -527,17 +508,14 @@ Required minimum: **14 points** (Major = 2 pts, Minor = 1 pt).
 view with an injected JSON payload rather than building a REST API, and the layering that keeps
 views thin and rules and transaction boundaries in `services.py`. I wrote the
 scheduling rule engine and its tests, the authentication layer (sign-up, the email backend, the
-password-validation wiring), the shared client/server validation, and the TLS/deployment setup.
+password-validation wiring), the form validation, and the TLS/deployment setup.
 
 **Challenges.**
 
-- *Overlapping shifts in the week grid.* The first version stacked shifts and made them unreadable.
-  The fix was a greedy lane algorithm: sort a day's shifts by start time, drop each into the first
-  lane whose previous shift has already ended, and widen the column with the lane count.
-- *Keeping validation honest in two places.* Duplicating rules in JavaScript risks the two drifting
-  apart. I settled on the client mirroring the server's rules for immediate feedback while the
-  server stays the only authority, and wrote tests that post invalid data directly to prove the
-  backend still rejects what the browser would have caught.
+- *Keeping validation honest in two places.* An early version duplicated every rule in JavaScript,
+  and the two copies drifted. The browser now only enforces what HTML can express (`required`,
+  `type="email"`, `minLength`), the server is the single authority, and tests post invalid data
+  directly to prove the backend rejects what the browser would have caught.
 - *Django's similarity validator seeing nothing.* On a `ModelForm` whose only model field is
   `email`, `UserAttributeSimilarityValidator` had almost nothing to compare against, so passwords
   built from the user's own name passed. Populating `username`, `first_name` and `last_name` on the
@@ -627,7 +605,7 @@ member could not explain.
 | Documentation | Structuring this README against the Chapter VI requirements. |
 | Debugging | Explaining why `UserAttributeSimilarityValidator` was not catching name-derived passwords, which led to the `_post_clean` fix. |
 
-AI was **not** used to generate the scheduling rule engine, the lane-layout algorithm, or the
+AI was **not** used to generate the scheduling rule engine, or the
 architecture decisions — these are the parts the team is examined on, and they were designed and
 written by hand.
 

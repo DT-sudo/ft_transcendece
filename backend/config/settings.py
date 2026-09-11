@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.accounts",
-    "apps.frontend",
     "apps.legal",
     "apps.scheduling",
     "apps.realtime",
@@ -93,14 +92,11 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# React/Tailwind bundle built by Vite (frontend/). Set VITE_DEV_SERVER_URL to
-# http://localhost:5173 to load the modules from `npm run dev` instead.
+# React/Tailwind bundle built by Vite (`npm run build` in frontend/).
 FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
-VITE_DEV_SERVER_URL = os.environ.get("VITE_DEV_SERVER_URL", "")
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [FRONTEND_DIST_DIR]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ── TLS ─────────────────────────────────────────────────────────────────────
 # nginx terminates TLS and proxies to Django over the container network, so
@@ -123,8 +119,3 @@ CSRF_COOKIE_SECURE = SECURE_COOKIES
 if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-
-# ── Demo mode ───────────────────────────────────────────────────────────────
-# One-click demo logins bypass password entry, so they must be explicitly
-# enabled and default to off outside development.
-ENABLE_DEMO_LOGIN = env_bool("ENABLE_DEMO_LOGIN", DEBUG)

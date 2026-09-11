@@ -1,83 +1,37 @@
-export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// All dates travel as ISO strings (YYYY-MM-DD); labels are formatted here in the browser's language.
 
-export const pad2 = (value) => String(value).padStart(2, '0');
+const pad2 = (value) => String(value).padStart(2, '0');
 
-export function toISODate(date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-}
+const toISODate = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
-export function dateFromISO(iso) {
-  const cleaned = String(iso || '').trim();
-  if (!cleaned) return null;
-
-  const date = new Date(`${cleaned}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-export function addDays(iso, days) {
-  const date = dateFromISO(iso);
-  if (!date) return iso;
-
-  date.setDate(date.getDate() + days);
-  return toISODate(date);
-}
+const dateFromISO = (iso) => new Date(`${iso}T00:00:00`);
 
 export function addMonths(iso, months) {
   const date = dateFromISO(iso);
-  if (!date) return iso;
-
   date.setMonth(date.getMonth() + months);
   return toISODate(date);
 }
 
 /** The 6x7 day matrix a month view paints, starting on Sunday. */
 export function monthMatrix(anchorISO, todayISO) {
-  const anchor = dateFromISO(anchorISO) || new Date();
+  const anchor = dateFromISO(anchorISO);
   const month = anchor.getMonth();
-  const firstOfMonth = new Date(anchor.getFullYear(), month, 1);
-
-  const gridStart = new Date(firstOfMonth);
-  gridStart.setDate(1 - firstOfMonth.getDay());
+  const first = new Date(anchor.getFullYear(), month, 1);
 
   return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(gridStart);
-    date.setDate(gridStart.getDate() + index);
+    const date = new Date(first.getFullYear(), month, 1 - first.getDay() + index);
     const iso = toISODate(date);
-
-    return {
-      date,
-      iso,
-      dayNumber: date.getDate(),
-      inMonth: date.getMonth() === month,
-      isToday: iso === todayISO,
-    };
+    return { iso, dayNumber: date.getDate(), inMonth: date.getMonth() === month, isToday: iso === todayISO };
   });
 }
 
-export function weekDays(startISO) {
-  const start = dateFromISO(startISO) || new Date();
+/** "09:30" -> 570. */
+const minutesOf = (time) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
 
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-
-    return {
-      date,
-      iso: toISODate(date),
-      label: date.toLocaleDateString(undefined, { weekday: 'short' }),
-      dayNumber: date.getDate(),
-    };
-  });
-}
-
-export function parseTimeToMinutes(value) {
-  const [hours, minutes] = String(value || '00:00').split(':').slice(0, 2).map(Number);
-  return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
-}
-
-export function shiftDurationMinutes(shift) {
-  return Math.max(0, parseTimeToMinutes(shift?.end_time) - parseTimeToMinutes(shift?.start_time));
-}
+export const shiftDurationMinutes = (shift) => minutesOf(shift.end_time) - minutesOf(shift.start_time);
 
 /** "8h", "7h 30m", "45m". */
 export function formatDuration(minutes) {
@@ -86,27 +40,30 @@ export function formatDuration(minutes) {
   return [hours && `${hours}h`, (rest || !hours) && `${rest}m`].filter(Boolean).join(' ');
 }
 
-/** "Sat, 19 Sept" or, with the year, "Sat, 19 Sept 2026". */
+/** "September 2026". */
+export const formatMonth = (iso) => dateFromISO(iso).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+/** Short weekday names Sunday..Saturday. */
+export const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, day) =>
+  new Date(2023, 0, 1 + day).toLocaleDateString(undefined, { weekday: 'short' }),
+);
+
+/** "Sat, 19 Sept 2026", or "Sat, 19 Sept" without the year. */
 export function formatDate(iso, { year = true } = {}) {
-  const date = dateFromISO(iso);
-  if (!date) return String(iso || '');
-  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: year ? 'numeric' : undefined });
+  return dateFromISO(iso).toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: year ? 'numeric' : undefined,
+  });
 }
 
-/** Merge query parameters into the current URL and reload the page. */
+/** Merge query parameters into the current URL and reload the page; empty values are dropped. */
 export function navigateWith(params) {
   const url = new URL(window.location.href);
-
   for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      url.searchParams.delete(key);
-      value.forEach((item) => url.searchParams.append(key, item));
-    } else if (value == null || value === '') {
-      url.searchParams.delete(key);
-    } else {
-      url.searchParams.set(key, value);
-    }
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
   }
-
-  window.location.assign(`${url.pathname}?${url.searchParams.toString()}`);
+  window.location.assign(`${url.pathname}?${url.searchParams}`);
 }

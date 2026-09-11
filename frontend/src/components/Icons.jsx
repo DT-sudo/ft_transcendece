@@ -17,12 +17,6 @@ function Icon({ size = 16, children, ...props }) {
   );
 }
 
-export const ChevronDown = (props) => (
-  <Icon {...props}>
-    <path d="m6 9 6 6 6-6" />
-  </Icon>
-);
-
 export const ChevronLeft = (props) => (
   <Icon {...props}>
     <path d="m15 18-6-6 6-6" />
@@ -59,21 +53,3 @@ export const Trash = ({ size = 18, ...props }) => (
   </Icon>
 );
 
-export const MoreVertical = ({ size = 18, ...props }) => (
-  <Icon size={size} {...props}>
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="12" cy="5" r="1" />
-    <circle cx="12" cy="19" r="1" />
-  </Icon>
-);
-
-export const CalendarIcon = ({ size = 20, ...props }) => (
-  <Icon size={size} {...props}>
-    <path d="M8 7V3" />
-    <path d="M16 7V3" />
-    <path d="M4 11h16" />
-    <path d="M4 21h16" />
-    <path d="M4 7h16" />
-    <path d="M4 11v10" />
-  </Icon>
-);

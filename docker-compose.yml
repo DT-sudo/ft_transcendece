@@ -17,7 +17,6 @@ services:
       TIME_ZONE: "${TIME_ZONE:-Europe/Prague}"
       DB_NAME: "/app/data/db.sqlite3"
       SEED_DEMO_DATA: "${SEED_DEMO_DATA:-1}"
-      ENABLE_DEMO_LOGIN: "${ENABLE_DEMO_LOGIN:-1}"
       SECURE_COOKIES: "${SECURE_COOKIES:-1}"
       HTTPS_PORT: "${HTTPS_PORT:-8443}"
       REDIS_URL: "redis://redis:6379/0"

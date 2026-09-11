@@ -7,9 +7,7 @@ export function AuthLayout({ title, subtitle, messages = [], children }) {
     <ToastProvider initialMessages={messages}>
       <div className="page-with-footer">
         <main className="flex flex-1 items-center justify-center p-6">
-          <div
-            className={`w-full max-w-105 rounded-panel border border-border bg-card p-7 shadow-[0_20px_50px_rgb(0_0_0_/_0.10)]`}
-          >
+          <div className="w-full max-w-105 rounded-panel border border-border bg-card p-7 shadow-[0_20px_50px_rgb(0_0_0_/_0.10)]">
             <div className="mt-4 mb-5 text-center">
               <h1 className="text-2xl tracking-tight">{title}</h1>
               <p className="mt-1.5 text-muted-foreground">{subtitle}</p>

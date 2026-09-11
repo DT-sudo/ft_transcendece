@@ -1,5 +1,5 @@
 /* ============================================================
-   App shell: header nav, manager calendar layout, legend bar
+   App shell: header nav, manager calendar layout
    ============================================================ */
 
 @layer components {
@@ -36,10 +36,10 @@
     align-items: start;
   }
 
-  /* Sidebar and calendar card both fill the viewport left below the header,
-     toolbar and legend bar (≈ 11rem together). */
+  /* Sidebar and calendar card both fill the viewport left below the header
+     and toolbar (≈ 8.5rem together). */
   .manager-calendar-fill {
-    height: max(400px, calc(100vh - 11rem));
+    height: max(400px, calc(100vh - 8.5rem));
     display: flex;
     flex-direction: column;
   }
@@ -69,14 +69,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background-color: var(--color-card);
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-  }
-
-  .employee-sidebar-item-active {
-    border-color: hsl(38 92% 50% / 0.55);
-    box-shadow: 0 0 0 3px hsl(38 92% 50% / 0.12);
   }
 
   .employee-sidebar-unavailable {
@@ -131,40 +123,6 @@
 
   .live-indicator-offline .live-indicator-dot {
     background: var(--color-warning);
-  }
-
-  /* ── Fixed position legend bar ── */
-
-  .legend-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: var(--legend-bar-height);
-    z-index: 44;
-    background-color: var(--color-card);
-    border-top: 1px solid var(--color-border);
-    box-shadow: 0 -4px 12px rgb(0 0 0 / 0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 1rem;
-    overflow: hidden;
-  }
-
-  .position-swatch {
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    background-color: var(--position-bg);
-    border: 2px solid var(--position-border);
-    flex: 0 0 auto;
-  }
-
-  .position-swatch-draft {
-    background-color: var(--color-muted);
-    border-color: var(--color-border);
-    border-style: dashed;
   }
 
   /* ── Shifts toolbar: filters | period | actions ── */
@@ -253,7 +211,7 @@
 
   .legal-section ul {
     margin-top: 0.75rem;
-    padding-left: 1.25rem;
+    padding-inline-start: 1.25rem;
     list-style: disc;
   }
 
