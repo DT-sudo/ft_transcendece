@@ -1,9 +1,10 @@
-"""Sign-up, login, logout, and the manager-side employee directory."""
+"""Sign-up, login, logout, demo logins, and the manager-side employee directory."""
 
 from __future__ import annotations
 
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -13,6 +14,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
+from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
 from apps.scheduling.models import Position
 
 from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm
@@ -60,15 +62,21 @@ def login_view(request: HttpRequest) -> HttpResponse:
     if "username" in errors:
         errors["email"] = errors.pop("username")
 
+    urls = {"login": reverse("login"), "signup": reverse("signup")}
+    if settings.ENABLE_DEMO_LOGIN:
+        urls["demoManager"] = reverse("demo_login", args=["manager"])
+        urls["demoEmployee"] = reverse("demo_login", args=["employee"])
+
     return render_app(
         request,
         page="login",
         title="Login",
         data={
+            "showDemo": settings.ENABLE_DEMO_LOGIN,
             "email": form["username"].value() or "",
             "error": " ".join(form.non_field_errors()),
             "fieldErrors": errors,
-            "urls": {"login": reverse("login"), "signup": reverse("signup")},
+            "urls": urls,
         },
     )
 
@@ -114,6 +122,23 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 def home(request: HttpRequest) -> HttpResponse:
     """Send each role to its own landing page."""
     return redirect("manager_shifts" if request.user.is_manager else "employee_shifts")
+
+
+# ── Demo accounts (ENABLE_DEMO_LOGIN) ───────────────────────────────────────
+
+
+@require_GET
+def demo_login(request: HttpRequest, role: str) -> HttpResponse:
+    """Sign in as one of the accounts `seed_demo` creates, without a password."""
+    if not settings.ENABLE_DEMO_LOGIN:
+        return redirect("login")
+    email = DEMO_MANAGER_EMAIL if role == "manager" else DEMO_EMPLOYEE_EMAIL
+    user = User.objects.filter(username=email, is_active=True).first()
+    if user is None:
+        messages.error(request, "Demo accounts are missing. Run `python manage.py seed_demo` first.")
+        return redirect("login")
+    login(request, user)
+    return redirect("home")
 
 
 # ── Employee directory (managers) ───────────────────────────────────────────

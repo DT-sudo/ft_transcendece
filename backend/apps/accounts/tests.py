@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
 from apps.scheduling.models import Position
 
 from .forms import SignUpForm
@@ -136,6 +137,53 @@ class EmailLoginTests(TestCase):
         response = self.client.post(
             reverse("login"), {"username": "sam@example.com", "password": self.password}
         )
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+
+@override_settings(ENABLE_DEMO_LOGIN=True)
+class DemoLoginTests(TestCase):
+    """One-click demo buttons sign in as the seeded accounts, and only while enabled."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.manager = User.objects.create_user(
+            username=DEMO_MANAGER_EMAIL, email=DEMO_MANAGER_EMAIL, role=UserRole.MANAGER
+        )
+        cls.employee = User.objects.create_user(
+            username=DEMO_EMPLOYEE_EMAIL, email=DEMO_EMPLOYEE_EMAIL, role=UserRole.EMPLOYEE
+        )
+
+    def test_login_page_offers_both_buttons(self):
+        data = self.client.get(reverse("login")).context["bootstrap"]["data"]
+
+        self.assertTrue(data["showDemo"])
+        self.assertEqual(data["urls"]["demoManager"], reverse("demo_login", args=["manager"]))
+        self.assertEqual(data["urls"]["demoEmployee"], reverse("demo_login", args=["employee"]))
+
+    def test_each_button_signs_in_as_its_role(self):
+        for role, user in (("manager", self.manager), ("employee", self.employee)):
+            with self.subTest(role=role):
+                self.client.logout()
+                response = self.client.get(reverse("demo_login", args=[role]))
+
+                self.assertRedirects(response, reverse("home"), target_status_code=302)
+                self.assertEqual(response.wsgi_request.user, user)
+
+    def test_missing_demo_accounts_do_not_sign_anyone_in(self):
+        User.objects.filter(username=DEMO_MANAGER_EMAIL).delete()
+        response = self.client.get(reverse("demo_login", args=["manager"]))
+
+        self.assertRedirects(response, reverse("login"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    @override_settings(ENABLE_DEMO_LOGIN=False)
+    def test_disabled_demo_login_hides_the_buttons_and_refuses(self):
+        data = self.client.get(reverse("login")).context["bootstrap"]["data"]
+        self.assertFalse(data["showDemo"])
+        self.assertNotIn("demoManager", data["urls"])
+
+        response = self.client.get(reverse("demo_login", args=["manager"]))
+        self.assertRedirects(response, reverse("login"))
         self.assertFalse(response.wsgi_request.user.is_authenticated)
 
 

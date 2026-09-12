@@ -8,6 +8,23 @@ export function LoginPage() {
 
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to your account" messages={messages}>
+      {data.showDemo ? (
+        <div className="mt-4">
+          <a className="btn btn-outline w-full" href={data.urls.demoManager}>
+            Demo: Manager login
+          </a>
+          <a className="btn btn-outline mt-3 w-full" href={data.urls.demoEmployee}>
+            Demo: Employee login
+          </a>
+
+          <div className="my-6 flex items-center">
+            <div className="h-px flex-1 bg-border" />
+            <span className="px-4 text-xs uppercase text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        </div>
+      ) : null}
+
       <FormError message={data.error} />
 
       <form className="mt-3" method="post" action={data.urls.login}>

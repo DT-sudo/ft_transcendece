@@ -125,6 +125,7 @@ the file.
 | `HTTPS_PORT` / `HTTP_PORT` | `8443` / `8080` | Ports the nginx proxy publishes |
 | `SECURE_HSTS_SECONDS` | `31536000` | HSTS lifetime (applied only when `DEBUG=0`) |
 | `SEED_DEMO_DATA` | `1` | Seed demo positions, staff and shifts on boot |
+| `ENABLE_DEMO_LOGIN` | value of `DEBUG` | Show the one-click demo login buttons |
 
 ### Step-by-step: running locally without Docker
 
@@ -162,6 +163,9 @@ manager creates the account, and the generated password is displayed exactly onc
 |---|---|---|
 | Manager | `manager_demo@example.com` | `demo12345!` |
 | Employee | `employee_demo@example.com` | `demo12345!` |
+
+While `ENABLE_DEMO_LOGIN` is on, the login page also shows **Demo: Manager login** and
+**Demo: Employee login** buttons that sign in as these accounts in one click.
 
 ---
 
@@ -409,7 +413,7 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
 │   └── apps/
 │       ├── accounts/           # custom User, roles, signup/login
 │       │   ├── forms.py        # SignUpForm, EmailAuthenticationForm, EmployeeForm
-│       │   ├── views.py        # role decorators, auth, employee directory
+│       │   ├── views.py        # role decorators, auth, demo logins, employee directory
 │       │   └── tests.py        # auth, validation and legal-page tests
 │       ├── shell.py            # render_app(): page shell + JSON payload; flash redirects
 │       ├── legal/
@@ -475,6 +479,8 @@ If any check fails, `ValidationError` propagates out of the `transaction.atomic(
   proxy (`wss://`).
 - **Secrets.** `SECRET_KEY`, database credentials and host configuration come from `.env`, which is
   ignored by both Git and Docker. The built-in defaults are development-only.
+- **Demo logins are opt-in.** The one-click demo buttons bypass password entry, so they are gated
+  behind `ENABLE_DEMO_LOGIN` and default to off whenever `DEBUG=0`.
 
 ---
 

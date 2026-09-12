@@ -119,3 +119,8 @@ CSRF_COOKIE_SECURE = SECURE_COOKIES
 if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# ── Demo mode ───────────────────────────────────────────────────────────────
+# One-click demo logins bypass password entry, so they must be explicitly
+# enabled and default to off outside development.
+ENABLE_DEMO_LOGIN = env_bool("ENABLE_DEMO_LOGIN", DEBUG)
