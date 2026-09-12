@@ -37,6 +37,7 @@ def _user_context(user) -> dict[str, Any] | None:
     position = getattr(getattr(user, "position", None), "name", None)
 
     return {
+        "id": user.id,
         "displayName": display_name,
         "initials": initials.upper(),
         "role": "Manager" if user.is_manager else (position or "Employee"),

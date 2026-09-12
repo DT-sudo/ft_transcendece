@@ -156,6 +156,8 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
                 "delete": reverse("delete_shift", args=[0]),
                 "publish": reverse("publish_shift", args=[0]),
                 "publishAll": reverse("publish_all_shifts"),
+                "search": reverse("manager_shift_search"),
+                "analytics": reverse("manager_analytics"),
             },
         },
     )

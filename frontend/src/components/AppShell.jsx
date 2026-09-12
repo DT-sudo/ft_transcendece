@@ -5,7 +5,7 @@ import { ConfirmModal } from './Modal.jsx';
 import { Dropdown } from './Menus.jsx';
 import { Footer } from './Footer.jsx';
 import { PostForm } from './PostForm.jsx';
-import { ToastProvider } from './Toasts.jsx';
+import { NotificationBell, ToastProvider } from './Notifications.jsx';
 import { usePublishedHeight } from './hooks.js';
 
 function Header({ user, nav, onLogout }) {
@@ -16,7 +16,9 @@ function Header({ user, nav, onLogout }) {
       ref={headerRef}
       className="sticky top-0 z-45 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-border bg-card px-4 py-1.5 shadow-header"
     >
-      <div />
+      <div>
+        <NotificationBell />
+      </div>
 
       <nav className="flex items-center justify-center gap-2" aria-label="Primary">
         {(nav || []).map((link) => (
@@ -77,7 +79,7 @@ export function AppShell({ children }) {
   const logoutFormRef = useRef(null);
 
   return (
-    <ToastProvider initialMessages={messages || []}>
+    <ToastProvider initialMessages={messages || []} userId={user?.id}>
       <div className="page-with-footer">
         <Header user={user} nav={nav} onLogout={() => setConfirmLogout(true)} />
 

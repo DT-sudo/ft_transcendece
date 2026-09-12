@@ -27,6 +27,8 @@ export default defineConfig(({ command }) => ({
         signup: resolve(import.meta.dirname, 'src/entries/signup.jsx'),
         legal: resolve(import.meta.dirname, 'src/entries/legal.jsx'),
         'manager-shifts': resolve(import.meta.dirname, 'src/entries/manager-shifts.jsx'),
+        'manager-shift-search': resolve(import.meta.dirname, 'src/entries/manager-shift-search.jsx'),
+        'manager-analytics': resolve(import.meta.dirname, 'src/entries/manager-analytics.jsx'),
         'manager-employees': resolve(import.meta.dirname, 'src/entries/manager-employees.jsx'),
         'employee-shifts': resolve(import.meta.dirname, 'src/entries/employee-shifts.jsx'),
       },

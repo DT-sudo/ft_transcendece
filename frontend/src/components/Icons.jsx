@@ -77,3 +77,50 @@ export const CalendarIcon = ({ size = 20, ...props }) => (
     <path d="M4 11v10" />
   </Icon>
 );
+
+export const Search = ({ size = 18, ...props }) => (
+  <Icon size={size} {...props}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3" />
+  </Icon>
+);
+
+export const BarChartIcon = ({ size = 18, ...props }) => (
+  <Icon size={size} {...props}>
+    <path d="M3 3v18h18" />
+    <rect x="7" y="12" width="3" height="6" />
+    <rect x="12" y="8" width="3" height="10" />
+    <rect x="17" y="5" width="3" height="13" />
+  </Icon>
+);
+
+export const Download = ({ size = 16, ...props }) => (
+  <Icon size={size} {...props}>
+    <path d="M12 3v12" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M5 21h14" />
+  </Icon>
+);
+
+export const RefreshCw = ({ size = 16, ...props }) => (
+  <Icon size={size} {...props}>
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    <path d="M3 21v-5h5" />
+  </Icon>
+);
+
+export const ArrowUpDown = ({ size = 14, ...props }) => (
+  <Icon size={size} {...props}>
+    <path d="m7 15 5 5 5-5" />
+    <path d="m7 9 5-5 5 5" />
+  </Icon>
+);
+
+export const Bell = ({ size = 18, ...props }) => (
+  <Icon size={size} {...props}>
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </Icon>
+);

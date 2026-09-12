@@ -85,3 +85,46 @@ export function useReloadOnBackForward() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 }
+
+/**
+ * Call `callback` every `delayMs` while the tab is visible (paused in
+ * background tabs to avoid wasted requests). Used for the analytics
+ * dashboard's "real-time" polling refresh.
+ */
+export function useVisiblePolling(callback, delayMs) {
+  const handler = useRef(callback);
+  handler.current = callback;
+
+  useEffect(() => {
+    if (!delayMs) return undefined;
+
+    let timer = null;
+    const tick = () => {
+      if (document.visibilityState === 'visible') handler.current();
+    };
+    const start = () => {
+      stop();
+      timer = window.setInterval(tick, delayMs);
+    };
+    const stop = () => {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tick();
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    start();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [delayMs]);
+}

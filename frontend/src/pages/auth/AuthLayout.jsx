@@ -1,5 +1,5 @@
 import { Footer } from '../../components/Footer.jsx';
-import { ToastProvider } from '../../components/Toasts.jsx';
+import { ToastProvider } from '../../components/Notifications.jsx';
 
 /** Centred card used by both the login and the sign-up page. */
 export function AuthLayout({ title, subtitle, messages = [], maxWidth = 'max-w-105', children }) {

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal.jsx';
 import { SelectPopover } from '../../components/Menus.jsx';
 import { CsrfInput } from '../../components/PostForm.jsx';
-import { useToast } from '../../components/Toasts.jsx';
+import { useToast } from '../../components/Notifications.jsx';
 
 const FORM_ID = 'shiftForm';
 

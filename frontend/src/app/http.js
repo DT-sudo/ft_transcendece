@@ -54,3 +54,35 @@ export async function postForm(url, data) {
 
   throw new Error(payload.error || firstErrorMessage(payload) || 'Request failed.');
 }
+
+/**
+ * Build a "?a=1&a=2&b=3" query string from a flat { key: value | value[] }
+ * object, dropping empty/undefined entries. Shared by the search and
+ * analytics filter bars, whose filter shape (arrays for multiselects,
+ * strings for everything else) is otherwise identical.
+ */
+export function toQueryString(params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value == null || value === '') continue;
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== '' && item != null) search.append(key, item);
+      });
+    } else {
+      search.set(key, value);
+    }
+  }
+  return search.toString();
+}
+
+/** GET a JSON endpoint (analytics refresh/polling) using the same CSRF setup as postForm. */
+export async function getJSON(url, params) {
+  const query = toQueryString(params);
+  const response = await fetch(query ? `${url}?${query}` : url, {
+    headers: { Accept: 'application/json' },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (response.ok) return payload;
+  throw new Error(payload.error || 'Request failed.');
+}

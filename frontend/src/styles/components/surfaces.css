@@ -335,4 +335,72 @@
   .toast-warning .toast-dot { background: var(--color-warning); }
   .toast-info .toast-dot    { background: var(--color-info); }
   .toast-success .toast-dot { background: var(--color-shift-published); }
+
+  .toast-clickable {
+    width: 100%;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .toast-clickable:hover {
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.16);
+  }
+
+  .toast-count {
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+  }
+
+  /* ── Notification bell + history panel ── */
+
+  .notification-bell {
+    position: relative;
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: var(--color-destructive);
+    color: var(--color-destructive-foreground);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .notification-history {
+    padding: 0;
+  }
+
+  .notification-history-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .notification-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .notification-history-item:last-child {
+    border-bottom: none;
+  }
+
+  .notification-history-item .toast-dot {
+    margin-top: 0.3rem;
+  }
 }

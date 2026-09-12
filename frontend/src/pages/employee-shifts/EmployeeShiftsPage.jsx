@@ -12,7 +12,7 @@ import { groupShiftsByDate } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { CalendarNav, MonthCalendar } from '../../components/Calendar.jsx';
 import { Modal } from '../../components/Modal.jsx';
-import { useToast } from '../../components/Toasts.jsx';
+import { useToast } from '../../components/Notifications.jsx';
 
 const hoursOf = (shift) => shiftDurationMinutes(shift) / 60;
 
@@ -102,6 +102,11 @@ function EmployeeShiftsContent() {
         else next.delete(iso);
         return next;
       });
+      showToast(
+        'success',
+        payload.unavailable ? 'Marked unavailable' : 'Unmarked unavailable',
+        formatPrettyDate(iso),
+      );
     } catch (error) {
       showToast('error', 'Cannot mark unavailable', error.message || 'Could not update unavailability.');
     }

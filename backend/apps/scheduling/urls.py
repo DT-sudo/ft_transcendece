@@ -9,7 +9,17 @@ urlpatterns = [
     path("manager/shifts/<int:shift_id>/update/", views.save_shift, name="update_shift"),
     path("manager/shifts/<int:shift_id>/delete/", views.delete_shift, name="delete_shift"),
     path("manager/shifts/<int:shift_id>/publish/", views.publish_shift, name="publish_shift"),
-    
+
+    path("manager/shifts/search/", views.manager_shift_search, name="manager_shift_search"),
+
+    path("manager/shifts/analytics/", views.manager_analytics, name="manager_analytics"),
+    path("manager/shifts/analytics/data/", views.manager_analytics_data, name="manager_analytics_data"),
+    path(
+        "manager/shifts/analytics/export/csv/",
+        views.manager_analytics_export_csv,
+        name="manager_analytics_export_csv",
+    ),
+
     path("manager/positions/create/", views.position_create, name="position_create"),
     path("manager/positions/<int:position_id>/update/", views.position_update, name="position_update"),
     path("manager/positions/<int:position_id>/delete/", views.position_delete, name="position_delete"),

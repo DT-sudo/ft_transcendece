@@ -31,6 +31,14 @@ from .manager_shifts import (
     publish_all_shifts,
 )
 
+# Manager search & analytics (advanced search + analytics dashboard)
+from .manager_search import manager_shift_search
+from .manager_analytics import (
+    manager_analytics,
+    manager_analytics_data,
+    manager_analytics_export_csv,
+)
+
 # Manager resource views (positions)
 from .manager_resources import (
     position_create,
@@ -51,6 +59,11 @@ __all__ = [
     "delete_shift",
     "publish_shift",
     "publish_all_shifts",
+    # Manager search & analytics
+    "manager_shift_search",
+    "manager_analytics",
+    "manager_analytics_data",
+    "manager_analytics_export_csv",
     # Manager resources
     "position_create",
     "position_update",

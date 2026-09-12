@@ -6,6 +6,7 @@
 @import './components/surfaces.css';
 @import './components/calendar.css';
 @import './components/layout.css';
+@import './components/analytics.css';
 
 /* Scan the JSX sources for utility classes */
 @source '../';

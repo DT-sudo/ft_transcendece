@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { addDays, addMonths, navigateWith } from '../../app/dates.js';
 import { CalendarNav } from '../../components/Calendar.jsx';
-import { Plus } from '../../components/Icons.jsx';
+import { BarChartIcon, Plus, Search } from '../../components/Icons.jsx';
 import { SelectPopover } from '../../components/Menus.jsx';
 import { CsrfInput } from '../../components/PostForm.jsx';
 
@@ -155,6 +155,18 @@ export function ShiftsToolbar({ data, onCreateShift, ref }) {
               </label>
             ))}
           </SelectPopover>
+
+          <a className="btn btn-outline btn-icon" href={urls.search} aria-label="Advanced search" title="Search">
+            <Search />
+          </a>
+          <a
+            className="btn btn-outline btn-icon"
+            href={urls.analytics}
+            aria-label="Analytics dashboard"
+            title="Analytics"
+          >
+            <BarChartIcon />
+          </a>
 
           <button className="btn btn-primary" type="button" onClick={onCreateShift}>
             <Plus size={16} />

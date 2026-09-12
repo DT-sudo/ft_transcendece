@@ -9,7 +9,9 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from ..models import Shift
+from apps.accounts.models import User, UserRole
+
+from ..models import Position, Shift
 from ..use_cases import save_shift as save_shift_use_case
 
 
@@ -20,6 +22,33 @@ def _parse_date(value: str | None, default: date) -> date:
     try:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError:
+        return default
+
+
+def _parse_optional_date(value: str | None) -> date | None:
+    """Like `_parse_date`, but returns None (rather than a default) when the
+    value is missing or invalid, for filters where "unset" is meaningful."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _parse_int_list(request: HttpRequest, key: str) -> list[int]:
+    """Read a repeated (`?key=1&key=2`) or comma-joined (`?key=1,2`) query param
+    as a list of ints, used by the search & analytics filter bars."""
+    raw_values: list[str] = []
+    for value in request.GET.getlist(key):
+        raw_values.extend(value.split(","))
+    return [int(value) for value in raw_values if value.strip().isdigit()]
+
+
+def _parse_int(value: str | None, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
         return default
 
 
@@ -86,6 +115,38 @@ def _manager_shifts_url_showing_shift(request: HttpRequest, shift: Shift) -> str
     if view not in {"week", "month"}:
         view = "week"
     return f"{reverse('manager_shifts')}?view={view}&date={shift.date.isoformat()}"
+
+
+def _shift_filter_options(request: HttpRequest) -> dict:
+    """Position/worker/manager option lists shared by the search and
+    analytics filter bars.
+
+    Every shift a manager can see is one *they* created (see
+    `shifts_for_manager`/`manager_scoped_shifts`), so the "manager" filter is
+    always a single-choice, single-value affair today. It's still surfaced as
+    a normal filter — rather than hard-coded away — so the UI matches the
+    required filter set and keeps working unchanged if shifts are ever shared
+    across managers.
+    """
+    positions = Position.objects.filter(is_active=True).order_by("name")
+    workers = (
+        User.objects.filter(role=UserRole.EMPLOYEE, is_active=True)
+        .select_related("position")
+        .order_by("last_name", "first_name", "username")
+    )
+    managers = User.objects.filter(role=UserRole.MANAGER, id=request.user.id)
+
+    return {
+        "positions": [{"id": p.id, "name": p.name} for p in positions],
+        "workers": [
+            {"id": w.id, "name": (w.get_full_name() or "").strip() or w.username}
+            for w in workers
+        ],
+        "managers": [
+            {"id": m.id, "name": (m.get_full_name() or "").strip() or m.username}
+            for m in managers
+        ],
+    }
 
 
 def _save_shift_from_post(
