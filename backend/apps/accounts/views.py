@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from apps.privacy.emails import send_account_deleted_email
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
-from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
+from apps.scheduling.management.commands.seed_demo import DEMO_ACCOUNTS, DEMO_EMPLOYEE_EMAIL
 from apps.scheduling.services import position_options
 
 from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm, UserForm
@@ -66,8 +66,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
     urls = {"login": reverse("login"), "signup": reverse("signup")}
     if settings.ENABLE_DEMO_LOGIN:
-        urls["demoManager"] = reverse("demo_login", args=["manager"])
-        urls["demoEmployee"] = reverse("demo_login", args=["employee"])
+        # demoAdmin, demoManager, demoEmployee
+        urls.update({f"demo{role.title()}": reverse("demo_login", args=[role]) for role in DEMO_ACCOUNTS})
 
     return render_app(
         request,
@@ -134,7 +134,7 @@ def demo_login(request: HttpRequest, role: str) -> HttpResponse:
     """Sign in as one of the accounts `seed_demo` creates, without a password."""
     if not settings.ENABLE_DEMO_LOGIN:
         return redirect("login")
-    email = DEMO_MANAGER_EMAIL if role == "manager" else DEMO_EMPLOYEE_EMAIL
+    email = DEMO_ACCOUNTS.get(role, DEMO_EMPLOYEE_EMAIL)
     user = User.objects.filter(username=email, is_active=True).first()
     if user is None:
         messages.error(request, "Demo accounts are missing. Run `python manage.py seed_demo` first.")

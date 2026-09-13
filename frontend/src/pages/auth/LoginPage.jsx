@@ -10,7 +10,10 @@ export function LoginPage() {
     <AuthLayout title="Welcome back" subtitle="Sign in to your account" messages={messages}>
       {data.showDemo ? (
         <div className="mt-4">
-          <a className="btn btn-outline w-full" href={data.urls.demoManager}>
+          <a className="btn btn-outline w-full" href={data.urls.demoAdmin}>
+            Demo: Admin login
+          </a>
+          <a className="btn btn-outline mt-3 w-full" href={data.urls.demoManager}>
             Demo: Manager login
           </a>
           <a className="btn btn-outline mt-3 w-full" href={data.urls.demoEmployee}>
