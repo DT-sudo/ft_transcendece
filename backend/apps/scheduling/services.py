@@ -12,7 +12,22 @@ from apps.accounts.models import User, UserRole
 from apps.shell import first_form_error
 
 from .forms import ShiftForm
-from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
+from .models import Assignment, EmployeeUnavailability, Position, Shift, ShiftStatus
+
+
+def position_options() -> list[dict]:
+    """Every position as `{id, name}`, for the React selects."""
+    return [{"id": p.id, "name": p.name} for p in Position.objects.order_by("name")]
+
+
+def shift_fields(shift: Shift) -> dict:
+    """The fields every shift payload shares: its day, HH:MM times and position name."""
+    return {
+        "date": shift.date.isoformat(),
+        "start_time": shift.start_time.strftime("%H:%M"),
+        "end_time": shift.end_time.strftime("%H:%M"),
+        "position": shift.position.name,
+    }
 
 
 def _check_position_match(shift: Shift, employee_ids: list[int]) -> None:
@@ -156,19 +171,13 @@ def shift_rows(*, manager_id: int, query: str = "", worker_id: int | None = None
 
     rows = []
     for shift in shifts:
-        workers = [
-            {"id": a.employee_id, "name": a.employee.get_full_name() or a.employee.username}
-            for a in shift.assignments.all()
-        ]
+        workers = [{"id": a.employee_id, "name": a.employee.display_name} for a in shift.assignments.all()]
         if query.lower() not in " ".join([shift.position.name, *(w["name"] for w in workers)]).lower():
             continue
         rows.append(
             {
                 "id": shift.id,
-                "date": shift.date.isoformat(),
-                "start_time": shift.start_time.strftime("%H:%M"),
-                "end_time": shift.end_time.strftime("%H:%M"),
-                "position": shift.position.name,
+                **shift_fields(shift),
                 "status": shift.status,
                 "capacity": shift.capacity,
                 "hours": _hours(shift),

@@ -1,5 +1,6 @@
 import { formatDate, formatDuration, shiftDurationMinutes } from '../../app/dates.js';
 import { Modal } from '../../components/Modal.jsx';
+import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
 
 export function ShiftDetailsModal({ shift, assignedNames, onClose, onEdit, onDelete, onPublish }) {
   const isDraft = shift.status === 'draft';
@@ -8,7 +9,7 @@ export function ShiftDetailsModal({ shift, assignedNames, onClose, onEdit, onDel
     <Modal
       title="Shift Details"
       onClose={onClose}
-      titleExtra={<span className={`badge ${isDraft ? 'badge-outline' : 'badge-success'}`}>{isDraft ? 'Draft' : 'Published'}</span>}
+      titleExtra={<ShiftStatusBadge status={shift.status} />}
       footer={
         <>
           <button className="btn btn-destructive" type="button" onClick={onDelete}>

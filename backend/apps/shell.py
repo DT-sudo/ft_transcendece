@@ -73,12 +73,9 @@ def _nav_links(user, active: str) -> list[dict[str, Any]]:
 def _user_context(user) -> dict[str, Any] | None:
     if not user.is_authenticated:
         return None
-    display_name = user.get_full_name() or user.username
-    initials = "".join(part[0] for part in display_name.split()[:2]) or display_name[:1]
     return {
         "id": user.id,  # keys the browser's notification history per account
-        "displayName": display_name,
-        "initials": initials.upper(),
+        "displayName": user.display_name,
         "role": "Manager" if user.is_manager else (user.position.name if user.position else "Employee"),
     }
 

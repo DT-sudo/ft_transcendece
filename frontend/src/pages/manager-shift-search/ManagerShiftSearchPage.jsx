@@ -1,9 +1,9 @@
 import { formatDate, navigateWith } from '../../app/dates.js';
 import { getBootstrap } from '../../app/http.js';
-import { STATUS_OPTIONS } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
-import { DateRangeFields, FilterSelect, submitForm } from '../../components/Field.jsx';
+import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
 import { ChevronLeft, ChevronRight } from '../../components/Icons.jsx';
+import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
 
 const COLUMNS = [
   { sort: 'date', label: 'Date' },
@@ -29,9 +29,7 @@ function SearchFilters({ filters, positions, workers }) {
         aria-label="Search shifts"
         defaultValue={filters.q}
       />
-      <FilterSelect id="positionFilter" name="position" label="Position:" options={positions} defaultValue={filters.position} onChange={submitForm} />
-      <FilterSelect id="workerFilter" name="worker" label="Worker:" options={workers} defaultValue={filters.worker} onChange={submitForm} />
-      <FilterSelect id="statusFilter" name="status" label="Status:" options={STATUS_OPTIONS} defaultValue={filters.status} onChange={submitForm} />
+      <ShiftFilterSelects filters={filters} positions={positions} workers={workers} />
       <DateRangeFields from={filters.date_from} to={filters.date_to} />
       <input type="hidden" name="sort" defaultValue={filters.sort} />
       <input type="hidden" name="dir" defaultValue={filters.dir} />
@@ -143,9 +141,7 @@ export function ManagerShiftSearchPage() {
                         {shift.workers.map((worker) => worker.name).join(', ') || <span className="text-muted-foreground">Unassigned</span>}
                       </td>
                       <td>
-                        <span className={`badge ${shift.status === 'draft' ? 'badge-outline' : 'badge-success'}`}>
-                          {shift.status === 'draft' ? 'Draft' : 'Published'}
-                        </span>
+                        <ShiftStatusBadge status={shift.status} />
                       </td>
                       <td>
                         {shift.workers.length}/{shift.capacity}

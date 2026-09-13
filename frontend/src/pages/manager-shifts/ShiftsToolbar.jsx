@@ -1,4 +1,4 @@
-import { addMonths, formatMonth, navigateWith } from '../../app/dates.js';
+import { formatMonth, navigateWith } from '../../app/dates.js';
 import { STATUS_OPTIONS } from '../../app/shifts.js';
 import { CalendarNav } from '../../components/Calendar.jsx';
 import { CsrfInput, FilterSelect } from '../../components/Field.jsx';
@@ -26,11 +26,7 @@ export function ShiftsToolbar({ data, onCreateShift }) {
         </div>
 
         <div className="shifts-toolbar-right flex min-w-0 flex-wrap items-center justify-end gap-3 justify-self-end">
-          <CalendarNav
-            onPrev={() => navigateWith({ date: addMonths(anchor, -1) })}
-            onNext={() => navigateWith({ date: addMonths(anchor, 1) })}
-            onToday={() => navigateWith({ date: today })}
-          />
+          <CalendarNav anchorISO={anchor} todayISO={today} />
 
           <button className="btn btn-primary" type="button" onClick={onCreateShift}>
             <Plus size={16} />

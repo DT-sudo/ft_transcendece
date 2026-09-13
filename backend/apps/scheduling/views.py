@@ -23,10 +23,12 @@ from apps.realtime.events import notify_managers
 from .forms import PositionForm
 from .models import Assignment, EmployeeUnavailability, Position, Shift
 from .services import (
+    position_options,
     publish_shift,
     publish_shifts_in_period,
     save_shift,
     shift_analytics,
+    shift_fields,
     shift_rows,
     shifts_for_employee,
     shifts_for_manager,
@@ -63,8 +65,8 @@ def _manager_shift_or_404(request: HttpRequest, shift_id: int) -> Shift:
     return get_object_or_404(Shift, pk=shift_id, created_by=request.user)
 
 
-def _position_options() -> list[dict]:
-    return [{"id": p.id, "name": p.name} for p in Position.objects.order_by("name")]
+def _active_employees():
+    return User.objects.filter(role=UserRole.EMPLOYEE, is_active=True).order_by("last_name", "first_name", "username")
 
 
 def _calendar_url(shift: Shift) -> str:
@@ -76,10 +78,7 @@ def _shift_payload(shift_qs) -> list[dict]:
     return [
         {
             "id": s.id,
-            "date": s.date.isoformat(),
-            "start_time": s.start_time.strftime("%H:%M"),
-            "end_time": s.end_time.strftime("%H:%M"),
-            "position": s.position.name,
+            **shift_fields(s),
             "position_id": s.position_id,
             "capacity": s.capacity,
             "assigned_employee_ids": [a.employee_id for a in s.assignments.all()],
@@ -120,11 +119,7 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
         status=status or None,
         understaffed_only=understaffed,
     )
-    employees = (
-        User.objects.filter(role=UserRole.EMPLOYEE, is_active=True)
-        .select_related("position")
-        .order_by("last_name", "first_name", "username")
-    )
+    employees = _active_employees().select_related("position")
 
     return render_app(
         request,
@@ -136,11 +131,11 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
             "start": start.isoformat(),
             "end": end.isoformat(),
             "today": today.isoformat(),
-            "positions": _position_options(),
+            "positions": position_options(),
             "employees": [
                 {
                     "id": e.id,
-                    "name": e.get_full_name() or e.username,
+                    "name": e.display_name,
                     "position_id": e.position_id,
                     "position": e.position.name if e.position else "",
                 }
@@ -257,10 +252,9 @@ def _shift_filters(request: HttpRequest) -> dict:
 
 def _filter_bar(request: HttpRequest, **values: str) -> dict:
     """Options for the filter bar, and its current values echoed from the query string."""
-    workers = User.objects.filter(role=UserRole.EMPLOYEE, is_active=True).order_by("last_name", "first_name", "username")
     return {
-        "positions": _position_options(),
-        "workers": [{"id": w.id, "name": w.get_full_name() or w.username} for w in workers],
+        "positions": position_options(),
+        "workers": [{"id": w.id, "name": w.display_name} for w in _active_employees()],
         "filters": {**{param: request.GET.get(param, "") for param in FILTER_PARAMS}, **values},
     }
 
@@ -374,14 +368,7 @@ def employee_shifts_view(request: HttpRequest) -> HttpResponse:
             "anchor": anchor.isoformat(),
             "today": today.isoformat(),
             "shifts": [
-                {
-                    "id": s.id,
-                    "date": s.date.isoformat(),
-                    "start_time": s.start_time.strftime("%H:%M"),
-                    "end_time": s.end_time.strftime("%H:%M"),
-                    "position": s.position.name,
-                    "is_past": s.is_past,
-                }
+                {"id": s.id, **shift_fields(s), "is_past": s.is_past}
                 for s in shifts_for_employee(employee_id=request.user.id, start=start, end=end)
             ],
             "unavailable": [day.isoformat() for day in unavailable],
@@ -415,7 +402,7 @@ def employee_unavailability_toggle(request: HttpRequest) -> JsonResponse:
         {
             "type": "unavailability.changed",
             "employeeId": request.user.id,
-            "employeeName": request.user.get_full_name() or request.user.username,
+            "employeeName": request.user.display_name,
             "date": day.isoformat(),
             "unavailable": unavailable,
         }

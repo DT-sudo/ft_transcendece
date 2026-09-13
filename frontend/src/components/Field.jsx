@@ -1,4 +1,5 @@
 import { getBootstrap } from '../app/http.js';
+import { STATUS_OPTIONS } from '../app/shifts.js';
 
 /** Hidden CSRF field for forms that submit natively. */
 export function CsrfInput() {
@@ -65,6 +66,17 @@ export function FilterSelect({ id, label, options, ...selectProps }) {
         ))}
       </select>
     </div>
+  );
+}
+
+/** Position, worker and status selects shared by the search and analytics filter bars; each submits its form. */
+export function ShiftFilterSelects({ filters, positions, workers }) {
+  return (
+    <>
+      <FilterSelect id="positionFilter" name="position" label="Position:" options={positions} defaultValue={filters.position} onChange={submitForm} />
+      <FilterSelect id="workerFilter" name="worker" label="Worker:" options={workers} defaultValue={filters.worker} onChange={submitForm} />
+      <FilterSelect id="statusFilter" name="status" label="Status:" options={STATUS_OPTIONS} defaultValue={filters.status} onChange={submitForm} />
+    </>
   );
 }
 

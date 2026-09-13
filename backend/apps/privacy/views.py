@@ -24,6 +24,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.scheduling.models import Assignment, EmployeeUnavailability, Shift
+from apps.scheduling.services import shift_fields
 from apps.shell import render_app
 
 from .emails import send_account_deleted_email, send_data_export_email
@@ -51,16 +52,7 @@ def _collect_user_data(user) -> dict:
             .select_related("shift", "shift__position")
             .order_by("shift__date", "shift__start_time")
         )
-        data["assigned_shifts"] = [
-            {
-                "date": a.shift.date.isoformat(),
-                "start_time": a.shift.start_time.strftime("%H:%M"),
-                "end_time": a.shift.end_time.strftime("%H:%M"),
-                "position": a.shift.position.name,
-                "status": a.shift.status,
-            }
-            for a in assignments
-        ]
+        data["assigned_shifts"] = [{**shift_fields(a.shift), "status": a.shift.status} for a in assignments]
         data["unavailability"] = [
             date.isoformat()
             for date in EmployeeUnavailability.objects.filter(employee=user).order_by("date").values_list(
@@ -70,15 +62,7 @@ def _collect_user_data(user) -> dict:
     else:
         created = Shift.objects.filter(created_by=user).select_related("position").order_by("date", "start_time")
         data["shifts_created"] = [
-            {
-                "date": shift.date.isoformat(),
-                "start_time": shift.start_time.strftime("%H:%M"),
-                "end_time": shift.end_time.strftime("%H:%M"),
-                "position": shift.position.name,
-                "status": shift.status,
-                "capacity": shift.capacity,
-            }
-            for shift in created
+            {**shift_fields(shift), "status": shift.status, "capacity": shift.capacity} for shift in created
         ]
 
     return data
@@ -132,7 +116,7 @@ def delete_my_account(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Email or password didn't match - account not deleted.")
         return redirect("privacy_center")
 
-    email, name = user.email, user.get_full_name() or user.username
+    email, name = user.email, user.display_name
 
     try:
         user.delete()

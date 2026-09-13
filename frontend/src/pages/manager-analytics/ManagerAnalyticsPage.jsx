@@ -5,7 +5,7 @@ import { getBootstrap, getJSON } from '../../app/http.js';
 import { useLiveEvents } from '../../app/live.js';
 import { STATUS_OPTIONS } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
-import { DateRangeFields, FilterSelect, submitForm } from '../../components/Field.jsx';
+import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
 import { ChevronDown } from '../../components/Icons.jsx';
 import { Dropdown } from '../../components/Menus.jsx';
 import { DonutChart, EmptyChart, XYChart } from './Charts.jsx';
@@ -73,9 +73,7 @@ export function ManagerAnalyticsPage() {
       <main className="p-4 pt-0">
         <form className="card page-toolbar-card filter-bar no-print" method="get">
           <DateRangeFields from={filters.date_from} to={filters.date_to} />
-          <FilterSelect id="positionFilter" name="position" label="Position:" options={positions} defaultValue={filters.position} onChange={submitForm} />
-          <FilterSelect id="workerFilter" name="worker" label="Worker:" options={workers} defaultValue={filters.worker} onChange={submitForm} />
-          <FilterSelect id="statusFilter" name="status" label="Status:" options={STATUS_OPTIONS} defaultValue={filters.status} onChange={submitForm} />
+          <ShiftFilterSelects filters={filters} positions={positions} workers={workers} />
           <button className="btn btn-primary" type="submit">
             Apply
           </button>

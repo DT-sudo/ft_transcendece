@@ -24,6 +24,9 @@ class User(AbstractUser):
         related_name="employees",
     )
     @property
+    def display_name(self) -> str:
+        return self.get_full_name() or self.username
+    @property
     def is_manager(self) -> bool:
         return self.role == UserRole.MANAGER
     @property

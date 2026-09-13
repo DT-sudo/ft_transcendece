@@ -1,18 +1,19 @@
 import { useMemo } from 'react';
 
-import { WEEKDAY_LABELS, monthMatrix } from '../app/dates.js';
+import { WEEKDAY_LABELS, addMonths, monthMatrix, navigateWith } from '../app/dates.js';
 import { ChevronLeft, ChevronRight } from './Icons.jsx';
 
-export function CalendarNav({ onPrev, onToday, onNext }) {
+/** Previous / Today / Next: reloads the page on the chosen month (`?date=`). */
+export function CalendarNav({ anchorISO, todayISO }) {
   return (
     <div className="flex items-center gap-2">
-      <button className="btn btn-outline btn-icon" type="button" onClick={onPrev} aria-label="Previous month">
+      <button className="btn btn-outline btn-icon" type="button" onClick={() => navigateWith({ date: addMonths(anchorISO, -1) })} aria-label="Previous month">
         <ChevronLeft />
       </button>
-      <button className="btn btn-outline btn-sm" type="button" onClick={onToday}>
+      <button className="btn btn-outline btn-sm" type="button" onClick={() => navigateWith({ date: todayISO })}>
         Today
       </button>
-      <button className="btn btn-outline btn-icon" type="button" onClick={onNext} aria-label="Next month">
+      <button className="btn btn-outline btn-icon" type="button" onClick={() => navigateWith({ date: addMonths(anchorISO, 1) })} aria-label="Next month">
         <ChevronRight />
       </button>
     </div>

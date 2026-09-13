@@ -26,7 +26,7 @@ def send_data_export_email(user) -> None:
     when = timezone.now().strftime("%d %b %Y, %H:%M %Z")
     _send(
         "Your PlanShift data export",
-        f"Hi {user.get_full_name() or user.username},\n\n"
+        f"Hi {user.display_name},\n\n"
         f"A copy of your personal data was just downloaded from your PlanShift account ({when}).\n\n"
         "If this wasn't you, someone else may have access to your account - sign in and change your "
         "password, or contact your manager immediately.\n\n"

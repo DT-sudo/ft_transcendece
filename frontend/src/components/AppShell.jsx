@@ -1,4 +1,5 @@
 import { getBootstrap, submitPost } from '../app/http.js';
+import { initialsFromName } from '../app/shifts.js';
 import { Dropdown } from './Menus.jsx';
 import { NotificationBell, ToastProvider } from './Notifications.jsx';
 
@@ -21,7 +22,7 @@ function Header({ user, nav, logoutUrl, privacyCenterUrl }) {
           <Dropdown
             trigger={({ toggle }) => (
               <button className="btn btn-ghost btn-sm gap-0 p-0" type="button" onClick={toggle} aria-label="User menu">
-                <div className="avatar avatar-primary size-8.5">{user.initials}</div>
+                <div className="avatar avatar-primary size-8.5">{initialsFromName(user.displayName)}</div>
               </button>
             )}
           >

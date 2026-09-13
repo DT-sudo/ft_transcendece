@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from apps.privacy.emails import send_account_deleted_email
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
 from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
-from apps.scheduling.models import Position
+from apps.scheduling.services import position_options
 
 from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm
 from .models import User, UserRole
@@ -176,14 +176,14 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
                 {
                     "id": e.id,
                     "employeeId": e.employee_id,
-                    "fullName": e.get_full_name() or e.username,
+                    "fullName": e.display_name,
                     "email": e.email,
                     "positionId": e.position_id,
                     "position": e.position.name if e.position else "",
                 }
                 for e in employees
             ],
-            "positions": [{"id": p.id, "name": p.name} for p in Position.objects.order_by("name")],
+            "positions": position_options(),
             "credentials": request.session.pop("one_time_credentials", None),
             "urls": {
                 "create": reverse("manager_employees_create"),
@@ -239,7 +239,7 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     to the employee (not the manager) once the data is actually gone.
     """
     employee = _get_employee_or_404(user_id)
-    label = employee.get_full_name() or employee.username
+    label = employee.display_name
     email = employee.email
     employee.delete()
     send_account_deleted_email(email, label)

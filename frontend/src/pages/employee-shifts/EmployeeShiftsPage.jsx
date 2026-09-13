@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { addMonths, formatDate, formatMonth, navigateWith } from '../../app/dates.js';
+import { formatDate, formatMonth, navigateWith } from '../../app/dates.js';
 import { getBootstrap, postForm } from '../../app/http.js';
 import { groupShiftsByDate } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
@@ -46,11 +46,7 @@ function EmployeeShiftsContent() {
             <div className="calendar-period">{formatMonth(data.anchor)}</div>
           </div>
           <div className="shifts-toolbar-right flex items-center justify-end justify-self-end">
-            <CalendarNav
-              onPrev={() => navigateWith({ date: addMonths(data.anchor, -1) })}
-              onNext={() => navigateWith({ date: addMonths(data.anchor, 1) })}
-              onToday={() => navigateWith({ date: data.today })}
-            />
+            <CalendarNav anchorISO={data.anchor} todayISO={data.today} />
           </div>
         </div>
       </div>
