@@ -7,7 +7,7 @@ import { Plus } from '../../components/Icons.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
 import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeModals.jsx';
 
-function EmployeeRow({ employee, onEdit, onResetPassword, onDelete }) {
+function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onDelete }) {
   return (
     <tr>
       <td>
@@ -15,9 +15,12 @@ function EmployeeRow({ employee, onEdit, onResetPassword, onDelete }) {
       </td>
       <td className="text-sm">{employee.employeeId}</td>
       <td className="font-medium">{employee.fullName}</td>
-      <td>
-        <span className="badge badge-default">{employee.position}</span>
-      </td>
+      {showRole ? (
+        <td>
+          <span className="badge badge-outline">{employee.roleLabel}</span>
+        </td>
+      ) : null}
+      <td>{employee.position ? <span className="badge badge-default">{employee.position}</span> : null}</td>
       <td className="text-sm">{employee.email}</td>
       <td className="text-end whitespace-nowrap">
         <button className="btn btn-ghost btn-sm" type="button" onClick={() => onEdit(employee)}>
@@ -34,9 +37,11 @@ function EmployeeRow({ employee, onEdit, onResetPassword, onDelete }) {
   );
 }
 
+/** The Team page. Admins get every other account plus a role column and picker (`roles`); managers get employees. */
 export function ManagerEmployeesPage() {
   const { data } = getBootstrap();
-  const { employees, positions, credentials, urls } = data;
+  const { employees, roles, positions, credentials, urls } = data;
+  const noun = roles ? 'user' : 'employee';
 
   const [employeeForm, setEmployeeForm] = useState(null);
   const [showPositions, setShowPositions] = useState(false);
@@ -55,7 +60,7 @@ export function ManagerEmployeesPage() {
               onClick={() => setEmployeeForm({ employee: {}, action: urls.create })}
             >
               <Plus size={16} />
-              Add employee
+              Add {noun}
             </button>
             <button className="btn btn-outline" type="button" onClick={() => setShowPositions(true)}>
               Manage positions
@@ -64,12 +69,13 @@ export function ManagerEmployeesPage() {
         </div>
 
         <div className="card mt-3">
-          <table className="table" aria-label="Employee list">
+          <table className="table" aria-label={roles ? 'User list' : 'Employee list'}>
             <thead>
               <tr>
                 <th>Avatar</th>
                 <th>Employee ID</th>
                 <th>Full name</th>
+                {roles ? <th>Role</th> : null}
                 <th>Position</th>
                 <th>Email</th>
                 <th>Actions</th>
@@ -78,7 +84,7 @@ export function ManagerEmployeesPage() {
             <tbody>
               {employees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={roles ? 7 : 6} className="p-8 text-center text-sm text-muted-foreground">
                     No employees yet. Add your first employee to start assigning shifts.
                   </td>
                 </tr>
@@ -87,6 +93,7 @@ export function ManagerEmployeesPage() {
                   <EmployeeRow
                     key={employee.id}
                     employee={employee}
+                    showRole={Boolean(roles)}
                     onEdit={(target) => setEmployeeForm({ employee: target, action: urlFromTemplate(urls.update, target.id) })}
                     onResetPassword={setPendingReset}
                     onDelete={setPendingDelete}
@@ -102,6 +109,7 @@ export function ManagerEmployeesPage() {
         <EmployeeFormModal
           employee={employeeForm.employee}
           action={employeeForm.action}
+          roles={roles}
           positions={positions}
           onClose={() => setEmployeeForm(null)}
         />
@@ -127,10 +135,10 @@ export function ManagerEmployeesPage() {
 
       {pendingDelete ? (
         <ConfirmModal
-          title="Delete employee"
-          message="Are you sure you want to delete this employee?"
+          title={`Delete ${noun}`}
+          message={`Are you sure you want to delete this ${noun}?`}
           detail={`${pendingDelete.employeeId} (${pendingDelete.email})`}
-          footnote="This will remove the employee and their assignments."
+          footnote={`This will remove the ${noun} and their assignments.`}
           confirmText="Yes, delete"
           destructive
           onCancel={() => setPendingDelete(null)}

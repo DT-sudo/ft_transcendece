@@ -6,15 +6,18 @@ import { Trash } from '../../components/Icons.jsx';
 import { ConfirmModal, Modal } from '../../components/Modal.jsx';
 
 /**
- * Create or edit an employee, given a row from the Team payload (an empty object when creating).
+ * Create or edit an account, given a row from the Team payload (an empty object when creating).
+ * Admins also pick the role (`roles`); only employees have a position.
  * Native form: the browser checks required/type, Django validates.
  */
-export function EmployeeFormModal({ employee, action, positions, onClose }) {
+export function EmployeeFormModal({ employee, action, roles, positions, onClose }) {
   const isEdit = Boolean(employee.id);
+  const noun = roles ? 'User' : 'Employee';
+  const [role, setRole] = useState(employee.role ?? 'employee');
 
   return (
     <Modal
-      title={isEdit ? 'Edit Employee' : 'Add New Employee'}
+      title={isEdit ? `Edit ${noun}` : `Add New ${noun}`}
       onClose={onClose}
       footer={
         <>
@@ -22,7 +25,7 @@ export function EmployeeFormModal({ employee, action, positions, onClose }) {
             Cancel
           </button>
           <button className="btn btn-primary" type="submit" form="employeeForm">
-            {isEdit ? 'Save' : 'Create employee'}
+            {isEdit ? 'Save' : `Create ${noun.toLowerCase()}`}
           </button>
         </>
       }
@@ -32,15 +35,29 @@ export function EmployeeFormModal({ employee, action, positions, onClose }) {
 
         <Field id="employeeFullName" name="full_name" label="Full name" placeholder="Enter full name" required defaultValue={employee.fullName} />
         <Field id="employeeEmail" name="email" type="email" label="Email / Login" placeholder="Enter email" required defaultValue={employee.email} />
-        <SelectField
-          id="employeePosition"
-          name="position"
-          label="Position"
-          placeholder="Select position..."
-          required
-          options={positions}
-          defaultValue={employee.positionId ?? ''}
-        />
+        {roles ? (
+          <SelectField
+            id="employeeRole"
+            name="role"
+            label="Role"
+            placeholder="Select role..."
+            required
+            options={roles}
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+          />
+        ) : null}
+        {role === 'employee' ? (
+          <SelectField
+            id="employeePosition"
+            name="position"
+            label="Position"
+            placeholder="Select position..."
+            required
+            options={positions}
+            defaultValue={employee.positionId ?? ''}
+          />
+        ) : null}
 
         {isEdit ? null : (
           <p className="text-sm text-muted-foreground">
