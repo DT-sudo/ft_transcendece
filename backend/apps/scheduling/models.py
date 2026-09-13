@@ -37,6 +37,9 @@ class Shift(models.Model):
         on_delete=models.PROTECT,
         related_name="created_shifts",
     )
+    # Bumped on every edit. The form sends the version it was opened on, so a save over
+    # someone else's newer edit is refused instead of silently overwriting it.
+    version = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ["date", "start_time"]

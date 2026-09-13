@@ -84,6 +84,7 @@ def _shift_payload(shift_qs) -> list[dict]:
             "assigned_employee_ids": [a.employee_id for a in s.assignments.all()],
             "status": s.status,
             "is_past": s.is_past,
+            "version": s.version,
         }
         for s in shift_qs.prefetch_related("assignments")
     ]

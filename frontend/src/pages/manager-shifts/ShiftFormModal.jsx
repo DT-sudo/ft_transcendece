@@ -17,7 +17,8 @@ const TIME_INPUT = {
 
 /**
  * Create/edit shift form over a shift in the server's payload shape (a blank one when creating).
- * Submits natively; the server enforces every scheduling rule.
+ * Submits natively; the server enforces every scheduling rule, and refuses an edit whose
+ * `version` is no longer current.
  */
 export function ShiftFormModal({ shift, action, positions, employees, availability, onClose }) {
   const isEdit = Boolean(shift.id);
@@ -44,6 +45,7 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
     >
       <form id="shiftForm" className="modal-body" method="post" action={action}>
         <CsrfInput />
+        {isEdit ? <input type="hidden" name="version" value={shift.version} readOnly /> : null}
 
         <div className="grid grid-cols-2 gap-x-4">
           <Field id="shiftDate" name="date" type="date" label="Date" required value={date} onChange={(event) => setDate(event.target.value)} />

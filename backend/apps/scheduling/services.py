@@ -84,10 +84,14 @@ def assign_employees_to_shift(shift: Shift, employee_ids: list[int]) -> None:
     Assignment.objects.bulk_create([Assignment(shift=shift, employee_id=eid) for eid in employee_ids])
 
 
+STALE_SHIFT = "Someone else changed this shift while you were editing it. Your changes were not saved."
+
+
 def save_shift(shift: Shift, post_data) -> Shift:
     """Validate the posted form, then save the shift and its assignments in one transaction.
 
-    Raises ValidationError with a user-facing message when either step rejects.
+    Raises ValidationError with a user-facing message when either step rejects, or when
+    the shift was edited by someone else since the form was opened.
     """
     form = ShiftForm(post_data, instance=shift)
     if not form.is_valid():
@@ -95,6 +99,12 @@ def save_shift(shift: Shift, post_data) -> Shift:
     employee_ids = [int(value) for value in post_data.getlist("employee_ids") if value.isdigit()]
 
     with transaction.atomic():
+        if shift.pk:
+            # Locked so two saves of the same version can't both pass the check.
+            current = Shift.objects.select_for_update().values_list("version", flat=True).get(pk=shift.pk)
+            if post_data.get("version") != str(current):
+                raise ValidationError(STALE_SHIFT)
+            shift.version = current + 1
         saved = form.save()
         assign_employees_to_shift(saved, employee_ids)
     return saved

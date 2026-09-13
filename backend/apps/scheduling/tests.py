@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, time, timedelta
 
+from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -10,7 +11,7 @@ from django.utils import timezone
 from apps.accounts.models import User, UserRole
 
 from .models import Assignment, EmployeeUnavailability, Position, Shift
-from .services import assign_employees_to_shift, shifts_for_employee
+from .services import STALE_SHIFT, assign_employees_to_shift, shifts_for_employee
 
 
 class HardConstraintTests(TestCase):
@@ -205,3 +206,37 @@ class SearchAndAnalyticsTests(TestCase):
         lines = response.content.decode().strip().splitlines()
         self.assertEqual(len(lines), 3)
         self.assertIn("Alice Novak; Bob Marek", lines[1])
+
+
+class ShiftVersionTests(TestCase):
+    """A save from a form opened before someone else's edit is refused instead of overwriting it."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.barista = Position.objects.create(name="Barista")
+        cls.manager = User.objects.create_user(username="manager@example.com", password="x", role=UserRole.MANAGER)
+        cls.day = timezone.localdate() + timedelta(days=3)
+
+    def setUp(self) -> None:
+        self.shift = Shift.objects.create(
+            date=self.day, start_time=time(9, 0), end_time=time(17, 0), position=self.barista, created_by=self.manager
+        )
+        self.client.force_login(self.manager)
+
+    def _save(self, version: int, start: str):
+        data = {"date": self.day.isoformat(), "start_time": start, "end_time": "17:00", "position": self.barista.id}
+        return self.client.post(reverse("update_shift", args=[self.shift.id]), {**data, "capacity": 1, "version": version})
+
+    def test_save_on_the_current_version_bumps_it(self):
+        self._save(1, "10:00")
+
+        self.shift.refresh_from_db()
+        self.assertEqual((self.shift.start_time, self.shift.version), (time(10, 0), 2))
+
+    def test_save_on_a_stale_version_is_refused(self):
+        self._save(1, "10:00")
+        response = self._save(1, "11:00")
+
+        self.shift.refresh_from_db()
+        self.assertEqual((self.shift.start_time, self.shift.version), (time(10, 0), 2))
+        self.assertIn(STALE_SHIFT, [message.message for message in get_messages(response.wsgi_request)])
