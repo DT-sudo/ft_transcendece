@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import ProtectedError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -18,7 +19,7 @@ from apps.shell import field_errors, first_form_error, flash_redirect, render_ap
 from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
 from apps.scheduling.services import position_options
 
-from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm
+from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm, UserForm
 from .models import User, UserRole
 
 # ── Role decorators ─────────────────────────────────────────────────────────
@@ -145,8 +146,13 @@ def demo_login(request: HttpRequest, role: str) -> HttpResponse:
 # ── Employee directory (managers) ───────────────────────────────────────────
 
 
-def _get_employee_or_404(user_id: int) -> User:
-    return get_object_or_404(User, pk=user_id, role=UserRole.EMPLOYEE)
+def _managed_user_or_404(request: HttpRequest, user_id: int) -> User:
+    return get_object_or_404(request.user.managed_users(), pk=user_id)
+
+
+def _account_form(request: HttpRequest):
+    """Admins also pick the role; a manager's form always makes an employee (the model's default role)."""
+    return UserForm if request.user.is_admin else EmployeeForm
 
 
 def _set_generated_password(request: HttpRequest, employee: User) -> None:
@@ -164,12 +170,12 @@ def _back(request: HttpRequest, level: int, text: str) -> HttpResponse:
 @manager_required
 @require_GET
 def manager_employees(request: HttpRequest) -> HttpResponse:
-    employees = User.objects.filter(role=UserRole.EMPLOYEE).select_related("position")
+    is_admin = request.user.is_admin
 
     return render_app(
         request,
         page="manager-employees",
-        title="Employee Management",
+        title="User Management" if is_admin else "Employee Management",
         nav_active="manager_employees",
         data={
             "employees": [
@@ -178,11 +184,15 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
                     "employeeId": e.employee_id,
                     "fullName": e.display_name,
                     "email": e.email,
+                    "role": e.role,
+                    "roleLabel": e.get_role_display(),
                     "positionId": e.position_id,
                     "position": e.position.name if e.position else "",
                 }
-                for e in employees
+                for e in request.user.managed_users().select_related("position")
             ],
+            # Present only for admins, who can assign roles.
+            "roles": [{"id": value, "name": label} for value, label in UserRole.choices] if is_admin else None,
             "positions": position_options(),
             "credentials": request.session.pop("one_time_credentials", None),
             "urls": {
@@ -200,30 +210,31 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
 @manager_required
 @require_POST
 def manager_employees_create(request: HttpRequest) -> HttpResponse:
-    form = EmployeeForm(request.POST)
+    form = _account_form(request)(request.POST)
     if not form.is_valid():
         return _back(request, messages.ERROR, first_form_error(form, "Please fix the errors and try again."))
 
-    employee = form.save(commit=False)
-    employee.role = UserRole.EMPLOYEE
-    _set_generated_password(request, employee)
-    return _back(request, messages.SUCCESS, "Employee created.")
+    account = form.save(commit=False)
+    _set_generated_password(request, account)
+    return _back(request, messages.SUCCESS, f"{account.get_role_display()} created.")
 
 
 @manager_required
 @require_POST
 def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
-    form = EmployeeForm(request.POST, instance=_get_employee_or_404(user_id))
+    account = _managed_user_or_404(request, user_id)
+    form = _account_form(request)(request.POST, instance=account)
     if not form.is_valid():
-        return _back(request, messages.ERROR, first_form_error(form, "Could not update employee."))
-    form.save()
-    return _back(request, messages.SUCCESS, "Employee updated.")
+        return _back(request, messages.ERROR, first_form_error(form, "Could not update the account."))
+    account = form.save()
+    return _back(request, messages.SUCCESS, f"{account.get_role_display()} updated.")
 
 
 @manager_required
 @require_POST
 def reset_employee_password(request: HttpRequest, user_id: int) -> HttpResponse:
-    _set_generated_password(request, _get_employee_or_404(user_id))
+    employee = _managed_user_or_404(request, user_id)
+    _set_generated_password(request, employee)
     return _back(request, messages.SUCCESS, "Password reset.")
 
 
@@ -238,9 +249,12 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     self-service page - so it closes with the same confirmation email, sent
     to the employee (not the manager) once the data is actually gone.
     """
-    employee = _get_employee_or_404(user_id)
-    label = employee.display_name
-    email = employee.email
-    employee.delete()
+    account = _managed_user_or_404(request, user_id)
+    label, email, role = account.display_name, account.email, account.get_role_display()
+    try:
+        account.delete()
+    except ProtectedError:
+        # Shift.created_by is PROTECT: a manager's schedule outlives a careless delete.
+        return _back(request, messages.ERROR, f"Cannot delete {label}: they still have shifts. Reassign or delete them first.")
     send_account_deleted_email(email, label)
-    return _back(request, messages.SUCCESS, f"Deleted employee: {label}.")
+    return _back(request, messages.SUCCESS, f"Deleted {role.lower()}: {label}.")
