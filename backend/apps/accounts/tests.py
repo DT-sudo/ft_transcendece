@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import date, time
+from io import StringIO
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -370,6 +372,12 @@ class RolePermissionTests(TestCase):
     def test_admin_runs_the_schedule_like_a_manager(self):
         self.client.force_login(self.admin)
         self.assertEqual(self.client.get(reverse("manager_shifts")).status_code, 200)
+
+    def test_make_admin_command_promotes_an_account(self):
+        call_command("make_admin", "BOSS@example.com", stdout=StringIO())
+
+        self.manager.refresh_from_db()
+        self.assertEqual(self.manager.role, UserRole.ADMIN)
 
 
 class LegalPageTests(TestCase):
