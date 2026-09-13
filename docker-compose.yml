@@ -20,8 +20,27 @@ services:
       ENABLE_DEMO_LOGIN: "${ENABLE_DEMO_LOGIN:-1}"
       SECURE_COOKIES: "${SECURE_COOKIES:-1}"
       HTTPS_PORT: "${HTTPS_PORT:-8443}"
+      REDIS_URL: "redis://redis:6379/0"
+      EMAIL_BACKEND: "${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}"
+      EMAIL_HOST: "${EMAIL_HOST:-}"
+      EMAIL_PORT: "${EMAIL_PORT:-587}"
+      EMAIL_HOST_USER: "${EMAIL_HOST_USER:-}"
+      EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD:-}"
+      EMAIL_USE_TLS: "${EMAIL_USE_TLS:-1}"
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-privacy@planshift.example}"
+    depends_on:
+      - redis
     volumes:
       - db_data:/app/data
+    networks:
+      - planshift
+    restart: unless-stopped
+
+  # Channel layer for WebSocket broadcasts. Pure pub/sub with nothing to
+  # persist, and like Django it is reachable only on the internal network.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
     networks:
       - planshift
     restart: unless-stopped

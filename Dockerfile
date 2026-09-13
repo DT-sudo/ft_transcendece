@@ -35,10 +35,7 @@ USER app
 
 EXPOSE 8000
 
-# `--insecure` keeps `django.contrib.staticfiles` serving the built JS/CSS
-# bundle through `runserver` even with DEBUG=0 (its default is to only do so
-# in debug mode). nginx proxies every request straight to Django and never
-# serves /static/ itself, so without this flag the page loads with no script
-# or stylesheet tags resolving once DEBUG=0 — an empty <div id="root">.
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
+# nginx proxies /static/ to Django too; --insecure keeps runserver serving the
+# bundle when DEBUG=0 instead of answering 404 and leaving the page blank.
 CMD ["python", "manage.py", "runserver", "--insecure", "0.0.0.0:8000"]

@@ -4,6 +4,8 @@ from datetime import date, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User, UserRole
 
@@ -125,3 +127,81 @@ class ShiftVisibilityTests(TestCase):
         self.shift.status = "published"
         self.shift.save(update_fields=["status"])
         self.assertEqual(self._visible().count(), 1)
+
+
+class SearchAndAnalyticsTests(TestCase):
+    """Search and analytics read only the signed-in manager's own shifts."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.barista = Position.objects.create(name="Barista")
+        cls.chef = Position.objects.create(name="Head Chef")
+        cls.manager = User.objects.create_user(username="manager3@example.com", password="x", role=UserRole.MANAGER)
+        other_manager = User.objects.create_user(username="other3@example.com", password="x", role=UserRole.MANAGER)
+        cls.alice = User.objects.create_user(
+            username="alice3@example.com", password="x", role=UserRole.EMPLOYEE, position=cls.barista,
+            first_name="Alice", last_name="Novak",
+        )
+        cls.bob = User.objects.create_user(
+            username="bob3@example.com", password="x", role=UserRole.EMPLOYEE, position=cls.barista,
+            first_name="Bob", last_name="Marek",
+        )
+        cls.barista_shift = cls._shift(cls.manager, cls.barista, time(9, 0), time(17, 0), 2, [cls.alice, cls.bob])
+        cls.chef_shift = cls._shift(cls.manager, cls.chef, time(10, 0), time(14, 0), 1, [])
+        # Another manager's shift with the same worker must never show up.
+        cls._shift(other_manager, cls.barista, time(9, 0), time(17, 0), 1, [cls.alice])
+
+    @classmethod
+    def _shift(cls, manager, position, start, end, capacity, employees) -> Shift:
+        shift = Shift.objects.create(
+            date=timezone.localdate(), start_time=start, end_time=end, capacity=capacity,
+            position=position, created_by=manager,
+        )
+        Assignment.objects.bulk_create([Assignment(shift=shift, employee=employee) for employee in employees])
+        return shift
+
+    def setUp(self) -> None:
+        self.client.force_login(self.manager)
+
+    def _search(self, **params) -> dict:
+        return self.client.get(reverse("manager_shift_search"), params).context["bootstrap"]["data"]
+
+    def _result_ids(self, **params) -> list[int]:
+        return [row["id"] for row in self._search(**params)["results"]]
+
+    def test_text_query_matches_worker_names(self):
+        self.assertEqual(self._result_ids(q="novak"), [self.barista_shift.id])
+
+    def test_text_query_matches_positions(self):
+        self.assertEqual(self._result_ids(q="chef"), [self.chef_shift.id])
+
+    def test_filters_combine(self):
+        self.assertEqual(self._result_ids(position=self.barista.id, worker=self.bob.id), [self.barista_shift.id])
+        self.assertEqual(self._result_ids(status="published"), [])
+
+    def test_sorting_by_position_descending(self):
+        self.assertEqual(self._result_ids(sort="position", dir="desc"), [self.chef_shift.id, self.barista_shift.id])
+
+    def test_pagination(self):
+        Shift.objects.bulk_create(
+            Shift(date=timezone.localdate(), start_time=time(6, 0), end_time=time(7, 0), position=self.chef, created_by=self.manager)
+            for _ in range(28)
+        )
+        data = self._search(page=2)
+        self.assertEqual((data["total"], data["page"], data["totalPages"], len(data["results"])), (30, 2, 2, 5))
+
+    def test_analytics_worker_filter_counts_only_that_worker(self):
+        url = reverse("manager_analytics_data")
+        everyone = self.client.get(url).json()["kpis"]
+        alice_only = self.client.get(url, {"worker": self.alice.id}).json()["kpis"]
+
+        self.assertEqual(everyone, {"shifts": 2, "hours": 16.0, "workers": 2, "open_shifts": 1})
+        self.assertEqual(alice_only, {"shifts": 1, "hours": 8.0, "workers": 1, "open_shifts": 0})
+
+    def test_csv_export_lists_each_shift(self):
+        response = self.client.get(reverse("manager_analytics_export_csv"))
+
+        self.assertEqual(response["Content-Type"], "text/csv")
+        lines = response.content.decode().strip().splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertIn("Alice Novak; Bob Marek", lines[1])

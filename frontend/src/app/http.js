@@ -1,88 +1,60 @@
-import { getBootstrap } from './bootstrap.js';
+// Django serialises everything a page needs into a <script type="application/json">
+// block, so the app paints without a load-time API round trip.
+let bootstrap;
 
-function cookie(name) {
-  for (const part of (document.cookie || '').split(';')) {
-    const trimmed = part.trim();
-    if (trimmed.startsWith(`${name}=`)) {
-      return decodeURIComponent(trimmed.slice(name.length + 1));
-    }
+export function getBootstrap() {
+  if (!bootstrap) {
+    bootstrap = JSON.parse(document.getElementById('planshift-bootstrap').textContent);
   }
-  return '';
-}
-
-export function getCsrfToken() {
-  return getBootstrap().csrfToken || cookie('csrftoken');
+  return bootstrap;
 }
 
 // "/manager/shifts/0/delete/" + 12 -> "/manager/shifts/12/delete/"
-export function urlFromTemplate(template, id) {
-  const tpl = String(template || '');
-  const idStr = String(id ?? '').trim();
-  if (tpl && idStr && tpl.includes('/0/')) {
-    return tpl.replace('/0/', `/${idStr}/`);
-  }
-  return tpl;
-}
-
-function firstErrorMessage(payload) {
-  const errors = payload?.errors;
-  if (!errors || typeof errors !== 'object') return '';
-
-  for (const item of Object.values(errors).flat()) {
-    if (typeof item === 'string' && item) return item;
-    if (item?.message) return item.message;
-  }
-  return '';
-}
-
-export async function postForm(url, data) {
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-    Accept: 'application/json',
-  };
-  const token = getCsrfToken();
-  if (token) headers['X-CSRFToken'] = token;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: new URLSearchParams(data || {}),
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (response.ok) return payload;
-
-  throw new Error(payload.error || firstErrorMessage(payload) || 'Request failed.');
-}
+export const urlFromTemplate = (template, id) => template.replace('/0/', `/${id}/`);
 
 /**
- * Build a "?a=1&a=2&b=3" query string from a flat { key: value | value[] }
- * object, dropping empty/undefined entries. Shared by the search and
- * analytics filter bars, whose filter shape (arrays for multiselects,
- * strings for everything else) is otherwise identical.
+ * POST `fields` as a regular form submission, for actions the server answers
+ * with a redirect and a flash message (delete, publish, reset password, logout).
  */
-export function toQueryString(params) {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params || {})) {
-    if (value == null || value === '') continue;
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (item !== '' && item != null) search.append(key, item);
-      });
-    } else {
-      search.set(key, value);
-    }
+export function submitPost(action, fields = {}) {
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = action;
+  form.hidden = true;
+
+  for (const [name, value] of Object.entries({ csrfmiddlewaretoken: getBootstrap().csrfToken, ...fields })) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.append(input);
   }
-  return search.toString();
+
+  document.body.append(form);
+  form.submit();
 }
 
-/** GET a JSON endpoint (analytics refresh/polling) using the same CSRF setup as postForm. */
-export async function getJSON(url, params) {
-  const query = toQueryString(params);
-  const response = await fetch(query ? `${url}?${query}` : url, {
-    headers: { Accept: 'application/json' },
+/** GET a JSON endpoint; throws on failure. */
+export async function getJSON(url) {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error('Request failed.');
+  return response.json();
+}
+
+/** POST as a fetch and return the JSON body; throws with the server's message on failure. */
+export async function postForm(url, data) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      Accept: 'application/json',
+      'X-CSRFToken': getBootstrap().csrfToken,
+    },
+    body: new URLSearchParams(data),
   });
+
   const payload = await response.json().catch(() => ({}));
   if (response.ok) return payload;
+
   throw new Error(payload.error || 'Request failed.');
 }

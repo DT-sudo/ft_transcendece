@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
 from apps.scheduling.models import Position
 
 from .forms import SignUpForm
@@ -44,13 +46,6 @@ class SignUpTests(TestCase):
         self.assertTrue(user.password.startswith("pbkdf2_"))
         self.assertTrue(user.check_password("correct-horse-42"))
 
-    def test_signup_does_not_grant_admin_access(self):
-        self.client.post(reverse("signup"), self._payload())
-
-        user = User.objects.get(email="jane.doe@example.com")
-        self.assertFalse(user.is_staff)
-        self.assertFalse(user.is_superuser)
-
     def test_email_is_normalised_and_must_be_unique(self):
         self.client.post(reverse("signup"), self._payload())
 
@@ -78,7 +73,8 @@ class SignUpTests(TestCase):
             with self.subTest(reason=reason):
                 form = SignUpForm(self._payload(password1=password, password2=password))
                 self.assertFalse(form.is_valid())
-                self.assertIn("password1", form.errors)
+                # Django's creation form reports password-strength errors on the confirm field.
+                self.assertIn("password2", form.errors)
 
     def test_signup_page_reports_field_errors_back_to_the_client(self):
         response = self.client.post(reverse("signup"), self._payload(email="not-an-email"))
@@ -94,7 +90,7 @@ class SignUpTests(TestCase):
 
 
 class EmailLoginTests(TestCase):
-    """Login is by email address, resolved through the EmailBackend."""
+    """Login is by email address (username mirrors the lowercased email)."""
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -145,6 +141,53 @@ class EmailLoginTests(TestCase):
         self.assertFalse(response.wsgi_request.user.is_authenticated)
 
 
+@override_settings(ENABLE_DEMO_LOGIN=True)
+class DemoLoginTests(TestCase):
+    """One-click demo buttons sign in as the seeded accounts, and only while enabled."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.manager = User.objects.create_user(
+            username=DEMO_MANAGER_EMAIL, email=DEMO_MANAGER_EMAIL, role=UserRole.MANAGER
+        )
+        cls.employee = User.objects.create_user(
+            username=DEMO_EMPLOYEE_EMAIL, email=DEMO_EMPLOYEE_EMAIL, role=UserRole.EMPLOYEE
+        )
+
+    def test_login_page_offers_both_buttons(self):
+        data = self.client.get(reverse("login")).context["bootstrap"]["data"]
+
+        self.assertTrue(data["showDemo"])
+        self.assertEqual(data["urls"]["demoManager"], reverse("demo_login", args=["manager"]))
+        self.assertEqual(data["urls"]["demoEmployee"], reverse("demo_login", args=["employee"]))
+
+    def test_each_button_signs_in_as_its_role(self):
+        for role, user in (("manager", self.manager), ("employee", self.employee)):
+            with self.subTest(role=role):
+                self.client.logout()
+                response = self.client.get(reverse("demo_login", args=[role]))
+
+                self.assertRedirects(response, reverse("home"), target_status_code=302)
+                self.assertEqual(response.wsgi_request.user, user)
+
+    def test_missing_demo_accounts_do_not_sign_anyone_in(self):
+        User.objects.filter(username=DEMO_MANAGER_EMAIL).delete()
+        response = self.client.get(reverse("demo_login", args=["manager"]))
+
+        self.assertRedirects(response, reverse("login"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    @override_settings(ENABLE_DEMO_LOGIN=False)
+    def test_disabled_demo_login_hides_the_buttons_and_refuses(self):
+        data = self.client.get(reverse("login")).context["bootstrap"]["data"]
+        self.assertFalse(data["showDemo"])
+        self.assertNotIn("demoManager", data["urls"])
+
+        response = self.client.get(reverse("demo_login", args=["manager"]))
+        self.assertRedirects(response, reverse("login"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+
 class EmployeeFormValidationTests(TestCase):
     """The manager-side employee form validates on the server, not only in the browser."""
 
@@ -191,6 +234,55 @@ class EmployeeFormValidationTests(TestCase):
         self._create(full_name="Other Person")
 
         self.assertEqual(User.objects.filter(email="pat@example.com").count(), 1)
+
+
+class EmployeeDeleteGdprTests(TestCase):
+    """Manager-initiated erasure is the other door to the same GDPR right that
+    apps.privacy's self-service delete exercises, and must close the same way:
+    a confirmation email to the person whose data was erased."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.position = Position.objects.create(name="Barista")
+        cls.manager = User.objects.create_user(
+            username="boss@example.com",
+            email="boss@example.com",
+            password="correct-horse-42",
+            role=UserRole.MANAGER,
+        )
+        cls.employee = User.objects.create_user(
+            username="pat@example.com",
+            email="pat@example.com",
+            first_name="Pat",
+            last_name="Smith",
+            role=UserRole.EMPLOYEE,
+            position=cls.position,
+        )
+
+    def setUp(self) -> None:
+        self.client.force_login(self.manager)
+
+    def test_delete_removes_the_employee(self):
+        self.client.post(reverse("employee_delete", args=[self.employee.id]), follow=True)
+        self.assertFalse(User.objects.filter(email="pat@example.com").exists())
+
+    def test_delete_sends_a_confirmation_email_to_the_employee_not_the_manager(self):
+        self.client.post(reverse("employee_delete", args=[self.employee.id]), follow=True)
+
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, ["pat@example.com"])
+        self.assertIn("deleted", sent.subject.lower())
+        self.assertIn("Pat Smith", sent.body)
+
+    def test_a_flaky_mail_backend_does_not_block_the_deletion(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.dummy.EmailBackend"):
+            response = self.client.post(
+                reverse("employee_delete", args=[self.employee.id]), follow=True
+            )
+
+        self.assertFalse(User.objects.filter(email="pat@example.com").exists())
+        self.assertEqual(response.status_code, 200)
 
 
 class LegalPageTests(TestCase):

@@ -1,8 +1,9 @@
 from django.urls import path
 
-from . import views
+from .documents import PRIVACY_POLICY, TERMS_OF_SERVICE
+from .views import legal_page
 
 urlpatterns = [
-    path("privacy/", views.privacy_policy, name="privacy_policy"),
-    path("terms/", views.terms_of_service, name="terms_of_service"),
+    path("privacy/", legal_page, {"document": PRIVACY_POLICY}, name="privacy_policy"),
+    path("terms/", legal_page, {"document": TERMS_OF_SERVICE}, name="terms_of_service"),
 ]

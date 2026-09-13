@@ -1,134 +1,172 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { getBootstrap } from '../../app/bootstrap.js';
-import { formatDateDMY } from '../../app/dates.js';
-import { getJSON, toQueryString } from '../../app/http.js';
+import { formatDate } from '../../app/dates.js';
+import { getBootstrap, getJSON } from '../../app/http.js';
+import { useLiveEvents } from '../../app/live.js';
+import { STATUS_OPTIONS } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
-import { BarChart } from '../../components/charts/BarChart.jsx';
-import { LineChart } from '../../components/charts/LineChart.jsx';
-import { PieChart } from '../../components/charts/PieChart.jsx';
-import { useVisiblePolling } from '../../components/hooks.js';
-import { AnalyticsToolbar } from './AnalyticsToolbar.jsx';
-import { KpiCards } from './KpiCards.jsx';
-import { PrintReportHeader } from './PrintReportHeader.jsx';
-import { TopListsPanel } from './TopListsPanel.jsx';
+import { DateRangeFields, FilterSelect, submitForm } from '../../components/Field.jsx';
+import { ChevronDown } from '../../components/Icons.jsx';
+import { Dropdown } from '../../components/Menus.jsx';
+import { DonutChart, EmptyChart, XYChart } from './Charts.jsx';
 
-// No websocket/push layer exists in this project, so "real-time updates when
-// shifts are created, edited, assigned, reassigned, or deleted" is delivered
-// as a quiet background poll instead — see useVisiblePolling (paused in
-// background tabs) and manager_analytics_data() on the backend.
-const POLL_INTERVAL_MS = 20000;
+const KPIS = [
+  { key: 'shifts', label: 'Shifts', accent: 'var(--color-primary)' },
+  { key: 'workers', label: 'Workers', accent: 'var(--color-info)' },
+  { key: 'hours', label: 'Hours', accent: 'var(--color-shift-published)', suffix: 'h' },
+  { key: 'open_shifts', label: 'Open shifts', accent: 'var(--color-warning)' },
+];
 
-function toApiParams(filters) {
-  return {
-    date_from: filters.dateFrom,
-    date_to: filters.dateTo,
-    position: filters.position,
-    worker: filters.worker,
-    manager: filters.manager,
-    status: filters.status,
-  };
+const STATUS_COLORS = { draft: 'var(--color-shift-past)', published: 'var(--color-shift-published)' };
+
+const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
+/** Name of the selected `{ id, name }` option, or "All" when the filter is empty. */
+const nameOf = (options, id) => options.find((option) => String(option.id) === id)?.name ?? 'All';
+
+function ChartCard({ title, wide = false, children }) {
+  return (
+    <section className={`card chart-card ${wide ? 'chart-card-wide' : ''}`}>
+      <h2 className="chart-card-title">{title}</h2>
+      {children}
+    </section>
+  );
 }
 
+function TopList({ items, name, detail }) {
+  if (!items.length) return <EmptyChart />;
+  return (
+    <ol className="flex flex-col gap-1.5">
+      {items.map((item, index) => (
+        <li key={index} className="flex items-center justify-between gap-2 text-sm">
+          <span className="truncate">
+            <span className="me-1.5 text-muted-foreground">{index + 1}.</span>
+            {item[name]}
+          </span>
+          <span className="badge badge-default shrink-0">{detail(item)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** KPIs, charts and top lists over the manager's shifts, filtered like the search page. */
 export function ManagerAnalyticsPage() {
   const { data } = getBootstrap();
-  const { positions, workers, managers, urls } = data;
-
-  const [filters, setFilters] = useState(data.filters);
+  const { positions, workers, filters, urls } = data;
   const [analytics, setAnalytics] = useState(data.analytics);
-  const [lastUpdated, setLastUpdated] = useState(() => new Date());
-  const [refreshing, setRefreshing] = useState(false);
 
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
-  const isFirstRun = useRef(true);
+  // Every shift write pushes `shifts.changed`: re-fetch the numbers for the same filters.
+  // A failed refresh leaves the last numbers on screen.
+  const refresh = () => getJSON(`${urls.data}${window.location.search}`).then(setAnalytics).catch(() => {});
+  useLiveEvents(
+    (event) => {
+      if (event.type === 'shifts.changed') refresh();
+    },
+    { onReconnect: refresh },
+  );
 
-  const fetchAnalytics = async (targetFilters) => {
-    setRefreshing(true);
-    try {
-      const payload = await getJSON(urls.data, toApiParams(targetFilters));
-      setAnalytics({ kpis: payload.kpis, charts: payload.charts, top: payload.top });
-      setLastUpdated(new Date());
-    } catch {
-      // A failed refresh (e.g. a dropped poll) keeps showing the last good
-      // data rather than blanking the dashboard.
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isFirstRun.current) {
-      // The initial render already has server-rendered data matching these
-      // filters — no need to immediately re-fetch it.
-      isFirstRun.current = false;
-      return;
-    }
-    fetchAnalytics(filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.dateFrom, filters.dateTo, filters.position, filters.worker, filters.manager, filters.status]);
-
-  useVisiblePolling(() => fetchAnalytics(filtersRef.current), POLL_INTERVAL_MS);
-
-  const updateFilters = (patch) => setFilters((current) => ({ ...current, ...patch }));
-
-  const csvExportUrl = `${urls.exportCsv}?${toQueryString(toApiParams(filters))}`;
-  const statusChartData = analytics.charts.status_distribution.filter((item) => item.count > 0);
+  const topPositions = [...analytics.by_position].sort((a, b) => b.count - a.count).slice(0, 5);
 
   return (
     <AppShell>
       <main className="p-4 pt-0">
-        <div className="no-print">
-          <AnalyticsToolbar
-            positions={positions}
-            workers={workers}
-            managers={managers}
-            filters={filters}
-            onChange={updateFilters}
-            csvExportUrl={csvExportUrl}
-            onExportPdf={() => window.print()}
-            refreshing={refreshing}
-            lastUpdated={lastUpdated}
-          />
+        <form className="card page-toolbar-card filter-bar no-print" method="get">
+          <DateRangeFields from={filters.date_from} to={filters.date_to} />
+          <FilterSelect id="positionFilter" name="position" label="Position:" options={positions} defaultValue={filters.position} onChange={submitForm} />
+          <FilterSelect id="workerFilter" name="worker" label="Worker:" options={workers} defaultValue={filters.worker} onChange={submitForm} />
+          <FilterSelect id="statusFilter" name="status" label="Status:" options={STATUS_OPTIONS} defaultValue={filters.status} onChange={submitForm} />
+          <button className="btn btn-primary" type="submit">
+            Apply
+          </button>
+
+          <div className="ms-auto">
+            <Dropdown
+              trigger={({ toggle }) => (
+                <button className="btn btn-outline" type="button" onClick={toggle} aria-haspopup="menu">
+                  Export
+                  <ChevronDown />
+                </button>
+              )}
+            >
+              {/* The CSV is an attachment, so the page stays; the browser's print dialog saves the PDF. */}
+              <button className="dropdown-item" type="button" onClick={() => window.location.assign(`${urls.exportCsv}${window.location.search}`)}>
+                CSV (raw data)
+              </button>
+              <button className="dropdown-item" type="button" onClick={() => window.print()}>
+                PDF (report)
+              </button>
+            </Dropdown>
+          </div>
+        </form>
+
+        <div className="print-only mb-4">
+          <h1 className="text-xl font-semibold">Workforce Analytics Report</h1>
+          <p className="text-sm text-muted-foreground">
+            {formatDate(filters.date_from)} – {formatDate(filters.date_to)} · Position: {nameOf(positions, filters.position)} · Worker:{' '}
+            {nameOf(workers, filters.worker)} · Status: {nameOf(STATUS_OPTIONS, filters.status)}
+          </p>
+          <p className="text-xs text-muted-foreground">Generated {new Date().toLocaleString()}</p>
         </div>
 
-        <PrintReportHeader filters={filters} options={{ positions, workers, managers }} generatedAt={lastUpdated} />
-
-        <div className="mt-3">
-          <KpiCards kpis={analytics.kpis} />
+        <div className="kpi-grid mt-3">
+          {KPIS.map((kpi) => (
+            <div key={kpi.key} className="kpi-card" style={{ '--kpi-accent': kpi.accent }}>
+              <div className="kpi-card-label">{kpi.label}</div>
+              <div className="kpi-card-value">
+                {analytics.kpis[kpi.key]}
+                {kpi.suffix}
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="analytics-charts-grid mt-3">
-          <div className="card chart-card">
-            <div className="chart-card-title">Shifts Over Time</div>
-            <LineChart data={analytics.charts.shifts_over_time} xKey="date" yKey="count" formatX={formatDateDMY} />
-          </div>
+        <div className="analytics-grid mt-3">
+          <ChartCard title="Shifts over time" wide>
+            <XYChart
+              kind="line"
+              label="Shifts over time"
+              data={analytics.by_date}
+              labelKey="date"
+              valueKey="count"
+              formatLabel={(iso) => formatDate(iso, { year: false })}
+            />
+          </ChartCard>
 
-          <div className="analytics-charts-row">
-            <div className="card chart-card">
-              <div className="chart-card-title">Shifts by Position</div>
-              <BarChart data={analytics.charts.shifts_by_position} labelKey="position" valueKey="count" />
-            </div>
-            <div className="card chart-card">
-              <div className="chart-card-title">Shift Status</div>
-              <PieChart data={statusChartData} labelKey="status" valueKey="count" />
-            </div>
-          </div>
+          <ChartCard title="Shifts by position">
+            <XYChart kind="bar" label="Shifts by position" data={analytics.by_position} labelKey="position" valueKey="count" />
+          </ChartCard>
 
-          <div className="card chart-card">
-            <div className="chart-card-title">Hours per Worker</div>
-            <BarChart
-              data={analytics.charts.hours_per_worker}
+          <ChartCard title="Shift status">
+            <DonutChart
+              label="Shift status"
+              segments={analytics.by_status.map(({ status, count }) => ({
+                label: nameOf(STATUS_OPTIONS, status),
+                value: count,
+                color: STATUS_COLORS[status],
+              }))}
+            />
+          </ChartCard>
+
+          <ChartCard title="Hours per worker" wide>
+            <XYChart
+              kind="bar"
+              label="Hours per worker"
+              data={analytics.top_workers}
               labelKey="worker"
               valueKey="hours"
-              formatValue={(v) => `${v}h`}
+              formatValue={(hours) => `${hours}h`}
               color="var(--color-shift-published)"
             />
-          </div>
-        </div>
+          </ChartCard>
 
-        <div className="mt-3">
-          <TopListsPanel top={analytics.top} />
+          <ChartCard title="Top workers">
+            <TopList items={analytics.top_workers.slice(0, 5)} name="worker" detail={(w) => `${w.hours}h · ${plural(w.shifts, 'shift')}`} />
+          </ChartCard>
+
+          <ChartCard title="Top positions">
+            <TopList items={topPositions} name="position" detail={(p) => plural(p.count, 'shift')} />
+          </ChartCard>
         </div>
       </main>
     </AppShell>

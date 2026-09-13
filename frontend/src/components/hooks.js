@@ -1,6 +1,33 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { pushLayer } from './escape.js';
+/**
+ * Dismissal stack. Escape closes the most recently opened layer only: a popover
+ * inside a modal closes before the modal, and the top modal closes first.
+ */
+const layers = [];
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || layers.length === 0) return;
+  event.preventDefault();
+  layers[layers.length - 1].handler();
+});
+
+/** Register a dismissible layer; returns its depth and an unregister function. */
+export function pushLayer(handler, token) {
+  const layer = { handler, token };
+  layers.push(layer);
+  return {
+    depth: layers.length,
+    remove: () => {
+      const index = layers.indexOf(layer);
+      if (index >= 0) layers.splice(index, 1);
+    },
+  };
+}
+
+export function isTopLayer(token) {
+  return layers.length > 0 && layers[layers.length - 1].token === token;
+}
 
 /** Close a popover on outside click or Escape. */
 export function useDismiss(open, onDismiss) {
@@ -26,105 +53,4 @@ export function useDismiss(open, onDismiss) {
   }, [open]);
 
   return ref;
-}
-
-/** Publish an element's measured height as a CSS custom property on :root. */
-export function usePublishedHeight(cssVariable) {
-  const ref = useRef(null);
-
-  useLayoutEffect(() => {
-    const node = ref.current;
-    if (!node) return undefined;
-
-    const sync = () => {
-      const height = node.getBoundingClientRect().height;
-      document.documentElement.style.setProperty(cssVariable, `${height}px`);
-    };
-
-    sync();
-    const observer = new ResizeObserver(sync);
-    observer.observe(node);
-    window.addEventListener('resize', sync);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', sync);
-    };
-  }, [cssVariable]);
-
-  return ref;
-}
-
-/** Re-run a callback on viewport resize (trailing debounce). */
-export function useOnResize(callback) {
-  const handler = useRef(callback);
-  handler.current = callback;
-
-  useEffect(() => {
-    let timer;
-    const onResize = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => handler.current(), 50);
-    };
-
-    window.addEventListener('resize', onResize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-}
-
-/** Restore a fresh page when the browser serves it from the back/forward cache. */
-export function useReloadOnBackForward() {
-  useEffect(() => {
-    const onPageShow = (event) => {
-      if (event.persisted) window.location.reload();
-    };
-    window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, []);
-}
-
-/**
- * Call `callback` every `delayMs` while the tab is visible (paused in
- * background tabs to avoid wasted requests). Used for the analytics
- * dashboard's "real-time" polling refresh.
- */
-export function useVisiblePolling(callback, delayMs) {
-  const handler = useRef(callback);
-  handler.current = callback;
-
-  useEffect(() => {
-    if (!delayMs) return undefined;
-
-    let timer = null;
-    const tick = () => {
-      if (document.visibilityState === 'visible') handler.current();
-    };
-    const start = () => {
-      stop();
-      timer = window.setInterval(tick, delayMs);
-    };
-    const stop = () => {
-      if (timer) window.clearInterval(timer);
-      timer = null;
-    };
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        tick();
-        start();
-      } else {
-        stop();
-      }
-    };
-
-    start();
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      stop();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [delayMs]);
 }

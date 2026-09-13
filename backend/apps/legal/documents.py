@@ -2,7 +2,7 @@
 
 Kept as data rather than templates so the same structure renders through the
 React shell, is easy to review in one place, and can be diffed when the wording
-changes. `updated` is the date the wording last changed and is shown on the page.
+changes. updated is the date the wording last changed and is shown on the page.
 """
 
 from __future__ import annotations
@@ -11,9 +11,7 @@ CONTACT_EMAIL = "privacy@planshift.example"
 LAST_UPDATED = "8 September 2026"
 
 PRIVACY_POLICY = {
-    "slug": "privacy",
     "title": "Privacy Policy",
-    "summary": "What PlanShift stores about you, why it is stored, who can see it, and how to have it removed.",
     "updated": LAST_UPDATED,
     "intro": [
         "PlanShift is a shift-scheduling application for hourly-employment teams. "
@@ -32,17 +30,17 @@ PRIVACY_POLICY = {
                 "than the web font served by Google Fonts.",
             ],
             "bullets": [
-                "**Account data** — your full name, email address (which is also your login), a "
+                "Account data — your full name, email address (which is also your login), a "
                 "system-generated employee ID, your role (manager or employee) and, for employees, "
                 "the position you are qualified for.",
-                "**Password** — never stored as text. Only a salted PBKDF2-SHA256 hash is written to "
+                "Password — never stored as text. Only a salted PBKDF2-SHA256 hash is written to "
                 "the database, and it cannot be reversed back into your password.",
-                "**Scheduling data** — the shifts you are assigned to, their dates, times, position "
+                "Scheduling data — the shifts you are assigned to, their dates, times, position "
                 "and capacity, and the days you have marked yourself unavailable.",
-                "**Session cookie** — a signed identifier that keeps you logged in. It is "
-                "`HttpOnly`, `SameSite=Lax` and `Secure`, so it is unreadable to JavaScript and is "
+                "Session cookie — a signed identifier that keeps you logged in. It is "
+                "HttpOnly, SameSite=Lax and Secure, so it is unreadable to JavaScript and is "
                 "never sent over an unencrypted connection.",
-                "**CSRF cookie** — a random token used to prove that a form submission came from a "
+                "CSRF cookie — a random token used to prove that a form submission came from a "
                 "page we served. It contains no information about you.",
             ],
         },
@@ -66,10 +64,10 @@ PRIVACY_POLICY = {
         {
             "heading": "3. Who can see your data",
             "bullets": [
-                "**You** — your own profile, your published shifts and your unavailability.",
-                "**Managers in your organisation** — the team directory (name, email, position) and "
+                "You — your own profile, your published shifts and your unavailability.",
+                "Managers in your organisation — the team directory (name, email, position) and "
                 "the full schedule, including draft shifts that employees cannot yet see.",
-                "**Administrators of the instance** — technical staff with server or database access.",
+                "Administrators of the instance — technical staff with server or database access.",
             ],
             "paragraphs": [
                 "Your data is never sold, rented, shared with advertisers, or transferred to any "
@@ -94,7 +92,7 @@ PRIVACY_POLICY = {
                 "HTTP requests are redirected to HTTPS.",
                 "Passwords are stored only as salted PBKDF2-SHA256 hashes.",
                 "Every write is protected by a CSRF token, and every page is served with "
-                "`X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`.",
+                "X-Frame-Options: DENY and X-Content-Type-Options: nosniff.",
                 "Access is role-gated on the server: an employee cannot reach a manager endpoint, "
                 "and requesting another manager's shift by guessing its ID returns 404.",
                 "Database queries go through the Django ORM, which parameterises every value, and "
@@ -140,9 +138,7 @@ PRIVACY_POLICY = {
 }
 
 TERMS_OF_SERVICE = {
-    "slug": "terms",
     "title": "Terms of Service",
-    "summary": "The rules for using PlanShift: accounts, acceptable use, what the schedule does and does not mean, and the limits of our liability.",
     "updated": LAST_UPDATED,
     "intro": [
         "These terms govern your use of PlanShift, a shift-scheduling web application. "
@@ -162,9 +158,9 @@ TERMS_OF_SERVICE = {
         {
             "heading": "2. Accounts",
             "bullets": [
-                "**Manager accounts** are opened through the sign-up page. Signing up makes you "
+                "Manager accounts are opened through the sign-up page. Signing up makes you "
                 "responsible for the team you then create.",
-                "**Employee accounts** are created by a manager, who receives a generated password "
+                "Employee accounts are created by a manager, who receives a generated password "
                 "shown exactly once and is responsible for delivering it securely.",
                 "You must give an accurate name and a working email address, and you must be at "
                 "least 16 years old, or have your guardian's consent, to hold an account.",

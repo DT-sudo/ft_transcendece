@@ -49,11 +49,3 @@
   --shadow-modal: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --shadow-header: 0 10px 22px -18px rgb(0 0 0 / 0.18);
 }
-
-/* ── Layout constants (not utility namespaces, measured at runtime) ── */
-:root {
-  --legend-bar-height: 42px;
-  --header-sticky-height: 0px;
-  --toolbar-sticky-height: 0px;
-  --manager-calendar-fill-height: calc(100vh - 60px - 60px - 54px - 2rem);
-}

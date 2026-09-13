@@ -1,2 +1,8 @@
 # Core framework (asgiref and sqlparse are installed automatically as dependencies)
 Django>=6.0,<6.1
+
+# Live updates over WebSockets: Channels routing, the Daphne ASGI server (also
+# used by `runserver`), and the Redis-backed channel layer.
+channels>=4.3,<5
+daphne>=4.2,<5
+channels-redis>=4.3,<5

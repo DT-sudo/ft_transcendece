@@ -1,17 +1,12 @@
 #!/usr/bin/env python
-"""
-Wrapper script to run manage.py from backend/ directory.
-This allows running: python manage.py (from project root) instead of: python backend/manage.py
-"""
+"""Django's command-line utility. The project package lives in backend/."""
 import os
 import sys
-import subprocess
 
 if __name__ == "__main__":
-    # Change to backend directory and run manage.py
-    backend_dir = os.path.join(os.path.dirname(__file__), 'backend')
-    manage_py = os.path.join(backend_dir, 'manage.py')
-    
-    # Run the backend manage.py with all arguments
-    result = subprocess.run([sys.executable, manage_py] + sys.argv[1:])
-    sys.exit(result.returncode)
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+    from django.core.management import execute_from_command_line
+
+    execute_from_command_line(sys.argv)
