@@ -70,10 +70,10 @@ export function Footer({ children }) {
 
 /** Header, flash-message toasts and footer, shared by every signed-in page; `footer` adds page content to the footer bar. */
 export function AppShell({ children, footer }) {
-  const { user, nav, urls, messages } = getBootstrap();
+  const { user, nav, urls, messages, notifications } = getBootstrap();
 
   return (
-    <ToastProvider initialMessages={messages} userId={user?.id}>
+    <ToastProvider initialMessages={messages} notifications={notifications}>
       <div className="page-with-footer">
         <Header user={user} nav={nav} logoutUrl={urls.logout} privacyCenterUrl={urls.privacyCenter} />
         <div className="flex-1">{children}</div>

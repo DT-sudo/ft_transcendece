@@ -20,6 +20,8 @@ from django.shortcuts import redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 
+from apps.notifications.services import recent_notifications
+
 VITE_ENTRY = "src/main.jsx"
 
 
@@ -74,9 +76,22 @@ def _user_context(user) -> dict[str, Any] | None:
     if not user.is_authenticated:
         return None
     return {
-        "id": user.id,  # keys the browser's notification history per account
         "displayName": user.display_name,
         "role": "Manager" if user.is_manager else (user.position.name if user.position else "Employee"),
+    }
+
+
+def _notifications(user) -> dict[str, Any] | None:
+    """The header bell's history, stored per recipient on the server."""
+    if not user.is_authenticated:
+        return None
+    return {
+        "items": recent_notifications(user),
+        "urls": {
+            "list": reverse("notifications"),
+            "markRead": reverse("notifications_mark_read"),
+            "clear": reverse("notifications_clear"),
+        },
     }
 
 
@@ -85,6 +100,7 @@ def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, A
         "page": page,
         "csrfToken": get_token(request),
         "user": _user_context(request.user),
+        "notifications": _notifications(request.user),
         "nav": _nav_links(request.user, nav_active),
         # Present on every page so the footer can link the Privacy Policy and
         # Terms of Service from anywhere, signed in or not.

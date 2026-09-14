@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { formatDate } from '../../app/dates.js';
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
 import { useLiveEvents } from '../../app/live.js';
 import { availabilityFromPayload, positionPalette, withAvailabilityChange } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
-import { useToast } from '../../components/Notifications.jsx';
 import { EmployeeSidebar } from './EmployeeSidebar.jsx';
 import { MonthGrid } from './ShiftGrids.jsx';
 import { ShiftDetailsModal } from './ShiftDetailsModal.jsx';
@@ -18,9 +16,8 @@ const FLASH_MS = 1600;
 // A blank shift in the same shape the server sends, so the form handles create and edit alike.
 const NEW_SHIFT = { date: '', start_time: '09:00', end_time: '17:00', capacity: 1, position_id: '', assigned_employee_ids: [] };
 
-/** Employees' unavailable days, updated live when an employee changes them. */
+/** Employees' unavailable days, updated live when an employee changes them (the bell raises the toast). */
 function useLiveAvailability(initial) {
-  const showToast = useToast();
   const [availability, setAvailability] = useState(() => availabilityFromPayload(initial));
   const [flashedEmployeeId, setFlashedEmployeeId] = useState(null);
   const flashTimer = useRef(null);
@@ -35,12 +32,6 @@ function useLiveAvailability(initial) {
     clearTimeout(flashTimer.current);
     setFlashedEmployeeId(String(event.employeeId));
     flashTimer.current = setTimeout(() => setFlashedEmployeeId(null), FLASH_MS);
-
-    showToast(
-      'info',
-      'Availability updated',
-      `${event.employeeName} is ${event.unavailable ? 'unavailable' : 'available again'} on ${formatDate(event.date)}.`,
-    );
   });
 
   return { availability, flashedEmployeeId };

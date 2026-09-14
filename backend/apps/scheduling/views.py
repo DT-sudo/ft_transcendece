@@ -17,11 +17,12 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.views import employee_required, manager_required
 from apps.accounts.models import User, UserRole
+from apps.notifications.services import managers, notify
 from apps.shell import first_form_error, flash_redirect, render_app
-from apps.realtime.events import notify_managers
+from apps.realtime.events import notify_managers, push_to_user
 
 from .forms import PositionForm
-from .models import Assignment, EmployeeUnavailability, Position, Shift
+from .models import Assignment, EmployeeUnavailability, Position, Shift, ShiftStatus
 from .services import (
     position_options,
     publish_shift,
@@ -157,16 +158,62 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
     )
 
 
+# Employees only see published shifts, so drafts never notify them.
+
+
+def _shift_label(shift: Shift) -> str:
+    return f"{shift.position.name}, {shift.date:%a %b %d}, {shift.start_time:%H:%M}–{shift.end_time:%H:%M}"
+
+
+def _assigned_ids(shift: Shift) -> set[int]:
+    return {assignment.employee_id for assignment in shift.assignments.all()}
+
+
+def _shifts_changed(employee_ids=()) -> None:
+    """Open manager pages re-fetch, and so do the calendars of employees whose published shifts changed."""
+    notify_managers(SHIFTS_CHANGED)
+    for employee_id in employee_ids:
+        push_to_user(employee_id, SHIFTS_CHANGED)
+
+
+def _notify_published(actor: User, shifts: list[Shift]) -> None:
+    """Refresh open calendars, then one notification per assigned employee, however many of their shifts were published."""
+    labels: dict[int, list[str]] = {}
+    for shift in shifts:
+        for employee_id in _assigned_ids(shift):
+            labels.setdefault(employee_id, []).append(_shift_label(shift))
+    _shifts_changed(labels)
+    for employee_id, theirs in labels.items():
+        title = "New shift published" if len(theirs) == 1 else f"{len(theirs)} new shifts published"
+        more = f"; and {len(theirs) - 3} more" if len(theirs) > 3 else ""
+        notify([employee_id], title, "; ".join(theirs[:3]) + more, actor=actor)
+
+
+def _notify_published_shift_edited(actor: User, shift: Shift, before_ids: set[int], before_label: str) -> None:
+    after_ids, label = _assigned_ids(shift), _shift_label(shift)
+    _shifts_changed(before_ids | after_ids)
+    notify(after_ids - before_ids, "New shift assigned", label, actor=actor)
+    notify(before_ids - after_ids, "Removed from a shift", before_label, actor=actor, level="warning")
+    if label != before_label:
+        notify(after_ids & before_ids, "Shift changed", f"{before_label} is now {label}", actor=actor)
+
+
 @manager_required
 @require_POST
 def save_shift_view(request: HttpRequest, shift_id: int | None = None) -> HttpResponse:
     is_update = shift_id is not None
     shift = _manager_shift_or_404(request, shift_id) if is_update else Shift(created_by=request.user)
+    # Read before saving: validating the form writes the posted values onto `shift`.
+    was_published = shift.status == ShiftStatus.PUBLISHED
+    before_ids, before_label = (_assigned_ids(shift), _shift_label(shift)) if was_published else (set(), "")
     try:
         saved = save_shift(shift, request.POST)
     except ValidationError as exc:
         return flash_redirect(request, messages.ERROR, " ".join(exc.messages), "manager_shifts")
-    notify_managers(SHIFTS_CHANGED)
+    if was_published:
+        _notify_published_shift_edited(request.user, saved, before_ids, before_label)
+    else:
+        _shifts_changed()
     return flash_redirect(
         request, messages.SUCCESS, "Shift updated." if is_update else "Shift created.", _calendar_url(saved)
     )
@@ -175,8 +222,12 @@ def save_shift_view(request: HttpRequest, shift_id: int | None = None) -> HttpRe
 @manager_required
 @require_POST
 def delete_shift(request: HttpRequest, shift_id: int) -> HttpResponse:
-    _manager_shift_or_404(request, shift_id).delete()
-    notify_managers(SHIFTS_CHANGED)
+    shift = _manager_shift_or_404(request, shift_id)
+    employee_ids = _assigned_ids(shift) if shift.status == ShiftStatus.PUBLISHED else set()
+    label = _shift_label(shift)
+    shift.delete()
+    _shifts_changed(employee_ids)
+    notify(employee_ids, "Shift cancelled", label, actor=request.user, level="warning")
     return flash_redirect(request, messages.SUCCESS, "Shift deleted.", "manager_shifts")
 
 
@@ -184,8 +235,10 @@ def delete_shift(request: HttpRequest, shift_id: int) -> HttpResponse:
 @require_POST
 def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
     shift = _manager_shift_or_404(request, shift_id)
+    was_draft = shift.status == ShiftStatus.DRAFT
     publish_shift(shift)
-    notify_managers(SHIFTS_CHANGED)
+    if was_draft:
+        _notify_published(request.user, [shift])
     return flash_redirect(request, messages.SUCCESS, "Shift published.", _calendar_url(shift))
 
 
@@ -194,9 +247,10 @@ def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
 def publish_all_shifts(request: HttpRequest) -> HttpResponse:
     """Publish all draft shifts in the visible month."""
     start, end = _month_bounds(_parse_date(request.POST.get("date"), timezone.localdate()))
-    count = publish_shifts_in_period(manager_id=request.user.id, start=start, end=end)
-    if count:
-        notify_managers(SHIFTS_CHANGED)
+    published = publish_shifts_in_period(manager_id=request.user.id, start=start, end=end)
+    if published:
+        _notify_published(request.user, published)
+        count = len(published)
         return flash_redirect(request, messages.SUCCESS, f"Published {count} shift{'s' if count != 1 else ''}.", "manager_shifts")
     return flash_redirect(request, messages.INFO, "No draft shifts to publish.", "manager_shifts")
 
@@ -210,7 +264,9 @@ def position_create(request: HttpRequest) -> HttpResponse:
     form = PositionForm(request.POST)
     if not form.is_valid():
         return flash_redirect(request, messages.ERROR, first_form_error(form, "Could not create position."), "manager_employees")
-    return flash_redirect(request, messages.SUCCESS, f"Position created: {form.save().name}.", "manager_employees")
+    position = form.save()
+    notify(managers(), "Position created", position.name, actor=request.user)
+    return flash_redirect(request, messages.SUCCESS, f"Position created: {position.name}.", "manager_employees")
 
 
 @manager_required
@@ -223,6 +279,7 @@ def position_delete(request: HttpRequest, position_id: int) -> HttpResponse:
         return flash_redirect(
             request, messages.ERROR, "Cannot delete position: it is referenced by existing data.", "manager_employees"
         )
+    notify(managers(), "Position deleted", position.name, actor=request.user, level="warning")
     return flash_redirect(request, messages.SUCCESS, f"Position deleted: {position.name}.", "manager_employees")
 
 
@@ -407,5 +464,11 @@ def employee_unavailability_toggle(request: HttpRequest) -> JsonResponse:
             "date": day.isoformat(),
             "unavailable": unavailable,
         }
+    )
+    notify(
+        managers(),
+        "Availability updated",
+        f"{request.user.display_name} is {'unavailable' if unavailable else 'available again'} on {day:%a %b %d}.",
+        actor=request.user,
     )
     return JsonResponse({"ok": True, "date": day.isoformat(), "unavailable": unavailable})

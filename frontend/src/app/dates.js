@@ -58,6 +58,25 @@ export function formatDate(iso, { year = true } = {}) {
   });
 }
 
+const RELATIVE_UNITS = [
+  ['year', 365 * 86400],
+  ['month', 30 * 86400],
+  ['week', 7 * 86400],
+  ['day', 86400],
+  ['hour', 3600],
+  ['minute', 60],
+];
+
+/** "5 minutes ago", "yesterday", "just now" for an ISO timestamp, in the browser's language. */
+export function timeAgo(isoDateTime) {
+  const seconds = (Date.parse(isoDateTime) - Date.now()) / 1000;
+  const format = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  for (const [unit, length] of RELATIVE_UNITS) {
+    if (Math.abs(seconds) >= length) return format.format(Math.round(seconds / length), unit);
+  }
+  return 'just now';
+}
+
 /** Merge query parameters into the current URL and reload the page; empty values are dropped. */
 export function navigateWith(params) {
   const url = new URL(window.location.href);

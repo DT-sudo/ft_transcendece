@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { timeAgo } from '../app/dates.js';
+import { getJSON, postForm } from '../app/http.js';
+import { useLiveEvents } from '../app/live.js';
 import { Bell } from './Icons.jsx';
 import { Modal } from './Modal.jsx';
 
@@ -9,40 +12,6 @@ const HistoryContext = createContext(null);
 
 /** `const showToast = useToast();` then `showToast(level, title, description)`. */
 export const useToast = () => useContext(ToastContext);
-
-const MAX_HISTORY = 100;
-// A repeat within this window bumps the latest history entry instead of adding a row.
-const REPEAT_WINDOW_MS = 60_000;
-
-// History lives in this browser only, one list per signed-in account.
-const storageKey = (userId) => `planshift:notifications:${userId}`;
-
-function loadHistory(userId) {
-  if (!userId) return [];
-  try {
-    const history = JSON.parse(localStorage.getItem(storageKey(userId)));
-    return Array.isArray(history) ? history : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(userId, history) {
-  if (!userId) return;
-  try {
-    localStorage.setItem(storageKey(userId), JSON.stringify(history));
-  } catch {
-    // Storage can be unavailable (private mode, quota); the history then lasts for this page only.
-  }
-}
-
-function timeAgo(time) {
-  const minutes = Math.floor((Date.now() - time) / 60_000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)}h ago`;
-  return new Date(time).toLocaleDateString();
-}
 
 function NotificationText({ entry }) {
   return (
@@ -57,19 +26,18 @@ function NotificationText({ entry }) {
 }
 
 /**
- * Toasts plus the notification history behind the header bell. Toasts and history
- * entries are keyed by their content, so a repeat bumps a counter instead of stacking.
+ * Toasts plus the notification history behind the header bell. The history is stored
+ * per recipient on the server (`notifications` in the page payload) and grows live over
+ * the socket. Toasts are keyed by their content, so a repeat bumps a counter instead of stacking.
  */
-export function ToastProvider({ initialMessages = [], userId = null, children }) {
+export function ToastProvider({ initialMessages = [], notifications = null, children }) {
   const [toasts, setToasts] = useState([]);
-  const [history, setHistory] = useState(() => loadHistory(userId));
+  const [history, setHistory] = useState(notifications?.items ?? []);
   const timers = useRef(new Map());
-
-  useEffect(() => saveHistory(userId, history), [userId, history]);
+  const urls = notifications?.urls;
 
   const showToast = useCallback((level, title, description = '') => {
     const key = `${level}|${title}|${description}`;
-    const time = Date.now();
 
     setToasts((current) =>
       current.some((toast) => toast.key === key)
@@ -82,16 +50,25 @@ export function ToastProvider({ initialMessages = [], userId = null, children })
       key,
       setTimeout(() => setToasts((current) => current.filter((toast) => toast.key !== key)), level === 'error' ? 6000 : 4000),
     );
-
-    setHistory((current) => {
-      const [latest, ...rest] = current;
-      if (latest?.key === key && time - latest.time < REPEAT_WINDOW_MS) {
-        return [{ ...latest, count: latest.count + 1, time, read: false }, ...rest];
-      }
-      const entry = { id: `${time}-${key}`, key, level, title, description, count: 1, time, read: false };
-      return [entry, ...current].slice(0, MAX_HISTORY);
-    });
   }, []);
+
+  // A notification pushed while the page is open joins the history and raises a toast.
+  useLiveEvents(
+    (event) => {
+      if (event.type !== 'notification') return;
+      const entry = event.notification;
+      setHistory((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
+      showToast(entry.level, entry.title, entry.description);
+    },
+    {
+      enabled: Boolean(urls),
+      // Pushes are not replayed after a dropped connection, so re-read the history.
+      onReconnect: () =>
+        getJSON(urls.list)
+          .then((payload) => setHistory(payload.notifications))
+          .catch(() => {}),
+    },
+  );
 
   // Django flash messages arrive with the page payload; show each once (StrictMode runs effects twice).
   const flashed = useRef(false);
@@ -101,14 +78,21 @@ export function ToastProvider({ initialMessages = [], userId = null, children })
     for (const { level, text } of initialMessages) showToast(level, level[0].toUpperCase() + level.slice(1), text);
   }, [initialMessages, showToast]);
 
-  const center = useMemo(
-    () => ({
+  const center = useMemo(() => {
+    const save = (url) => postForm(url, {}).catch(() => showToast('error', 'Error', 'Could not update notifications.'));
+    return {
       history,
-      markAllRead: () => setHistory((current) => current.map((entry) => ({ ...entry, read: true }))),
-      clear: () => setHistory([]),
-    }),
-    [history],
-  );
+      markAllRead: () => {
+        if (!history.some((entry) => !entry.read)) return;
+        setHistory((current) => current.map((entry) => ({ ...entry, read: true })));
+        save(urls.markRead);
+      },
+      clear: () => {
+        setHistory([]);
+        save(urls.clear);
+      },
+    };
+  }, [history, urls, showToast]);
 
   return (
     <ToastContext.Provider value={showToast}>
@@ -168,7 +152,7 @@ export function NotificationBell() {
                     <li key={entry.id} className={`notification-item toast-${entry.level}`}>
                       <div className="toast-dot" aria-hidden="true" />
                       <NotificationText entry={entry} />
-                      <time className="ms-auto shrink-0 text-xs text-muted-foreground" dateTime={new Date(entry.time).toISOString()}>
+                      <time className="ms-auto shrink-0 text-xs text-muted-foreground" dateTime={entry.time}>
                         {timeAgo(entry.time)}
                       </time>
                     </li>

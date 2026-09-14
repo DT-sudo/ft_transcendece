@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from apps.notifications.services import managers, notify
 from apps.privacy.emails import send_account_deleted_email
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
 from apps.scheduling.management.commands.seed_demo import DEMO_ACCOUNTS, DEMO_EMPLOYEE_EMAIL
@@ -216,6 +217,7 @@ def manager_employees_create(request: HttpRequest) -> HttpResponse:
 
     account = form.save(commit=False)
     _set_generated_password(request, account)
+    notify(managers(), f"{account.get_role_display()} added", account.display_name, actor=request.user)
     return _back(request, messages.SUCCESS, f"{account.get_role_display()} created.")
 
 
@@ -227,6 +229,13 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
     if not form.is_valid():
         return _back(request, messages.ERROR, first_form_error(form, "Could not update the account."))
     account = form.save()
+    if form.has_changed():
+        role = account.get_role_display()
+        notify(managers(), f"{role} updated", account.display_name, actor=request.user)
+        if "role" in form.changed_data:
+            notify([account], "Your role was changed", f"{request.user.display_name} made you {role}.", actor=request.user)
+        else:
+            notify([account], "Your details were updated", f"{request.user.display_name} changed your account.", actor=request.user)
     return _back(request, messages.SUCCESS, f"{account.get_role_display()} updated.")
 
 
@@ -235,6 +244,13 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
 def reset_employee_password(request: HttpRequest, user_id: int) -> HttpResponse:
     employee = _managed_user_or_404(request, user_id)
     _set_generated_password(request, employee)
+    notify(
+        [employee],
+        "Your password was reset",
+        f"{request.user.display_name} set a new password for your account.",
+        actor=request.user,
+        level="warning",
+    )
     return _back(request, messages.SUCCESS, "Password reset.")
 
 
@@ -257,4 +273,5 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
         # Shift.created_by is PROTECT: a manager's schedule outlives a careless delete.
         return _back(request, messages.ERROR, f"Cannot delete {label}: they still have shifts. Reassign or delete them first.")
     send_account_deleted_email(email, label)
+    notify(managers(), f"{role} deleted", label, actor=request.user, level="warning")
     return _back(request, messages.SUCCESS, f"Deleted {role.lower()}: {label}.")
