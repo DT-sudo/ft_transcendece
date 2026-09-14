@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect, render
 from django.templatetags.static import static
@@ -96,6 +96,10 @@ def _notifications(user) -> dict[str, Any] | None:
 
 
 def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, Any] | None = None, nav_active: str = "") -> HttpResponse:
+    # The page's own URL plus `?format=json` answers with just its data, so an open page
+    # can re-read itself live (`useLivePageData`) without a second endpoint per page.
+    if request.GET.get("format") == "json":
+        return JsonResponse(data or {})
     bootstrap = {
         "page": page,
         "csrfToken": get_token(request),

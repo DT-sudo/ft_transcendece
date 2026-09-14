@@ -1,8 +1,6 @@
-import { useState } from 'react';
-
 import { formatDate } from '../../app/dates.js';
-import { getBootstrap, getJSON } from '../../app/http.js';
-import { useLiveEvents } from '../../app/live.js';
+import { getBootstrap } from '../../app/http.js';
+import { useLivePageData } from '../../app/live.js';
 import { STATUS_OPTIONS } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
@@ -52,19 +50,9 @@ function TopList({ items, name, detail }) {
 
 /** KPIs, charts and top lists over the manager's shifts, filtered like the search page. */
 export function ManagerAnalyticsPage() {
-  const { data } = getBootstrap();
-  const { positions, workers, filters, urls } = data;
-  const [analytics, setAnalytics] = useState(data.analytics);
-
-  // Every shift write pushes `shifts.changed`: re-fetch the numbers for the same filters.
+  // Every shift write pushes `shifts.changed`: the page re-reads its data for the same filters.
   // A failed refresh leaves the last numbers on screen.
-  const refresh = () => getJSON(`${urls.data}${window.location.search}`).then(setAnalytics).catch(() => {});
-  useLiveEvents(
-    (event) => {
-      if (event.type === 'shifts.changed') refresh();
-    },
-    { onReconnect: refresh },
-  );
+  const { positions, workers, filters, urls, analytics } = useLivePageData(getBootstrap().data);
 
   const topPositions = [...analytics.by_position].sort((a, b) => b.count - a.count).slice(0, 5);
 

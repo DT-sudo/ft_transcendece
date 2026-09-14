@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { formatDate, formatMonth, navigateWith } from '../../app/dates.js';
 import { getBootstrap, postForm } from '../../app/http.js';
+import { useLivePageData } from '../../app/live.js';
 import { groupShiftsByDate } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { CalendarNav, MonthCalendar } from '../../components/Calendar.jsx';
@@ -15,9 +16,9 @@ export function EmployeeShiftsPage() {
   );
 }
 
-/** Published shifts for the month; clicking a free future day toggles it as unavailable. */
+/** Published shifts for the month, updated live; clicking a free future day toggles it as unavailable. */
 function EmployeeShiftsContent() {
-  const { data } = getBootstrap();
+  const data = useLivePageData(getBootstrap().data);
   const showToast = useToast();
   const [unavailable, setUnavailable] = useState(() => new Set(data.unavailable));
   const shiftsByDate = useMemo(() => groupShiftsByDate(data.shifts), [data.shifts]);

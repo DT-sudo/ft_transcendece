@@ -41,6 +41,13 @@ export async function getJSON(url) {
   return response.json();
 }
 
+/** The current page's `data`, fresh from the server (`render_app` answers `?format=json`). */
+export function getPageData() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('format', 'json');
+  return getJSON(url);
+}
+
 /** POST as a fetch and return the JSON body; throws with the server's message on failure. */
 export async function postForm(url, data) {
   const response = await fetch(url, {

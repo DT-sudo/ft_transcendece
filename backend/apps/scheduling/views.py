@@ -35,7 +35,7 @@ from .services import (
     shifts_for_manager,
 )
 
-# Open analytics dashboards re-fetch their numbers when any shift is written.
+# Open calendars and analytics dashboards re-fetch their data when a shift is written.
 SHIFTS_CHANGED = {"type": "shifts.changed"}
 
 # ── Query parameters and periods ────────────────────────────────────────────
@@ -363,17 +363,9 @@ def manager_analytics(request: HttpRequest) -> HttpResponse:
         data={
             **_filter_bar(request, date_from=filters["start"].isoformat(), date_to=filters["end"].isoformat()),
             "analytics": shift_analytics(rows, worker_id=filters["worker_id"]),
-            "urls": {"data": reverse("manager_analytics_data"), "exportCsv": reverse("manager_analytics_export_csv")},
+            "urls": {"exportCsv": reverse("manager_analytics_export_csv")},
         },
     )
-
-
-@manager_required
-@require_GET
-def manager_analytics_data(request: HttpRequest) -> JsonResponse:
-    """The dashboard numbers as JSON; the page re-fetches them when a shift changes."""
-    filters, rows = _analytics_rows(request)
-    return JsonResponse(shift_analytics(rows, worker_id=filters["worker_id"]))
 
 
 @manager_required

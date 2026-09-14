@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { getPageData } from './http.js';
 
 const SOCKET_PATH = '/ws/schedule/';
 const MAX_RETRY_DELAY_MS = 15000;
@@ -81,4 +83,21 @@ export function useLiveEvents(onEvent, { onReconnect, onOpen, enabled = true } =
       onOpen: () => handlers.current.onOpen?.(),
     });
   }, [enabled]);
+}
+
+/**
+ * The page's `data`, re-read from the server when one of `eventTypes` arrives or a lost
+ * connection comes back. `patch(data, event)` applies any other event in place.
+ */
+export function useLivePageData(initial, eventTypes = ['shifts.changed'], patch = null) {
+  const [data, setData] = useState(initial);
+  const refresh = () => getPageData().then(setData).catch(() => {});
+  useLiveEvents(
+    (event) => {
+      if (eventTypes.includes(event.type)) refresh();
+      else if (patch) setData((current) => patch(current, event));
+    },
+    { onReconnect: refresh },
+  );
+  return data;
 }

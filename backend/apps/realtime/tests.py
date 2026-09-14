@@ -156,6 +156,16 @@ class LiveAvailabilityTests(TestCase):
 
         self.assertEqual(self._next_event(), {"type": "shifts.changed"})
 
+    def test_calendar_refetches_its_data_as_json(self):
+        Shift.objects.create(
+            date=self.day, start_time=time(9, 0), end_time=time(17, 0), position=self.barista, created_by=self.manager
+        )
+        self.client.force_login(self.manager)
+
+        data = self.client.get(reverse("manager_shifts"), {"date": self.day.isoformat(), "format": "json"}).json()
+
+        self.assertEqual([(shift["start_time"], shift["version"]) for shift in data["shifts"]], [("09:00", 1)])
+
     def test_manager_page_lists_unavailable_days_per_employee(self):
         EmployeeUnavailability.objects.create(employee=self.alice, date=self.day)
         self.client.force_login(self.manager)

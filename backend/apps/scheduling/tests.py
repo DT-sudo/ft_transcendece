@@ -192,9 +192,9 @@ class SearchAndAnalyticsTests(TestCase):
         self.assertEqual((data["total"], data["page"], data["totalPages"], len(data["results"])), (30, 2, 2, 5))
 
     def test_analytics_worker_filter_counts_only_that_worker(self):
-        url = reverse("manager_analytics_data")
-        everyone = self.client.get(url).json()["kpis"]
-        alice_only = self.client.get(url, {"worker": self.alice.id}).json()["kpis"]
+        url = reverse("manager_analytics")
+        everyone = self.client.get(url, {"format": "json"}).json()["analytics"]["kpis"]
+        alice_only = self.client.get(url, {"format": "json", "worker": self.alice.id}).json()["analytics"]["kpis"]
 
         self.assertEqual(everyone, {"shifts": 2, "hours": 16.0, "workers": 2, "open_shifts": 1})
         self.assertEqual(alice_only, {"shifts": 1, "hours": 8.0, "workers": 1, "open_shifts": 0})

@@ -11,7 +11,6 @@ urlpatterns = [
     path("manager/shifts/<int:shift_id>/publish/", views.publish_shift_view, name="publish_shift"),
     path("manager/shifts/search/", views.manager_shift_search, name="manager_shift_search"),
     path("manager/shifts/analytics/", views.manager_analytics, name="manager_analytics"),
-    path("manager/shifts/analytics/data/", views.manager_analytics_data, name="manager_analytics_data"),
     path("manager/shifts/analytics/export/csv/", views.manager_analytics_export_csv, name="manager_analytics_export_csv"),
     path("manager/positions/create/", views.position_create, name="position_create"),
     path("manager/positions/<int:position_id>/delete/", views.position_delete, name="position_delete"),

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
-import { useLiveEvents } from '../../app/live.js';
+import { useLiveEvents, useLivePageData } from '../../app/live.js';
 import { availabilityFromPayload, positionPalette, withAvailabilityChange } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
@@ -62,17 +62,16 @@ function PositionLegend({ positions, shifts }) {
 }
 
 export function ManagerShiftsPage() {
-  const { positions, shifts } = getBootstrap().data;
+  const data = useLivePageData(getBootstrap().data);
 
   return (
-    <AppShell footer={<PositionLegend positions={positions} shifts={shifts} />}>
-      <ManagerShiftsContent />
+    <AppShell footer={<PositionLegend positions={data.positions} shifts={data.shifts} />}>
+      <ManagerShiftsContent data={data} />
     </AppShell>
   );
 }
 
-function ManagerShiftsContent() {
-  const { data } = getBootstrap();
+function ManagerShiftsContent({ data }) {
   const { anchor, start, end, today, shifts, employees, positions, urls } = data;
 
   const [detailsShiftId, setDetailsShiftId] = useState(null);
