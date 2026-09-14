@@ -23,6 +23,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.notifications.services import recent_notifications
+from apps.profiles.services import involving
 from apps.scheduling.models import Assignment, EmployeeUnavailability, Shift
 from apps.scheduling.services import shift_fields
 from apps.shell import render_app
@@ -41,10 +43,22 @@ def _collect_user_data(user) -> dict:
             "email": user.email,
             "role": user.get_role_display(),
             "position": user.position.name if user.position else None,
+            "bio": user.bio,
+            "profile_picture": "uploaded (stored as a 256x256 WebP)" if user.avatar else None,
             "date_joined": user.date_joined.isoformat(),
             "last_login": user.last_login.isoformat() if user.last_login else None,
+            "last_seen_online": user.last_seen.isoformat() if user.last_seen else None,
         },
     }
+    data["friends"] = [
+        {
+            "name": friendship.other(user).display_name,
+            "status": friendship.status,
+            "requested_by": "you" if friendship.from_user_id == user.pk else "them",
+            "since": (friendship.accepted_at or friendship.created_at).isoformat(),
+        }
+        for friendship in involving(user).select_related("from_user", "to_user").order_by("created_at")
+    ]
 
     if user.is_employee:
         assignments = (
@@ -65,6 +79,7 @@ def _collect_user_data(user) -> dict:
             {**shift_fields(shift), "status": shift.status, "capacity": shift.capacity} for shift in created
         ]
 
+    data["notifications"] = recent_notifications(user, limit=None)
     return data
 
 

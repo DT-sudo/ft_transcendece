@@ -29,7 +29,8 @@ export function PrivacyCenterPage() {
         <div className="card mt-3 p-4">
           <div className="card-title">What we hold about you</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your name, email, employee ID and role
+            Your name, email, employee ID and role, your profile picture and bio, your friends, and when you were
+            last online
             {isManager ? ', and the shifts you have created.' : ', plus your shift assignments and the days you have marked yourself unavailable.'}{' '}
             See the full <a className="footer-link" href={globalUrls.privacy}>Privacy Policy</a> for why each piece is
             collected and who can see it.

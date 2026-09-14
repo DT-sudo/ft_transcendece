@@ -8,7 +8,7 @@ changes. updated is the date the wording last changed and is shown on the page.
 from __future__ import annotations
 
 CONTACT_EMAIL = "privacy@planshift.example"
-LAST_UPDATED = "8 September 2026"
+LAST_UPDATED = "14 September 2026"
 
 PRIVACY_POLICY = {
     "title": "Privacy Policy",
@@ -33,10 +33,17 @@ PRIVACY_POLICY = {
                 "Account data — your full name, email address (which is also your login), a "
                 "system-generated employee ID, your role (manager or employee) and, for employees, "
                 "the position you are qualified for.",
+                "Profile data — an optional profile picture (re-encoded to a small WebP, which "
+                "strips any camera or location metadata), an optional short bio, your friends and "
+                "friend requests, and your online status: whether you have PlanShift open, and when "
+                "you last did.",
                 "Password — never stored as text. Only a salted PBKDF2-SHA256 hash is written to "
                 "the database, and it cannot be reversed back into your password.",
                 "Scheduling data — the shifts you are assigned to, their dates, times, position "
                 "and capacity, and the days you have marked yourself unavailable.",
+                "Notifications — the in-app messages about changes other people made that concern "
+                "you, such as a shift you were assigned to. They are kept until you clear them or "
+                "your account is deleted.",
                 "Session cookie — a signed identifier that keeps you logged in. It is "
                 "HttpOnly, SameSite=Lax and Secure, so it is unreadable to JavaScript and is "
                 "never sent over an unencrypted connection.",
@@ -67,6 +74,8 @@ PRIVACY_POLICY = {
                 "You — your own profile, your published shifts and your unavailability.",
                 "Managers in your organisation — the team directory (name, email, position) and "
                 "the full schedule, including draft shifts that employees cannot yet see.",
+                "Your friends — your profile, email, friend list and online status. Someone you "
+                "have a pending friend request with sees only your name, picture, role and bio.",
                 "Administrators of the instance — technical staff with server or database access.",
             ],
             "paragraphs": [
