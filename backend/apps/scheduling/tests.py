@@ -240,3 +240,34 @@ class ShiftVersionTests(TestCase):
         self.shift.refresh_from_db()
         self.assertEqual((self.shift.start_time, self.shift.version), (time(10, 0), 2))
         self.assertIn(STALE_SHIFT, [message.message for message in get_messages(response.wsgi_request)])
+
+
+class CalendarViewTests(TestCase):
+    """The manager calendar shows a month or a Monday-to-Sunday week, and remembers the choice."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        barista = Position.objects.create(name="Barista")
+        cls.manager = User.objects.create_user(username="manager@example.com", password="x", role=UserRole.MANAGER)
+        # A Wednesday, and a day two weeks later in the same month.
+        for day in (date(2030, 6, 5), date(2030, 6, 19)):
+            Shift.objects.create(date=day, start_time=time(9, 0), end_time=time(17, 0), position=barista, created_by=cls.manager)
+
+    def setUp(self) -> None:
+        self.client.force_login(self.manager)
+
+    def _data(self, **params) -> dict:
+        return self.client.get(reverse("manager_shifts"), {"format": "json", "date": "2030-06-05", **params}).json()
+
+    def test_week_view_shows_monday_to_sunday(self):
+        data = self._data(view="week")
+
+        self.assertEqual((data["view"], data["start"], data["end"]), ("week", "2030-06-03", "2030-06-09"))
+        self.assertEqual([shift["date"] for shift in data["shifts"]], ["2030-06-05"])
+
+    def test_the_last_chosen_view_is_remembered(self):
+        self._data(view="week")
+        self.assertEqual(self._data()["view"], "week")
+
+        self.assertEqual(len(self._data(view="month")["shifts"]), 2)
+        self.assertEqual(self._data()["view"], "month")

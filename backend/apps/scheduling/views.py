@@ -59,6 +59,29 @@ def _month_bounds(anchor: date) -> tuple[date, date]:
     return start, next_month - timedelta(days=1)
 
 
+CALENDAR_VIEWS = ("month", "week")
+
+
+def _calendar_view(request: HttpRequest) -> str:
+    """"month" or "week": the one asked for, else the manager's last choice.
+
+    Kept in the session, so the redirect after a save or delete lands on the same view.
+    """
+    view = request.GET.get("view") or request.POST.get("view")
+    if view in CALENDAR_VIEWS:
+        request.session["calendar_view"] = view
+        return view
+    return request.session.get("calendar_view", "month")
+
+
+def _period(view: str, anchor: date) -> tuple[date, date]:
+    """The visible days: the anchor's month, or its Monday-to-Sunday week."""
+    if view == "week":
+        start = anchor - timedelta(days=anchor.weekday())
+        return start, start + timedelta(days=6)
+    return _month_bounds(anchor)
+
+
 # ── Manager calendar ────────────────────────────────────────────────────────
 
 
@@ -107,7 +130,8 @@ def _unavailability_payload(*, since: date) -> dict[str, list[str]]:
 def manager_shifts(request: HttpRequest) -> HttpResponse:
     today = timezone.localdate()
     anchor = _parse_date(request.GET.get("date"), today)
-    start, end = _month_bounds(anchor)
+    view = _calendar_view(request)
+    start, end = _period(view, anchor)
 
     position_id = _parse_id(request.GET.get("position"))
     status = (request.GET.get("status") or "").lower()
@@ -129,6 +153,7 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
         title="Shift Management",
         nav_active="manager_shifts",
         data={
+            "view": view,
             "anchor": anchor.isoformat(),
             "start": start.isoformat(),
             "end": end.isoformat(),
@@ -245,8 +270,8 @@ def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
 @manager_required
 @require_POST
 def publish_all_shifts(request: HttpRequest) -> HttpResponse:
-    """Publish all draft shifts in the visible month."""
-    start, end = _month_bounds(_parse_date(request.POST.get("date"), timezone.localdate()))
+    """Publish all draft shifts in the visible month or week."""
+    start, end = _period(_calendar_view(request), _parse_date(request.POST.get("date"), timezone.localdate()))
     published = publish_shifts_in_period(manager_id=request.user.id, start=start, end=end)
     if published:
         _notify_published(request.user, published)

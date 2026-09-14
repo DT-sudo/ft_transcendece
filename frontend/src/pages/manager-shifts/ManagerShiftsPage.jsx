@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { pad2 } from '../../app/dates.js';
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
 import { useLiveEvents, useLivePageData } from '../../app/live.js';
 import { availabilityFromPayload, positionPalette, withAvailabilityChange } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
 import { EmployeeSidebar } from './EmployeeSidebar.jsx';
-import { MonthGrid } from './ShiftGrids.jsx';
+import { MonthGrid, WeekGrid } from './ShiftGrids.jsx';
 import { ShiftDetailsModal } from './ShiftDetailsModal.jsx';
 import { ShiftFormModal } from './ShiftFormModal.jsx';
 import { ShiftsToolbar } from './ShiftsToolbar.jsx';
@@ -15,6 +16,9 @@ const FLASH_MS = 1600;
 
 // A blank shift in the same shape the server sends, so the form handles create and edit alike.
 const NEW_SHIFT = { date: '', start_time: '09:00', end_time: '17:00', capacity: 1, position_id: '', assigned_employee_ids: [] };
+
+// A slot clicked in the week view pre-fills a one-hour shift from that hour.
+const oneHourLater = (time) => `${pad2((Number(time.slice(0, 2)) + 1) % 24)}:00`;
 
 /** Employees' unavailable days, updated live when an employee changes them (the bell raises the toast). */
 function useLiveAvailability(initial) {
@@ -72,7 +76,7 @@ export function ManagerShiftsPage() {
 }
 
 function ManagerShiftsContent({ data }) {
-  const { anchor, start, end, today, shifts, employees, positions, urls } = data;
+  const { view, anchor, start, end, today, shifts, employees, positions, urls } = data;
 
   const [detailsShiftId, setDetailsShiftId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -89,7 +93,11 @@ function ManagerShiftsContent({ data }) {
   const detailsShift = shifts.find((shift) => shift.id === detailsShiftId) || null;
   const detailsNames = employees.filter((e) => detailsShift?.assigned_employee_ids.includes(e.id)).map((e) => e.name);
 
-  const openCreateForm = (date = '') => setShiftForm({ shift: { ...NEW_SHIFT, date }, action: urls.create });
+  const openCreateForm = (date = '', startTime = '') =>
+    setShiftForm({
+      shift: { ...NEW_SHIFT, date, ...(startTime && { start_time: startTime, end_time: oneHourLater(startTime) }) },
+      action: urls.create,
+    });
 
   const openEditForm = (shift) => {
     setDetailsShiftId(null);
@@ -111,13 +119,23 @@ function ManagerShiftsContent({ data }) {
           />
 
           <div className="card calendar-fill mt-3">
-            <MonthGrid
-              anchorISO={anchor}
-              todayISO={today}
-              shifts={shifts}
-              onSelectShift={setDetailsShiftId}
-              onCreateSlot={openCreateForm}
-            />
+            {view === 'week' ? (
+              <WeekGrid
+                startISO={start}
+                todayISO={today}
+                shifts={shifts}
+                onSelectShift={setDetailsShiftId}
+                onCreateSlot={openCreateForm}
+              />
+            ) : (
+              <MonthGrid
+                anchorISO={anchor}
+                todayISO={today}
+                shifts={shifts}
+                onSelectShift={setDetailsShiftId}
+                onCreateSlot={openCreateForm}
+              />
+            )}
           </div>
         </div>
       </main>

@@ -1,6 +1,6 @@
 // All dates travel as ISO strings (YYYY-MM-DD); labels are formatted here in the browser's language.
 
-const pad2 = (value) => String(value).padStart(2, '0');
+export const pad2 = (value) => String(value).padStart(2, '0');
 
 const toISODate = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
@@ -10,6 +10,21 @@ export function addMonths(iso, months) {
   const date = dateFromISO(iso);
   date.setMonth(date.getMonth() + months);
   return toISODate(date);
+}
+
+export function addDays(iso, days) {
+  const date = dateFromISO(iso);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
+}
+
+/** The seven days from `startISO`, each with its short weekday name and day of the month. */
+export function weekDays(startISO) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const iso = addDays(startISO, index);
+    const date = dateFromISO(iso);
+    return { iso, label: date.toLocaleDateString(undefined, { weekday: 'short' }), dayNumber: date.getDate() };
+  });
 }
 
 /** The 6x7 day matrix a month view paints, starting on Sunday. */
@@ -26,7 +41,7 @@ export function monthMatrix(anchorISO, todayISO) {
 }
 
 /** "09:30" -> 570. */
-const minutesOf = (time) => {
+export const minutesOf = (time) => {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 };
