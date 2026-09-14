@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { pad2 } from '../../app/dates.js';
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
-import { useLiveEvents, useLivePageData } from '../../app/live.js';
+import { sendLive, useLiveEvents, useLivePageData } from '../../app/live.js';
 import { availabilityFromPayload, positionPalette, withAvailabilityChange } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
@@ -39,6 +39,46 @@ function useLiveAvailability(initial) {
   });
 
   return { availability, flashedEmployeeId };
+}
+
+/**
+ * The other managers' calendars open right now, each with the month it shows and the
+ * shift it is editing. This page announces its own month and edited shift the same way.
+ */
+function usePresence(month, editing) {
+  const [others, setOthers] = useState({});
+  const mine = useRef({ month, editing });
+  const announce = (hello = false) => sendLive({ type: 'presence', ...mine.current, hello });
+
+  // Declared before the subscription, so `mine` is current by the time the socket opens.
+  useEffect(() => {
+    mine.current = { month, editing };
+    announce();
+  }, [month, editing]);
+
+  useLiveEvents(
+    (event) => {
+      if (event.type === 'presence') {
+        setOthers((current) => ({ ...current, [event.id]: event }));
+        if (event.hello) announce();
+      } else if (event.type === 'presence.leave') {
+        setOthers((current) => {
+          const next = { ...current };
+          delete next[event.id];
+          return next;
+        });
+      }
+    },
+    {
+      // A (re)connected page starts from nobody and asks everyone present to announce themselves.
+      onOpen: () => {
+        setOthers({});
+        announce(true);
+      },
+    },
+  );
+
+  return Object.values(others);
 }
 
 /** Colour key for the calendar chips: the positions with published shifts this month, plus "Draft". */
@@ -90,6 +130,13 @@ function ManagerShiftsContent({ data }) {
   }, []);
   const { availability, flashedEmployeeId } = useLiveAvailability(data.unavailability);
 
+  const editingId = shiftForm?.shift.id ?? null;
+  const people = usePresence(anchor.slice(0, 7), editingId);
+  const editors = {}; // shift id -> names of the other managers editing it
+  for (const person of people) if (person.editing) (editors[person.editing] ??= []).push(person.name);
+  // The live data no longer holds the version the form was opened on: someone else saved or deleted it.
+  const stale = editingId !== null && shifts.find((shift) => shift.id === editingId)?.version !== shiftForm.shift.version;
+
   const detailsShift = shifts.find((shift) => shift.id === detailsShiftId) || null;
   const detailsNames = employees.filter((e) => detailsShift?.assigned_employee_ids.includes(e.id)).map((e) => e.name);
 
@@ -124,6 +171,7 @@ function ManagerShiftsContent({ data }) {
                 startISO={start}
                 todayISO={today}
                 shifts={shifts}
+                editors={editors}
                 onSelectShift={setDetailsShiftId}
                 onCreateSlot={openCreateForm}
               />
@@ -132,6 +180,7 @@ function ManagerShiftsContent({ data }) {
                 anchorISO={anchor}
                 todayISO={today}
                 shifts={shifts}
+                editors={editors}
                 onSelectShift={setDetailsShiftId}
                 onCreateSlot={openCreateForm}
               />
@@ -147,6 +196,8 @@ function ManagerShiftsContent({ data }) {
           positions={positions}
           employees={employees}
           availability={availability}
+          stale={stale}
+          editors={editors[editingId] || []}
           onClose={() => setShiftForm(null)}
         />
       ) : null}
@@ -155,6 +206,7 @@ function ManagerShiftsContent({ data }) {
         <ShiftDetailsModal
           shift={detailsShift}
           assignedNames={detailsNames}
+          editors={editors[detailsShift.id] || []}
           onClose={() => setDetailsShiftId(null)}
           onEdit={() => openEditForm(detailsShift)}
           onPublish={() => submitPost(urlFromTemplate(urls.publish, detailsShift.id))}

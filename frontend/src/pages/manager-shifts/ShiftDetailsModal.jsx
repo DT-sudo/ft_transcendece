@@ -2,7 +2,7 @@ import { formatDate, formatDuration, shiftDurationMinutes } from '../../app/date
 import { Modal } from '../../components/Modal.jsx';
 import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
 
-export function ShiftDetailsModal({ shift, assignedNames, onClose, onEdit, onDelete, onPublish }) {
+export function ShiftDetailsModal({ shift, assignedNames, editors, onClose, onEdit, onDelete, onPublish }) {
   const isDraft = shift.status === 'draft';
 
   return (
@@ -41,6 +41,12 @@ export function ShiftDetailsModal({ shift, assignedNames, onClose, onEdit, onDel
         </dd>
         <dt className="text-muted-foreground">Employees</dt>
         <dd>{assignedNames.join(', ') || 'None assigned'}</dd>
+        {editors.length ? (
+          <>
+            <dt className="text-muted-foreground">Editing now</dt>
+            <dd>{editors.join(', ')}</dd>
+          </>
+        ) : null}
       </dl>
     </Modal>
   );

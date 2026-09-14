@@ -4,6 +4,8 @@ import { formatDuration, navigateWith, pad2, shiftDurationMinutes, weekDays } fr
 import { computeLaneLayout, groupShiftsByDate, positionPalette, timedChipStyle } from '../../app/shifts.js';
 import { MonthCalendar } from '../../components/Calendar.jsx';
 
+// `editors` (below) maps a shift id to the names of the other managers editing it.
+
 /** Drafts stay neutral; published shifts take their position's colour. */
 function chipLook(shift, variant) {
   const isDraft = shift.status === 'draft';
@@ -18,10 +20,13 @@ function chipLook(shift, variant) {
   };
 }
 
-const chipTitle = (shift) => `${shift.position} ${shift.start_time}-${shift.end_time}`;
+const chipTitle = (shift, editors) =>
+  `${shift.position} ${shift.start_time}-${shift.end_time}${editors ? ` (${editors.join(', ')} editing)` : ''}`;
+
+const EditingMark = ({ editors }) => (editors ? <span aria-label={`${editors.join(', ')} editing`}>✎ </span> : null);
 
 /** Month view: one compact row per shift that sheds detail as the cell narrows. */
-function ShiftChip({ shift, onSelect }) {
+function ShiftChip({ shift, editors, onSelect }) {
   const look = chipLook(shift, 'month-shift-chip');
 
   return (
@@ -33,7 +38,7 @@ function ShiftChip({ shift, onSelect }) {
         event.stopPropagation();
         onSelect(shift.id);
       }}
-      title={chipTitle(shift)}
+      title={chipTitle(shift, editors)}
     >
       <span className="flex min-w-0 items-center justify-between gap-1.5">
         <span className="inline-flex min-w-0 flex-auto items-center gap-1 overflow-hidden">
@@ -44,6 +49,7 @@ function ShiftChip({ shift, onSelect }) {
           </span>
         </span>
         <span className="month-shift-qty shrink-0 text-[0.7rem] font-bold">
+          <EditingMark editors={editors} />
           {shift.assigned_employee_ids.length}/{shift.capacity}
         </span>
       </span>
@@ -52,7 +58,7 @@ function ShiftChip({ shift, onSelect }) {
 }
 
 /** Week view: a block placed and sized by its times (`style` from `timedChipStyle`). */
-function WeekShiftChip({ shift, style, onSelect }) {
+function WeekShiftChip({ shift, editors, style, onSelect }) {
   const look = chipLook(shift, 'shift-chip-timed');
 
   return (
@@ -64,11 +70,12 @@ function WeekShiftChip({ shift, style, onSelect }) {
         event.stopPropagation();
         onSelect(shift.id);
       }}
-      title={chipTitle(shift)}
+      title={chipTitle(shift, editors)}
     >
       <span className="flex min-w-0 items-center justify-between gap-2">
         <span className="shift-chip-truncate font-semibold">{shift.position}</span>
         <span className="shrink-0 font-bold">
+          <EditingMark editors={editors} />
           {shift.assigned_employee_ids.length}/{shift.capacity}
         </span>
       </span>
@@ -82,7 +89,7 @@ function WeekShiftChip({ shift, style, onSelect }) {
   );
 }
 
-export function MonthGrid({ anchorISO, todayISO, shifts, onSelectShift, onCreateSlot }) {
+export function MonthGrid({ anchorISO, todayISO, shifts, editors, onSelectShift, onCreateSlot }) {
   const byDate = useMemo(() => groupShiftsByDate(shifts), [shifts]);
 
   return (
@@ -98,7 +105,7 @@ export function MonthGrid({ anchorISO, todayISO, shifts, onSelectShift, onCreate
         return (
           <div className="month-cell-shifts">
             {dayShifts.map((shift) => (
-              <ShiftChip key={shift.id} shift={shift} onSelect={onSelectShift} />
+              <ShiftChip key={shift.id} shift={shift} editors={editors[shift.id]} onSelect={onSelectShift} />
             ))}
           </div>
         );
@@ -111,7 +118,7 @@ const DEFAULT_HOUR_HEIGHT_PX = 56;
 const HOURS = Array.from({ length: 24 }, (_, hour) => `${pad2(hour)}:00`);
 
 /** Seven day columns over 24 hour rows. Overlapping shifts share a day in lanes, and busy days get wider. */
-export function WeekGrid({ startISO, todayISO, shifts, onSelectShift, onCreateSlot }) {
+export function WeekGrid({ startISO, todayISO, shifts, editors, onSelectShift, onCreateSlot }) {
   const gridRef = useRef(null);
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT_PX);
 
@@ -171,6 +178,7 @@ export function WeekGrid({ startISO, todayISO, shifts, onSelectShift, onCreateSl
               <WeekShiftChip
                 key={shift.id}
                 shift={shift}
+                editors={editors[shift.id]}
                 onSelect={onSelectShift}
                 style={timedChipStyle(shift, laneById.get(shift.id), laneCount, hourHeight)}
               />

@@ -50,6 +50,9 @@ class ScheduleConsumerTests(TestCase):
         cls.employee = User.objects.create_user(
             username="alice@example.com", password="x", role=UserRole.EMPLOYEE
         )
+        cls.other_manager = User.objects.create_user(
+            username="tom@example.com", password="x", role=UserRole.MANAGER, first_name="Tom"
+        )
 
     async def _connect(self, user):
         communicator = WebsocketCommunicator(_as_user(user), "/ws/schedule/")
@@ -79,6 +82,34 @@ class ScheduleConsumerTests(TestCase):
         # The managers' ping never arrives, so their own event is the first message.
         self.assertEqual(await communicator.receive_json_from(), {"type": "mine"})
         await communicator.disconnect()
+
+    async def test_presence_reaches_the_other_managers_but_not_the_sender(self):
+        mine, _ = await self._connect(self.manager)
+        theirs, _ = await self._connect(self.other_manager)
+
+        await mine.send_json_to({"type": "presence", "month": "2026-09", "editing": 7, "hello": True})
+
+        event = await theirs.receive_json_from()
+        self.assertEqual(
+            {key: event[key] for key in ("type", "name", "month", "editing", "hello")},
+            {"type": "presence", "name": "manager@example.com", "month": "2026-09", "editing": 7, "hello": True},
+        )
+        self.assertTrue(await mine.receive_nothing())
+
+        # Closing the page tells the others it left.
+        await mine.disconnect()
+        self.assertEqual(await theirs.receive_json_from(), {"type": "presence.leave", "id": event["id"]})
+        await theirs.disconnect()
+
+    async def test_employee_presence_is_ignored(self):
+        employee, _ = await self._connect(self.employee)
+        manager, _ = await self._connect(self.manager)
+
+        await employee.send_json_to({"type": "presence", "month": "2026-09"})
+
+        self.assertTrue(await manager.receive_nothing())
+        await employee.disconnect()
+        await manager.disconnect()
 
 
 @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)

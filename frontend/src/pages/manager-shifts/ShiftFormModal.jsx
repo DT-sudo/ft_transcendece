@@ -18,9 +18,10 @@ const TIME_INPUT = {
 /**
  * Create/edit shift form over a shift in the server's payload shape (a blank one when creating).
  * Submits natively; the server enforces every scheduling rule, and refuses an edit whose
- * `version` is no longer current.
+ * `version` is no longer current. `stale` warns about that ahead of time; `editors` are the
+ * other managers who have the same shift open.
  */
-export function ShiftFormModal({ shift, action, positions, employees, availability, onClose }) {
+export function ShiftFormModal({ shift, action, positions, employees, availability, stale, editors, onClose }) {
   const isEdit = Boolean(shift.id);
   // Only the two fields that change what the form shows are tracked; the rest submit as typed.
   const [date, setDate] = useState(shift.date);
@@ -46,6 +47,17 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
       <form id="shiftForm" className="modal-body" method="post" action={action}>
         <CsrfInput />
         {isEdit ? <input type="hidden" name="version" value={shift.version} readOnly /> : null}
+
+        {stale ? (
+          <p className="mb-3 text-sm text-destructive" role="alert">
+            Someone else just changed or deleted this shift, so saving will be refused. Close and reopen it to see the
+            latest version.
+          </p>
+        ) : editors.length ? (
+          <p className="mb-3 text-sm text-muted-foreground" role="status">
+            {editors.join(', ')} {editors.length === 1 ? 'is' : 'are'} also editing this shift.
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-x-4">
           <Field id="shiftDate" name="date" type="date" label="Date" required value={date} onChange={(event) => setDate(event.target.value)} />
