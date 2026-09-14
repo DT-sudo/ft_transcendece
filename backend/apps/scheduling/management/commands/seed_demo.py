@@ -9,6 +9,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User, UserRole
+from apps.profiles.models import Friendship, FriendshipStatus
+from apps.profiles.services import between
 from apps.scheduling.models import EmployeeUnavailability, Position, Shift, ShiftStatus
 from apps.scheduling.services import assign_employees_to_shift
 
@@ -51,6 +53,16 @@ def _user(email: str, first: str, last: str, role: str, position: Position | Non
     return user
 
 
+def _befriend(sender: User, receiver: User, *, accepted: bool) -> None:
+    if between(sender, receiver) is None:
+        Friendship.objects.create(
+            from_user=sender,
+            to_user=receiver,
+            status=FriendshipStatus.ACCEPTED if accepted else FriendshipStatus.PENDING,
+            accepted_at=timezone.now() if accepted else None,
+        )
+
+
 class Command(BaseCommand):
     help = "Populate the database with demo positions, employees and a month of shifts."
 
@@ -65,6 +77,13 @@ class Command(BaseCommand):
             email = DEMO_EMPLOYEE_EMAIL if first == "Demo" else f"{first.lower()}.{last.lower()}@example.com"
             password = DEMO_PASSWORD if first == "Demo" else User.generate_password()
             pool.setdefault(position, []).append(_user(email, first, last, UserRole.EMPLOYEE, positions[position], password))
+
+        # The demo employee has two friends (one is the demo manager, to watch online status in two
+        # browsers) and a friend request waiting for an answer.
+        demo_employee, maya, ivan = pool["Barista"]
+        _befriend(manager, demo_employee, accepted=True)
+        _befriend(maya, demo_employee, accepted=True)
+        _befriend(ivan, demo_employee, accepted=False)
 
         if Shift.objects.filter(created_by=manager).exists():
             self.stdout.write(self.style.WARNING("Demo shifts already present - skipping."))
