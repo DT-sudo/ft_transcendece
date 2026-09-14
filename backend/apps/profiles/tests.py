@@ -1,18 +1,31 @@
 from __future__ import annotations
 
+import asyncio
 import shutil
 import tempfile
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest import mock
 
+from asgiref.sync import async_to_sync, sync_to_async
+from channels.layers import get_channel_layer
+from channels.testing import WebsocketCommunicator
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
 from apps.accounts.models import User, UserRole
+from apps.notifications.models import Notification
+from apps.realtime.events import user_group
+from apps.realtime.tests import IN_MEMORY_LAYER, _as_user, next_event
 from apps.scheduling.models import Position
+
+from . import presence
+from .models import Friendship, FriendshipStatus
 
 PASSWORD = "pw-for-tests-42"
 
@@ -42,6 +55,10 @@ class ProfilesTestCase(TestCase):
         cls.alice, cls.bob, cls.carol = make("alice"), make("bob"), make("carol")
         cls.manager = make("maya", UserRole.MANAGER)
 
+    def befriend(self, sender, receiver, accepted=True) -> Friendship:
+        status = FriendshipStatus.ACCEPTED if accepted else FriendshipStatus.PENDING
+        return Friendship.objects.create(from_user=sender, to_user=receiver, status=status)
+
     def profile_data(self, viewer, person):
         self.client.force_login(viewer)
         return self.client.get(reverse("profile", args=[person.id]), {"format": "json"})
@@ -54,13 +71,35 @@ class ProfilePageTests(ProfilesTestCase):
         self.assertEqual(data["relation"], {"state": "self"})
         self.assertEqual(data["person"]["email"], "alice@example.com")
         self.assertEqual(data["person"]["role"], "Barista")
+        self.assertIsNotNone(data["person"]["status"])
 
     def test_strangers_get_404(self):
         self.assertEqual(self.profile_data(self.alice, self.bob).status_code, 404)
 
+    def test_friends_see_email_status_and_friend_list(self):
+        self.befriend(self.alice, self.bob)
+
+        data = self.profile_data(self.alice, self.bob).json()
+
+        self.assertEqual(data["relation"]["state"], "friends")
+        self.assertEqual(data["person"]["email"], "bob@example.com")
+        self.assertEqual(data["person"]["status"], {"online": False, "lastSeen": None})
+        self.assertEqual([friend["id"] for friend in data["friends"]], [self.alice.id])
+
+    def test_a_pending_request_shows_the_profile_without_private_details(self):
+        self.befriend(self.bob, self.alice, accepted=False)
+
+        data = self.profile_data(self.alice, self.bob).json()
+
+        self.assertEqual(data["relation"]["state"], "incoming")
+        self.assertIsNone(data["person"]["email"])
+        self.assertIsNone(data["person"]["status"])
+        self.assertIsNone(data["friends"])
+
     def test_managers_see_their_employees_but_not_the_other_way_round(self):
         data = self.profile_data(self.manager, self.alice).json()
         self.assertEqual(data["person"]["email"], "alice@example.com")
+        self.assertIsNone(data["person"]["status"])  # online status is for friends
 
         self.assertEqual(self.profile_data(self.alice, self.manager).status_code, 404)
 
@@ -70,7 +109,7 @@ class ProfilePageTests(ProfilesTestCase):
 
     def test_header_links_the_profile(self):
         self.client.force_login(self.alice)
-        user = self.client.get(reverse("account_settings")).context["bootstrap"]["user"]
+        user = self.client.get(reverse("friends")).context["bootstrap"]["user"]
         self.assertEqual(user["profileUrl"], reverse("profile", args=[self.alice.id]))
         self.assertIsNone(user["avatarUrl"])
 
@@ -164,7 +203,7 @@ class AvatarTests(ProfilesTestCase):
         self.assertRegex(self.alice.avatar.name, r"^avatars/[0-9a-f]{32}\.webp$")
         with Image.open(self.stored(self.alice)) as image:
             self.assertEqual((image.format, image.size), ("WEBP", (256, 256)))
-        header = self.client.get(reverse("account_settings")).context["bootstrap"]["user"]
+        header = self.client.get(reverse("friends")).context["bootstrap"]["user"]
         self.assertTrue(header["avatarUrl"].startswith(reverse("avatar", args=[self.alice.id])))
 
     def test_camera_and_location_metadata_are_dropped(self):
@@ -218,4 +257,160 @@ class AvatarTests(ProfilesTestCase):
 
         self.client.force_login(self.bob)
         self.assertEqual(self.client.get(url).status_code, 404)
+        self.befriend(self.bob, self.alice)
+        self.assertEqual(self.client.get(url).status_code, 200)
 
+
+class FriendshipTests(ProfilesTestCase):
+    def ask(self, sender, **fields):
+        self.client.force_login(sender)
+        return self.client.post(reverse("friend_request"), fields)
+
+    def flash(self, response) -> str:
+        return [str(message) for message in response.wsgi_request._messages][-1]
+
+    def test_a_request_by_email_notifies_the_other_person(self):
+        response = self.ask(self.alice, email="BOB@example.com")
+
+        self.assertRedirects(response, reverse("friends"))
+        friendship = Friendship.objects.get()
+        self.assertEqual((friendship.from_user, friendship.to_user, friendship.status), (self.alice, self.bob, "pending"))
+        self.assertEqual(Notification.objects.get(recipient=self.bob).title, "New friend request")
+
+    def test_refused_requests(self):
+        cases = {
+            "nobody@example.com": "No account uses that email address.",
+            "alice@example.com": "You can't add yourself as a friend.",
+        }
+        for email, message in cases.items():
+            with self.subTest(email=email):
+                self.assertEqual(self.flash(self.ask(self.alice, email=email)), message)
+        self.assertFalse(Friendship.objects.exists())
+
+        self.ask(self.alice, email="bob@example.com")
+        self.assertEqual(self.flash(self.ask(self.alice, email="bob@example.com")), "You already sent Bob Test a friend request.")
+        self.assertEqual(Friendship.objects.count(), 1)
+
+    def test_asking_back_accepts(self):
+        self.befriend(self.bob, self.alice, accepted=False)
+
+        self.ask(self.alice, email="bob@example.com")
+
+        self.assertTrue(Friendship.objects.get().accepted)
+
+    def test_only_the_receiver_can_accept(self):
+        friendship = self.befriend(self.alice, self.bob, accepted=False)
+        url = reverse("friend_accept", args=[friendship.id])
+
+        self.client.force_login(self.alice)
+        self.assertEqual(self.client.post(url).status_code, 404)
+
+        self.client.force_login(self.bob)
+        self.client.post(url)
+        friendship.refresh_from_db()
+        self.assertTrue(friendship.accepted)
+        self.assertEqual(Notification.objects.get(recipient=self.alice).title, "Friend request accepted")
+
+    def test_declining_cancelling_and_unfriending_delete_the_row(self):
+        for user, accepted in ((self.bob, False), (self.alice, False), (self.alice, True)):
+            with self.subTest(user=user.first_name, accepted=accepted):
+                friendship = self.befriend(self.alice, self.bob, accepted=accepted)
+                self.client.force_login(self.carol)
+                self.assertEqual(self.client.post(reverse("friend_end", args=[friendship.id])).status_code, 404)
+
+                self.client.force_login(user)
+                self.client.post(reverse("friend_end", args=[friendship.id]))
+                self.assertFalse(Friendship.objects.exists())
+
+    def test_a_pair_has_one_row_whichever_way_round(self):
+        self.befriend(self.alice, self.bob, accepted=False)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            self.befriend(self.bob, self.alice, accepted=False)
+
+    def test_a_request_by_id_needs_a_profile_you_can_see(self):
+        response = self.ask(self.carol, user_id=self.bob.id)
+        self.assertEqual(self.flash(response), "That person was not found.")
+        self.assertFalse(Friendship.objects.exists())
+
+        self.ask(self.manager, user_id=self.alice.id, next=reverse("profile", args=[self.alice.id]))
+        self.assertTrue(Friendship.objects.filter(from_user=self.manager, to_user=self.alice).exists())
+
+    def test_redirects_stay_on_this_site(self):
+        response = self.ask(self.alice, email="bob@example.com", next="https://evil.example/")
+        self.assertRedirects(response, reverse("friends"))
+
+    def test_the_friends_page_sorts_people_into_lists(self):
+        self.befriend(self.alice, self.bob)
+        self.befriend(self.carol, self.alice, accepted=False)
+        self.befriend(self.alice, self.manager, accepted=False)
+        self.client.force_login(self.alice)
+
+        data = self.client.get(reverse("friends"), {"format": "json"}).json()
+
+        self.assertEqual([friend["id"] for friend in data["friends"]], [self.bob.id])
+        self.assertEqual([request["id"] for request in data["incoming"]], [self.carol.id])
+        self.assertEqual([request["id"] for request in data["outgoing"]], [self.manager.id])
+
+    @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
+    def test_the_other_side_hears_about_it_live(self):
+        layer = get_channel_layer()
+        channel = async_to_sync(layer.new_channel)()
+        async_to_sync(layer.group_add)(user_group(self.bob.id), channel)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.ask(self.alice, email="bob@example.com")
+
+        self.assertEqual(next_event(layer, channel)["type"], "notification")
+        self.assertEqual(next_event(layer, channel), {"type": "friends.changed"})
+
+
+class PresenceTests(ProfilesTestCase):
+    def test_online_while_any_page_is_open(self):
+        self.assertTrue(presence.socket_opened(self.alice.id))
+        self.assertFalse(presence.socket_opened(self.alice.id))  # a second tab changes nothing
+
+        self.assertFalse(presence.socket_closed(self.alice.id))
+        self.assertTrue(presence.socket_closed(self.alice.id))
+        self.alice.refresh_from_db()
+        self.assertEqual(self.alice.open_sockets, 0)
+        self.assertIsNotNone(self.alice.last_seen)
+
+    def test_a_stale_count_starts_over(self):
+        # Three sockets a stopped server never closed, last confirmed ten minutes ago.
+        User.objects.filter(pk=self.alice.pk).update(open_sockets=3, last_seen=timezone.now() - timedelta(minutes=10))
+        self.alice.refresh_from_db()
+        self.assertFalse(presence.is_online(self.alice))
+
+        self.assertTrue(presence.socket_opened(self.alice.id))
+        self.alice.refresh_from_db()
+        self.assertEqual(self.alice.open_sockets, 1)
+
+
+@override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
+class LivePresenceTests(ProfilesTestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        Friendship.objects.create(from_user=cls.alice, to_user=cls.bob, status=FriendshipStatus.ACCEPTED)
+
+    async def listen(self, user):
+        layer = get_channel_layer()
+        channel = await layer.new_channel()
+        await layer.group_add(user_group(user.id), channel)
+        return lambda timeout=1: asyncio.wait_for(layer.receive(channel), timeout)
+
+    async def test_friends_hear_when_you_come_online_and_leave(self):
+        bob_hears, carol_hears = await self.listen(self.bob), await self.listen(self.carol)
+
+        communicator = WebsocketCommunicator(_as_user(self.alice), "/ws/schedule/")
+        await communicator.connect()
+        event = (await bob_hears())["event"]
+        self.assertEqual((event["type"], event["userId"], event["status"]["online"]), ("friend.status", self.alice.id, True))
+
+        await communicator.disconnect()
+        self.assertFalse((await bob_hears())["event"]["status"]["online"])
+
+        with self.assertRaises(asyncio.TimeoutError):
+            await carol_hears(timeout=0.2)  # not a friend
+        alice = await sync_to_async(User.objects.get)(pk=self.alice.pk)
+        self.assertEqual(alice.open_sockets, 0)

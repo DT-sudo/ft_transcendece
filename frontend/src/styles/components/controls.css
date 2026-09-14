@@ -185,4 +185,22 @@
     border-radius: inherit;
     object-fit: cover;
   }
+
+  /* Online dot on the picture's bottom-end corner; grey means offline. */
+  .avatar-status {
+    position: absolute;
+    inset-inline-end: 0;
+    bottom: 0;
+    width: 28%;
+    height: 28%;
+    min-width: 0.55rem;
+    min-height: 0.55rem;
+    border-radius: 9999px;
+    background-color: var(--color-shift-past);
+    box-shadow: 0 0 0 2px var(--color-card);
+  }
+
+  .avatar-status-online {
+    background-color: var(--color-shift-published);
+  }
 }

@@ -70,6 +70,7 @@ def _nav_links(user, active: str) -> list[dict[str, Any]]:
         ]
     else:
         items = [("employee_shifts", "My Shifts")]
+    items.append(("friends", "Friends"))
     return [{"href": reverse(name), "label": label, "active": name == active} for name, label in items]
 
 

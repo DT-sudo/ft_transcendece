@@ -1,19 +1,27 @@
 from __future__ import annotations
 
+import asyncio
 import secrets
 
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.urls import path
+
+from apps.profiles import presence
 
 from .events import MANAGERS_GROUP, user_group
 
 
 class ScheduleConsumer(AsyncJsonWebsocketConsumer):
-    """One socket per open page: the user's own notifications, plus schedule changes and presence for managers."""
+    """One socket per open page: the user's own notifications, plus schedule changes and presence for managers.
+
+    The socket is also what makes its user "online" for their friends (`apps.profiles.presence`).
+    """
 
     # Filled in once connect() accepts; disconnect() also runs for sockets it refused.
     subscriptions = ()
     present = False
+    heartbeat = None
 
     async def connect(self) -> None:
         user = self.scope["user"]
@@ -26,12 +34,24 @@ class ScheduleConsumer(AsyncJsonWebsocketConsumer):
         # Names this page in presence events; set apart from the user so two tabs show as two.
         self.presence_id = secrets.token_hex(4)
         await self.accept()
+        self.user_id = user.id
+        self.heartbeat = asyncio.create_task(self._keep_alive())
+        await database_sync_to_async(presence.socket_opened)(user.id)
 
     async def disconnect(self, code: int) -> None:
         if self.present:
             await self._to_other_managers({"type": "presence.leave", "id": self.presence_id})
         for group in self.subscriptions:
             await self.channel_layer.group_discard(group, self.channel_name)
+        if self.heartbeat:
+            self.heartbeat.cancel()
+            await database_sync_to_async(presence.socket_closed)(self.user_id)
+
+    async def _keep_alive(self) -> None:
+        """Refresh `last_seen` for as long as the socket stays open."""
+        while True:
+            await asyncio.sleep(presence.HEARTBEAT_SECONDS)
+            await database_sync_to_async(presence.socket_alive)(self.user_id)
 
     async def receive_json(self, content, **kwargs) -> None:
         """A manager's calendar announces the month it shows and the shift it is editing.
