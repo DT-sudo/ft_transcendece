@@ -19,7 +19,7 @@ http {
     keepalive_timeout 65;
     server_tokens   off;
 
-    # Vite emits hashed asset filenames, so a large body is never needed here.
+    # The largest request is a profile picture upload (2 MB, checked again by Django).
     client_max_body_size 4m;
 
     upstream django {

@@ -16,16 +16,16 @@ function Label({ id, label, required }) {
 }
 
 /**
- * Labelled input with an optional hint and the server's validation message.
- * `aria-invalid` and `aria-describedby` tie both to the input for screen readers.
+ * Labelled input (or `as="textarea"`) with an optional hint and the server's validation
+ * message. `aria-invalid` and `aria-describedby` tie both to the control for screen readers.
  */
-export function Field({ id, label, error, hint, required = false, ...inputProps }) {
+export function Field({ id, label, error, hint, required = false, as: Control = 'input', ...inputProps }) {
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ');
 
   return (
     <div className="mb-4">
       <Label id={id} label={label} required={required} />
-      <input
+      <Control
         id={id}
         className={`form-input ${error ? 'form-error' : ''}`}
         required={required}

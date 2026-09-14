@@ -16,6 +16,8 @@ services:
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-https://localhost:8443,https://127.0.0.1:8443}"
       TIME_ZONE: "${TIME_ZONE:-Europe/Prague}"
       DB_NAME: "/app/data/db.sqlite3"
+      # Profile pictures live on the same volume as the database.
+      MEDIA_ROOT: "/app/data/media"
       SEED_DEMO_DATA: "${SEED_DEMO_DATA:-1}"
       ENABLE_DEMO_LOGIN: "${ENABLE_DEMO_LOGIN:-1}"
       SECURE_COOKIES: "${SECURE_COOKIES:-1}"

@@ -6,3 +6,6 @@ Django>=6.0,<6.1
 channels>=4.3,<5
 daphne>=4.2,<5
 channels-redis>=4.3,<5
+
+# Profile pictures: validates uploads as images and re-encodes them to WebP.
+Pillow>=11,<13

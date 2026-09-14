@@ -5,5 +5,6 @@ urlpatterns = [
     path("", include("apps.legal.urls")),
     path("", include("apps.notifications.urls")),
     path("", include("apps.privacy.urls")),
+    path("", include("apps.profiles.urls")),
     path("", include("apps.scheduling.urls")),
 ]

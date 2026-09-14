@@ -19,14 +19,6 @@ export function positionPalette(positionId) {
   };
 }
 
-// ── People ──────────────────────────────────────────────────────────────────
-
-/** "Maya Rossi" -> "MR", "Maya" -> "MA". */
-export function initialsFromName(name) {
-  const [first, second] = name.trim().split(/\s+/);
-  return (second ? first[0] + second[0] : first.slice(0, 2)).toUpperCase();
-}
-
 // ── Availability: Map of employee id (string) -> Set of ISO dates ───────────
 // Seeded from the manager page payload and kept current by live
 // `unavailability.changed` events.

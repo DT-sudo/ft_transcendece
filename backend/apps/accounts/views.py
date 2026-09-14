@@ -184,6 +184,8 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
                     "id": e.id,
                     "employeeId": e.employee_id,
                     "fullName": e.display_name,
+                    "avatarUrl": e.avatar_url,
+                    "profileUrl": reverse("profile", args=[e.id]),
                     "email": e.email,
                     "role": e.role,
                     "roleLabel": e.get_role_display(),

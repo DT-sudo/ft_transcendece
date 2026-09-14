@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.scheduling",
     "apps.realtime",
     "apps.notifications",
+    "apps.profiles",
 ]
 
 MIDDLEWARE = [
@@ -101,6 +102,10 @@ FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [FRONTEND_DIST_DIR]
+
+# Uploaded profile pictures. Never served as public files: `apps.profiles.views.avatar`
+# streams each one after checking the viewer may see that profile.
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", PROJECT_ROOT / "media"))
 
 # ── TLS ─────────────────────────────────────────────────────────────────────
 # nginx terminates TLS and proxies to Django over the container network, so

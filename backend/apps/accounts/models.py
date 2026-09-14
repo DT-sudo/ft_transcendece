@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import secrets
 import string
+import uuid
+from pathlib import Path
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from django.urls import reverse
 
 def generate_employee_id() -> str:
     return f"EMP-{secrets.randbelow(900000) + 100000}"
+
+def avatar_path(user: User, filename: str) -> str:
+    # Random names: the path says nothing about its owner, and a new picture never reuses an old URL.
+    return f"avatars/{uuid.uuid4().hex}.webp"
 
 class UserRole(models.TextChoices):
     ADMIN = "admin", "Admin"
@@ -28,9 +37,25 @@ class User(AbstractUser):
         blank=True,
         related_name="employees",
     )
+    bio = models.CharField(max_length=300, blank=True)
+    # Always a 256x256 WebP re-encoded by `apps.profiles.avatars`; empty means the initials default.
+    avatar = models.ImageField(upload_to=avatar_path, blank=True)
+    # Online status (`apps.profiles.presence`): open sockets, and when one last confirmed it is alive.
+    open_sockets = models.PositiveIntegerField(default=0, editable=False)
+    last_seen = models.DateTimeField(null=True, blank=True, editable=False)
     @property
     def display_name(self) -> str:
         return self.get_full_name() or self.username
+    @property
+    def role_label(self) -> str:
+        """The line under a name: an employee's position, otherwise the role."""
+        return self.position.name if self.is_employee and self.position else self.get_role_display()
+    @property
+    def avatar_url(self) -> str | None:
+        if not self.avatar:
+            return None
+        # The file name changes with every upload, so it doubles as a cache buster.
+        return f"{reverse('avatar', args=[self.pk])}?v={Path(self.avatar.name).stem}"
     @property
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
@@ -57,3 +82,10 @@ class User(AbstractUser):
     def generate_password(length: int = 14) -> str:
         alphabet = string.ascii_letters + string.digits
         return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+@receiver(post_delete, sender=User)
+def _delete_avatar_file(sender, instance: User, **kwargs) -> None:
+    """Erasing an account erases its picture too, whichever view deleted it."""
+    if instance.avatar:
+        instance.avatar.delete(save=False)

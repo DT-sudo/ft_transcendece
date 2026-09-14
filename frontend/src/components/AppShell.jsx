@@ -1,9 +1,9 @@
 import { getBootstrap, submitPost } from '../app/http.js';
-import { initialsFromName } from '../app/shifts.js';
+import { Avatar } from './Avatar.jsx';
 import { Dropdown } from './Menus.jsx';
 import { NotificationBell, ToastProvider } from './Notifications.jsx';
 
-function Header({ user, nav, logoutUrl, privacyCenterUrl }) {
+function Header({ user, nav, urls }) {
   return (
     <header className="sticky top-0 z-45 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-border bg-card px-4 py-1.5 shadow-header">
       <div>{user ? <NotificationBell /> : null}</div>
@@ -22,20 +22,26 @@ function Header({ user, nav, logoutUrl, privacyCenterUrl }) {
           <Dropdown
             trigger={({ toggle }) => (
               <button className="btn btn-ghost btn-sm gap-0 p-0" type="button" onClick={toggle} aria-label="User menu">
-                <div className="avatar avatar-primary size-8.5">{initialsFromName(user.displayName)}</div>
+                <Avatar name={user.fullName} src={user.avatarUrl} size="header" primary />
               </button>
             )}
           >
-            <div className="dropdown-item dropdown-item-static font-semibold text-foreground">{user.displayName}</div>
+            <div className="dropdown-item dropdown-item-static font-semibold text-foreground">{user.fullName}</div>
             <div className="dropdown-item dropdown-item-static">{user.role}</div>
             <div className="dropdown-divider" />
-            <a className="dropdown-item" href={privacyCenterUrl}>
+            <a className="dropdown-item" href={user.profileUrl}>
+              My profile
+            </a>
+            <a className="dropdown-item" href={urls.settings}>
+              Account settings
+            </a>
+            <a className="dropdown-item" href={urls.privacyCenter}>
               Privacy & my data
             </a>
             <button
               className="dropdown-item dropdown-item-destructive"
               type="button"
-              onClick={() => submitPost(logoutUrl)}
+              onClick={() => submitPost(urls.logout)}
             >
               Logout
             </button>
@@ -75,7 +81,7 @@ export function AppShell({ children, footer }) {
   return (
     <ToastProvider initialMessages={messages} notifications={notifications}>
       <div className="page-with-footer">
-        <Header user={user} nav={nav} logoutUrl={urls.logout} privacyCenterUrl={urls.privacyCenter} />
+        <Header user={user} nav={nav} urls={urls} />
         <div className="flex-1">{children}</div>
         <Footer>{footer}</Footer>
       </div>

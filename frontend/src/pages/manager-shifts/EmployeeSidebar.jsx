@@ -1,5 +1,6 @@
 import { formatDate } from '../../app/dates.js';
-import { initialsFromName, positionPalette, unavailableDaysBetween } from '../../app/shifts.js';
+import { positionPalette, unavailableDaysBetween } from '../../app/shifts.js';
+import { Avatar } from '../../components/Avatar.jsx';
 
 const MAX_LISTED_DAYS = 3;
 
@@ -21,9 +22,7 @@ export function EmployeeSidebar({ employees, availability, periodStart, periodEn
           const flashed = flashedEmployeeId === String(employee.id);
           return (
             <li key={employee.id} className={`employee-sidebar-item ${flashed ? 'employee-sidebar-item-updated' : ''}`}>
-              <div className="avatar" aria-hidden="true">
-                {initialsFromName(employee.name)}
-              </div>
+              <Avatar name={employee.name} />
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{employee.name}</div>
                 {employee.position_id ? (

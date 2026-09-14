@@ -21,6 +21,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 
 from apps.notifications.services import recent_notifications
+from apps.profiles.services import card
 
 VITE_ENTRY = "src/main.jsx"
 
@@ -73,12 +74,7 @@ def _nav_links(user, active: str) -> list[dict[str, Any]]:
 
 
 def _user_context(user) -> dict[str, Any] | None:
-    if not user.is_authenticated:
-        return None
-    return {
-        "displayName": user.display_name,
-        "role": "Manager" if user.is_manager else (user.position.name if user.position else "Employee"),
-    }
+    return card(user) if user.is_authenticated else None
 
 
 def _notifications(user) -> dict[str, Any] | None:
@@ -113,6 +109,7 @@ def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, A
             "privacy": reverse("privacy_policy"),
             "terms": reverse("terms_of_service"),
             "privacyCenter": reverse("privacy_center"),
+            "settings": reverse("account_settings"),
         },
         "messages": [{"level": message.level_tag, "text": message.message} for message in get_messages(request)],
         "data": data or {},

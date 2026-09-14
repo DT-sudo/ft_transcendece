@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
-import { initialsFromName } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
+import { Avatar } from '../../components/Avatar.jsx';
 import { Plus } from '../../components/Icons.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
 import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeModals.jsx';
@@ -11,10 +11,14 @@ function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onDelete }) 
   return (
     <tr>
       <td>
-        <div className="avatar">{initialsFromName(employee.fullName)}</div>
+        <Avatar name={employee.fullName} src={employee.avatarUrl} />
       </td>
       <td className="text-sm">{employee.employeeId}</td>
-      <td className="font-medium">{employee.fullName}</td>
+      <td>
+        <a className="person-name" href={employee.profileUrl}>
+          {employee.fullName}
+        </a>
+      </td>
       {showRole ? (
         <td>
           <span className="badge badge-outline">{employee.roleLabel}</span>
