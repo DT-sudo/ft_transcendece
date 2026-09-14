@@ -15,10 +15,19 @@ from apps.accounts.models import User, UserRole
 from apps.scheduling.models import EmployeeUnavailability, Position, Shift
 
 from .consumers import ScheduleConsumer
-from .events import MANAGERS_GROUP
+from .events import MANAGERS_GROUP, user_group
 
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 PING = {"type": "schedule.event", "event": {"type": "ping"}}
+
+
+def next_event(layer, channel) -> dict:
+    """The next event broadcast to `channel`, failing after a second instead of hanging."""
+
+    async def receive():
+        return await asyncio.wait_for(layer.receive(channel), timeout=1)
+
+    return async_to_sync(receive)()["event"]
 
 
 def _as_user(user):
@@ -59,9 +68,17 @@ class ScheduleConsumerTests(TestCase):
         self.assertEqual(await communicator.receive_json_from(), {"type": "ping"})
         await communicator.disconnect()
 
-    async def test_employee_socket_is_rejected(self):
-        _, connected = await self._connect(self.employee)
-        self.assertFalse(connected)
+    async def test_employee_receives_only_their_own_events(self):
+        communicator, connected = await self._connect(self.employee)
+        self.assertTrue(connected)
+
+        await get_channel_layer().group_send(MANAGERS_GROUP, PING)
+        await get_channel_layer().group_send(
+            user_group(self.employee.id), {"type": "schedule.event", "event": {"type": "mine"}}
+        )
+        # The managers' ping never arrives, so their own event is the first message.
+        self.assertEqual(await communicator.receive_json_from(), {"type": "mine"})
+        await communicator.disconnect()
 
 
 @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
@@ -98,10 +115,7 @@ class LiveAvailabilityTests(TestCase):
         return response, callbacks
 
     def _next_event(self) -> dict:
-        async def receive():
-            return await asyncio.wait_for(self.layer.receive(self.channel), timeout=1)
-
-        return async_to_sync(receive)()["event"]
+        return next_event(self.layer, self.channel)
 
     def test_marking_a_day_reaches_managers(self):
         response, _ = self._toggle(self.day)

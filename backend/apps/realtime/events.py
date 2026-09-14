@@ -24,6 +24,21 @@ def _send(group: str, event: dict[str, Any]) -> None:
         logger.exception("Could not broadcast %s", event.get("type"))
 
 
+def user_group(user_id: int) -> str:
+    """The pages one user has open, for events addressed to them alone."""
+    return f"user_{user_id}"
+
+
 def notify_managers(event: dict[str, Any]) -> None:
     """Send `event` to every connected manager once the current transaction commits."""
     transaction.on_commit(lambda: _send(MANAGERS_GROUP, event))
+
+
+def send_to_user(user_id: int, event: dict[str, Any]) -> None:
+    """Send `event` to every page `user_id` has open, right away."""
+    _send(user_group(user_id), event)
+
+
+def push_to_user(user_id: int, event: dict[str, Any]) -> None:
+    """Send `event` to every page `user_id` has open once the current transaction commits."""
+    transaction.on_commit(lambda: send_to_user(user_id, event))
