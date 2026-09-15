@@ -1,6 +1,7 @@
 import { getBootstrap } from '../../app/http.js';
 import { CsrfInput, Field } from '../../components/Field.jsx';
 import { Modal } from '../../components/Modal.jsx';
+import { t, tx } from '../../i18n/index.js';
 
 /**
  * Deletion is irreversible and cascades everything the Privacy Policy says
@@ -12,15 +13,15 @@ export function DeleteAccountModal({ email, action, onClose }) {
 
   return (
     <Modal
-      title="Delete your account"
+      title={t('privacy.deleteTitle')}
       onClose={onClose}
       footer={
         <>
           <button className="btn btn-outline" type="button" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-destructive" type="submit" form="deleteAccountForm">
-            Permanently delete my account
+            {t('privacy.modalConfirm')}
           </button>
         </>
       }
@@ -29,19 +30,21 @@ export function DeleteAccountModal({ email, action, onClose }) {
         <CsrfInput />
 
         <p className="text-sm">
-          This permanently deletes your account, your shift assignments and your unavailability records. There
-          is no undo and no archive copy - see the{' '}
-          <a className="footer-link" href={urls.privacy}>
-            Privacy Policy
-          </a>{' '}
-          (section 4) for exactly what that means.
+          {tx('privacy.modalText', {
+            policy: (
+              <a className="footer-link" href={urls.privacy}>
+                {t('footer.privacyPolicy')}
+              </a>
+            ),
+          })}
         </p>
 
         <Field
           id="deleteConfirmEmail"
           name="confirm_email"
           type="email"
-          label={`Type your email (${email}) to confirm`}
+          dir="ltr"
+          label={t('privacy.typeEmail', { email })}
           placeholder={email}
           autoComplete="off"
           required
@@ -50,7 +53,7 @@ export function DeleteAccountModal({ email, action, onClose }) {
           id="deleteConfirmPassword"
           name="confirm_password"
           type="password"
-          label="Confirm your password"
+          label={t('privacy.confirmPassword')}
           autoComplete="current-password"
           required
         />

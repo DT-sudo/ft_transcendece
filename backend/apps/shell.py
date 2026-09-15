@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from typing import Any
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib import messages
@@ -19,7 +20,10 @@ from django.middleware.csrf import get_token
 from django.shortcuts import redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
+from django.utils.translation import get_language
 
+from apps.i18n.languages import direction
+from apps.i18n.languages import options as language_options
 from apps.notifications.services import recent_notifications
 from apps.profiles.services import card
 
@@ -59,19 +63,20 @@ def _bundle() -> dict[str, Any]:
 
 
 def _nav_links(user, active: str) -> list[dict[str, Any]]:
+    """Each link names its label by `id`; the browser translates it, so it switches language with the page."""
     if not user.is_authenticated:
         return []
     if user.is_manager:
         items = [
-            ("manager_shifts", "Shifts"),
-            ("manager_shift_search", "Search"),
-            ("manager_analytics", "Analytics"),
-            ("manager_employees", "Users" if user.is_admin else "Team"),
+            ("manager_shifts", "shifts"),
+            ("manager_shift_search", "search"),
+            ("manager_analytics", "analytics"),
+            ("manager_employees", "users" if user.is_admin else "team"),
         ]
     else:
-        items = [("employee_shifts", "My Shifts")]
-    items.append(("friends", "Friends"))
-    return [{"href": reverse(name), "label": label, "active": name == active} for name, label in items]
+        items = [("employee_shifts", "myShifts")]
+    items.append(("friends", "friends"))
+    return [{"href": reverse(name), "id": label_id, "active": name == active} for name, label_id in items]
 
 
 def _user_context(user) -> dict[str, Any] | None:
@@ -96,10 +101,15 @@ def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, A
     # The page's own URL plus `?format=json` answers with just its data, so an open page
     # can re-read itself live (`useLivePageData`) without a second endpoint per page.
     if request.GET.get("format") == "json":
-        return JsonResponse(data or {})
+        response = JsonResponse(data or {})
+        # A page that switched language in place re-reads its data and retitles its tab from this.
+        response["X-Page-Title"] = quote(str(title))
+        return response
     bootstrap = {
         "page": page,
         "csrfToken": get_token(request),
+        "locale": {"language": get_language(), "dir": direction()},
+        "languages": language_options(),
         "user": _user_context(request.user),
         "notifications": _notifications(request.user),
         "nav": _nav_links(request.user, nav_active),
@@ -111,6 +121,7 @@ def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, A
             "terms": reverse("terms_of_service"),
             "privacyCenter": reverse("privacy_center"),
             "settings": reverse("account_settings"),
+            "language": reverse("set_language"),
         },
         "messages": [{"level": message.level_tag, "text": message.message} for message in get_messages(request)],
         "data": data or {},

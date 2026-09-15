@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 class Position(models.Model):
     name = models.CharField(max_length=25, unique=True)
@@ -14,8 +15,8 @@ class Position(models.Model):
         return self.name
 
 class ShiftStatus(models.TextChoices):
-    DRAFT = "draft", "Draft"
-    PUBLISHED = "published", "Published"
+    DRAFT = "draft", _("Draft")
+    PUBLISHED = "published", _("Published")
 
 class Shift(models.Model):
     date = models.DateField()
@@ -47,9 +48,9 @@ class Shift(models.Model):
     def clean(self) -> None:
         errors = {}
         if self.start_time and self.end_time and self.start_time >= self.end_time:
-            errors["end_time"] = "End time must be after start time."
+            errors["end_time"] = _("End time must be after start time.")
         if self.capacity is not None and self.capacity < 1:
-            errors["capacity"] = "Capacity must be at least 1."
+            errors["capacity"] = _("Capacity must be at least 1.")
         if errors:
             raise ValidationError(errors)
 

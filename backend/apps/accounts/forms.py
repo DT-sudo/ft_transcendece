@@ -3,6 +3,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, BaseUserCreationForm
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from .models import User, UserRole
 
@@ -15,7 +16,7 @@ def _split_full_name(full_name: str) -> tuple[str, str]:
 def clean_full_name(value: str | None) -> str:
     full_name = " ".join((value or "").split())
     if len(full_name) < 2:
-        raise ValidationError("Enter your full name.")
+        raise ValidationError(_("Enter your full name."))
     return full_name
 
 
@@ -26,9 +27,9 @@ class EmailAuthenticationForm(AuthenticationForm):
     input and handing it to Django's default backend is the whole email login.
     """
 
-    username = forms.EmailField(label="Email", max_length=254)
+    username = forms.EmailField(label=_("Email"), max_length=254)
 
-    error_messages = {**AuthenticationForm.error_messages, "invalid_login": "Incorrect email or password."}
+    error_messages = {**AuthenticationForm.error_messages, "invalid_login": _("Incorrect email or password.")}
 
     def clean_username(self) -> str:
         return (self.cleaned_data.get("username") or "").strip().lower()
@@ -42,7 +43,7 @@ class SignUpForm(BaseUserCreationForm):
     two password fields and runs the password validators against the instance.
     """
 
-    full_name = forms.CharField(label="Full name", max_length=150)
+    full_name = forms.CharField(label=_("Full name"), max_length=150)
 
     class Meta:
         model = User
@@ -54,7 +55,7 @@ class SignUpForm(BaseUserCreationForm):
     def clean_email(self) -> str:
         email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(username=email).exists():
-            raise ValidationError("An account with this email already exists.")
+            raise ValidationError(_("An account with this email already exists."))
         return email
 
     def _post_clean(self) -> None:
@@ -69,7 +70,7 @@ class SignUpForm(BaseUserCreationForm):
 class AccountForm(forms.ModelForm):
     """Base for forms that set an account's name and email; the email doubles as the login username."""
 
-    full_name = forms.CharField(label="Full name", max_length=150)
+    full_name = forms.CharField(label=_("Full name"), max_length=150)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,7 +79,7 @@ class AccountForm(forms.ModelForm):
     def clean_email(self) -> str:
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if User.objects.filter(username=email).exclude(pk=self.instance.pk).exists():
-            raise ValidationError("An account with this email already exists.")
+            raise ValidationError(_("An account with this email already exists."))
         return email
 
     def save(self, commit=True) -> User:
@@ -117,7 +118,7 @@ class UserForm(EmployeeForm):
         role = cleaned.get("role")
         if role == UserRole.EMPLOYEE:
             if not cleaned.get("position"):
-                self.add_error("position", "Employees need a position.")
+                self.add_error("position", _("Employees need a position."))
         elif role:
             cleaned["position"] = None
 
@@ -125,5 +126,5 @@ class UserForm(EmployeeForm):
         # (`self.instance` still holds the saved role here: the posted one is copied onto it after clean().)
         switches_side = self.instance.pk and role and (role == UserRole.EMPLOYEE) != self.instance.is_employee
         if switches_side and (self.instance.created_shifts.exists() or self.instance.assignments.exists()):
-            raise ValidationError("Reassign or remove this user's shifts before switching between employee and manager roles.")
+            raise ValidationError(_("Reassign or remove this user's shifts before switching between employee and manager roles."))
         return cleaned

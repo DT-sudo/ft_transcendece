@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { t } from '../i18n/index.js';
 import { X } from './Icons.jsx';
 import { isTopLayer, pushLayer } from './hooks.js';
 
@@ -39,7 +40,7 @@ export function Modal({ title, onClose, children, footer, maxWidth = '500px', ti
             <h2 className="modal-title truncate">{title}</h2>
             {titleExtra}
           </div>
-          <button className="modal-close" type="button" onClick={onClose} aria-label="Close">
+          <button className="modal-close" type="button" onClick={onClose} aria-label={t('common.close')}>
             <X />
           </button>
         </div>
@@ -52,7 +53,7 @@ export function Modal({ title, onClose, children, footer, maxWidth = '500px', ti
   );
 }
 
-export function ConfirmModal({ title, message, detail, footnote, confirmText = 'Yes', destructive = false, onCancel, onConfirm }) {
+export function ConfirmModal({ title, message, detail, footnote, confirmText = t('common.yes'), destructive = false, onCancel, onConfirm }) {
   return (
     <Modal
       title={title}
@@ -60,7 +61,7 @@ export function ConfirmModal({ title, message, detail, footnote, confirmText = '
       footer={
         <>
           <button className="btn btn-outline" type="button" onClick={onCancel}>
-            No
+            {t('common.no')}
           </button>
           <button className={`btn ${destructive ? 'btn-destructive' : 'btn-primary'}`} type="button" onClick={onConfirm}>
             {confirmText}

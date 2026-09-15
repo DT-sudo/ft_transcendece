@@ -1,6 +1,7 @@
 import { formatDate } from '../../app/dates.js';
 import { positionPalette, unavailableDaysBetween } from '../../app/shifts.js';
 import { Avatar } from '../../components/Avatar.jsx';
+import { t } from '../../i18n/index.js';
 
 const MAX_LISTED_DAYS = 3;
 
@@ -13,8 +14,8 @@ function formatDayList(days) {
 /** Team list with each employee's unavailable days in the visible month, updated live. */
 export function EmployeeSidebar({ employees, availability, periodStart, periodEnd, flashedEmployeeId }) {
   return (
-    <aside className="card calendar-fill mt-3" aria-label="Employees">
-      <h3 className="card-title border-b border-border px-4 py-2.5">Employees</h3>
+    <aside className="card calendar-fill mt-3" aria-label={t('shifts.employees')}>
+      <h3 className="card-title border-b border-border px-4 py-2.5">{t('shifts.employees')}</h3>
 
       <ul className="flex flex-auto flex-col gap-2 overflow-auto p-3">
         {employees.map((employee) => {
@@ -31,7 +32,7 @@ export function EmployeeSidebar({ employees, availability, periodStart, periodEn
                   </span>
                 ) : null}
                 {days.length ? (
-                  <div className="employee-sidebar-unavailable truncate">Unavailable: {formatDayList(days)}</div>
+                  <div className="employee-sidebar-unavailable truncate">{t('shifts.unavailableDays', { days: formatDayList(days) })}</div>
                 ) : null}
               </div>
             </li>

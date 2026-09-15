@@ -9,3 +9,6 @@ channels-redis>=4.3,<5
 
 # Profile pictures: validates uploads as images and re-encodes them to WebP.
 Pillow>=11,<13
+
+# Two-factor authentication: draws the QR code an authenticator app scans (pure Python, no dependencies).
+segno>=1.6,<2

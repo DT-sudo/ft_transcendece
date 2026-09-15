@@ -1,26 +1,27 @@
-import { formatDate } from '../../app/dates.js';
+import { formatDate, formatHours, formatNow } from '../../app/dates.js';
 import { getBootstrap } from '../../app/http.js';
 import { useLivePageData } from '../../app/live.js';
-import { STATUS_OPTIONS } from '../../app/shifts.js';
+import { statusOptions } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
 import { ChevronDown } from '../../components/Icons.jsx';
 import { Dropdown } from '../../components/Menus.jsx';
+import { t } from '../../i18n/index.js';
 import { DonutChart, EmptyChart, XYChart } from './Charts.jsx';
 
 const KPIS = [
-  { key: 'shifts', label: 'Shifts', accent: 'var(--color-primary)' },
-  { key: 'workers', label: 'Workers', accent: 'var(--color-info)' },
-  { key: 'hours', label: 'Hours', accent: 'var(--color-shift-published)', suffix: 'h' },
-  { key: 'open_shifts', label: 'Open shifts', accent: 'var(--color-warning)' },
+  { key: 'shifts', label: 'analytics.shifts', accent: 'var(--color-primary)' },
+  { key: 'workers', label: 'analytics.workers', accent: 'var(--color-info)' },
+  { key: 'hours', label: 'analytics.hours', accent: 'var(--color-shift-published)', format: formatHours },
+  { key: 'open_shifts', label: 'analytics.openShifts', accent: 'var(--color-warning)' },
 ];
 
 const STATUS_COLORS = { draft: 'var(--color-shift-past)', published: 'var(--color-shift-published)' };
 
-const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+const shiftCount = (count) => t('analytics.shiftCount', { count });
 
 /** Name of the selected `{ id, name }` option, or "All" when the filter is empty. */
-const nameOf = (options, id) => options.find((option) => String(option.id) === id)?.name ?? 'All';
+const nameOf = (options, id) => options.find((option) => String(option.id) === id)?.name ?? t('common.all');
 
 function ChartCard({ title, wide = false, children }) {
   return (
@@ -55,6 +56,7 @@ export function ManagerAnalyticsPage() {
   const { positions, workers, filters, urls, analytics } = useLivePageData(getBootstrap().data);
 
   const topPositions = [...analytics.by_position].sort((a, b) => b.count - a.count).slice(0, 5);
+  const statuses = statusOptions();
 
   return (
     <AppShell>
@@ -63,55 +65,57 @@ export function ManagerAnalyticsPage() {
           <DateRangeFields from={filters.date_from} to={filters.date_to} />
           <ShiftFilterSelects filters={filters} positions={positions} workers={workers} />
           <button className="btn btn-primary" type="submit">
-            Apply
+            {t('common.apply')}
           </button>
 
           <div className="ms-auto">
             <Dropdown
               trigger={({ toggle }) => (
                 <button className="btn btn-outline" type="button" onClick={toggle} aria-haspopup="menu">
-                  Export
+                  {t('analytics.export')}
                   <ChevronDown />
                 </button>
               )}
             >
               {/* The CSV is an attachment, so the page stays; the browser's print dialog saves the PDF. */}
               <button className="dropdown-item" type="button" onClick={() => window.location.assign(`${urls.exportCsv}${window.location.search}`)}>
-                CSV (raw data)
+                {t('analytics.csv')}
               </button>
               <button className="dropdown-item" type="button" onClick={() => window.print()}>
-                PDF (report)
+                {t('analytics.pdf')}
               </button>
             </Dropdown>
           </div>
         </form>
 
         <div className="print-only mb-4">
-          <h1 className="text-xl font-semibold">Workforce Analytics Report</h1>
+          <h1 className="text-xl font-semibold">{t('analytics.reportTitle')}</h1>
           <p className="text-sm text-muted-foreground">
-            {formatDate(filters.date_from)} – {formatDate(filters.date_to)} · Position: {nameOf(positions, filters.position)} · Worker:{' '}
-            {nameOf(workers, filters.worker)} · Status: {nameOf(STATUS_OPTIONS, filters.status)}
+            {t('analytics.reportFilters', {
+              from: formatDate(filters.date_from),
+              to: formatDate(filters.date_to),
+              position: nameOf(positions, filters.position),
+              worker: nameOf(workers, filters.worker),
+              status: nameOf(statuses, filters.status),
+            })}
           </p>
-          <p className="text-xs text-muted-foreground">Generated {new Date().toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">{t('analytics.generated', { time: formatNow() })}</p>
         </div>
 
         <div className="kpi-grid mt-3">
           {KPIS.map((kpi) => (
             <div key={kpi.key} className="kpi-card" style={{ '--kpi-accent': kpi.accent }}>
-              <div className="kpi-card-label">{kpi.label}</div>
-              <div className="kpi-card-value">
-                {analytics.kpis[kpi.key]}
-                {kpi.suffix}
-              </div>
+              <div className="kpi-card-label">{t(kpi.label)}</div>
+              <div className="kpi-card-value">{kpi.format ? kpi.format(analytics.kpis[kpi.key]) : analytics.kpis[kpi.key]}</div>
             </div>
           ))}
         </div>
 
         <div className="analytics-grid mt-3">
-          <ChartCard title="Shifts over time" wide>
+          <ChartCard title={t('analytics.overTime')} wide>
             <XYChart
               kind="line"
-              label="Shifts over time"
+              label={t('analytics.overTime')}
               data={analytics.by_date}
               labelKey="date"
               valueKey="count"
@@ -119,39 +123,39 @@ export function ManagerAnalyticsPage() {
             />
           </ChartCard>
 
-          <ChartCard title="Shifts by position">
-            <XYChart kind="bar" label="Shifts by position" data={analytics.by_position} labelKey="position" valueKey="count" />
+          <ChartCard title={t('analytics.byPosition')}>
+            <XYChart kind="bar" label={t('analytics.byPosition')} data={analytics.by_position} labelKey="position" valueKey="count" />
           </ChartCard>
 
-          <ChartCard title="Shift status">
+          <ChartCard title={t('analytics.shiftStatus')}>
             <DonutChart
-              label="Shift status"
+              label={t('analytics.shiftStatus')}
               segments={analytics.by_status.map(({ status, count }) => ({
-                label: nameOf(STATUS_OPTIONS, status),
+                label: nameOf(statuses, status),
                 value: count,
                 color: STATUS_COLORS[status],
               }))}
             />
           </ChartCard>
 
-          <ChartCard title="Hours per worker" wide>
+          <ChartCard title={t('analytics.hoursPerWorker')} wide>
             <XYChart
               kind="bar"
-              label="Hours per worker"
+              label={t('analytics.hoursPerWorker')}
               data={analytics.top_workers}
               labelKey="worker"
               valueKey="hours"
-              formatValue={(hours) => `${hours}h`}
+              formatValue={formatHours}
               color="var(--color-shift-published)"
             />
           </ChartCard>
 
-          <ChartCard title="Top workers">
-            <TopList items={analytics.top_workers.slice(0, 5)} name="worker" detail={(w) => `${w.hours}h · ${plural(w.shifts, 'shift')}`} />
+          <ChartCard title={t('analytics.topWorkers')}>
+            <TopList items={analytics.top_workers.slice(0, 5)} name="worker" detail={(w) => `${formatHours(w.hours)} · ${shiftCount(w.shifts)}`} />
           </ChartCard>
 
-          <ChartCard title="Top positions">
-            <TopList items={topPositions} name="position" detail={(p) => plural(p.count, 'shift')} />
+          <ChartCard title={t('analytics.topPositions')}>
+            <TopList items={topPositions} name="position" detail={(p) => shiftCount(p.count)} />
           </ChartCard>
         </div>
       </main>

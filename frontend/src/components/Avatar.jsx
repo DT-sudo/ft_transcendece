@@ -1,4 +1,5 @@
 import { timeAgo } from '../app/dates.js';
+import { t } from '../i18n/index.js';
 
 const SIZES = { sm: 'size-8', header: 'size-8.5', md: 'size-10', lg: 'size-24 text-2xl' };
 
@@ -19,7 +20,7 @@ export function Avatar({ name, src, size = 'sm', online, primary = false }) {
       {src ? <img className="avatar-image" src={src} alt="" /> : <span aria-hidden="true">{initialsFromName(name)}</span>}
       {online === undefined ? null : (
         <span className={`avatar-status ${online ? 'avatar-status-online' : ''}`}>
-          <span className="sr-only">{online ? 'Online' : 'Offline'}</span>
+          <span className="sr-only">{online ? t('presence.online') : t('presence.offline')}</span>
         </span>
       )}
     </span>
@@ -28,6 +29,6 @@ export function Avatar({ name, src, size = 'sm', online, primary = false }) {
 
 /** "Online", "Last seen 5 minutes ago" or "Offline", from a `{ online, lastSeen }` status. */
 export function presenceLabel(status) {
-  if (status.online) return 'Online';
-  return status.lastSeen ? `Last seen ${timeAgo(status.lastSeen)}` : 'Offline';
+  if (status.online) return t('presence.online');
+  return status.lastSeen ? t('presence.lastSeen', { time: timeAgo(status.lastSeen) }) : t('presence.offline');
 }

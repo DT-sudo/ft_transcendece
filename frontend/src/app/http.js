@@ -37,7 +37,8 @@ export function submitPost(action, fields = {}) {
 /** GET a JSON endpoint; throws on failure. */
 export async function getJSON(url) {
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!response.ok) throw new Error('Request failed.');
+  // No message: callers show their own, in the page's language.
+  if (!response.ok) throw new Error();
   return response.json();
 }
 
@@ -48,7 +49,7 @@ export function getPageData() {
   return getJSON(url);
 }
 
-/** POST as a fetch and return the JSON body; throws with the server's message on failure. */
+/** POST as a fetch and return the JSON body; throws with the server's (translated) message on failure, if it sent one. */
 export async function postForm(url, data) {
   const response = await fetch(url, {
     method: 'POST',
@@ -63,5 +64,5 @@ export async function postForm(url, data) {
   const payload = await response.json().catch(() => ({}));
   if (response.ok) return payload;
 
-  throw new Error(payload.error || 'Request failed.');
+  throw new Error(payload.error || '');
 }

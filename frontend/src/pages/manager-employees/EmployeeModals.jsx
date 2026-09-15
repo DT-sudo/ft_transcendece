@@ -4,6 +4,7 @@ import { submitPost, urlFromTemplate } from '../../app/http.js';
 import { CsrfInput, Field, SelectField } from '../../components/Field.jsx';
 import { Trash } from '../../components/Icons.jsx';
 import { ConfirmModal, Modal } from '../../components/Modal.jsx';
+import { t, tx } from '../../i18n/index.js';
 
 /**
  * Create or edit an account, given a row from the Team payload (an empty object when creating).
@@ -12,20 +13,24 @@ import { ConfirmModal, Modal } from '../../components/Modal.jsx';
  */
 export function EmployeeFormModal({ employee, action, roles, positions, onClose }) {
   const isEdit = Boolean(employee.id);
-  const noun = roles ? 'User' : 'Employee';
+  const isUser = Boolean(roles);
   const [role, setRole] = useState(employee.role ?? 'employee');
+
+  let title;
+  if (isEdit) title = isUser ? t('team.editUser') : t('team.editEmployee');
+  else title = isUser ? t('team.newUser') : t('team.newEmployee');
 
   return (
     <Modal
-      title={isEdit ? `Edit ${noun}` : `Add New ${noun}`}
+      title={title}
       onClose={onClose}
       footer={
         <>
           <button className="btn btn-outline" type="button" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-primary" type="submit" form="employeeForm">
-            {isEdit ? 'Save' : `Create ${noun.toLowerCase()}`}
+            {isEdit ? t('common.save') : isUser ? t('team.createUser') : t('team.createEmployee')}
           </button>
         </>
       }
@@ -33,14 +38,14 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
       <form id="employeeForm" className="modal-body" method="post" action={action}>
         <CsrfInput />
 
-        <Field id="employeeFullName" name="full_name" label="Full name" placeholder="Enter full name" required defaultValue={employee.fullName} />
-        <Field id="employeeEmail" name="email" type="email" label="Email / Login" placeholder="Enter email" required defaultValue={employee.email} />
+        <Field id="employeeFullName" name="full_name" label={t('team.fullName')} placeholder={t('team.fullNamePlaceholder')} required defaultValue={employee.fullName} />
+        <Field id="employeeEmail" name="email" type="email" dir="ltr" label={t('team.emailLogin')} placeholder={t('team.emailPlaceholder')} required defaultValue={employee.email} />
         {roles ? (
           <SelectField
             id="employeeRole"
             name="role"
-            label="Role"
-            placeholder="Select role..."
+            label={t('team.role')}
+            placeholder={t('team.selectRole')}
             required
             options={roles}
             value={role}
@@ -51,8 +56,8 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
           <SelectField
             id="employeePosition"
             name="position"
-            label="Position"
-            placeholder="Select position..."
+            label={t('team.position')}
+            placeholder={t('shifts.selectPosition')}
             required
             options={positions}
             defaultValue={employee.positionId ?? ''}
@@ -61,7 +66,7 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
 
         {isEdit ? null : (
           <p className="text-sm text-muted-foreground">
-            A password is generated automatically and shown <strong>only once</strong> after creation.
+            {tx('team.passwordNote', { once: <strong>{t('team.onlyOnce')}</strong> })}
           </p>
         )}
       </form>
@@ -73,20 +78,24 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
 export function CredentialsModal({ credentials, onClose }) {
   return (
     <Modal
-      title="Credentials (shown once)"
+      title={t('team.credentialsTitle')}
       onClose={onClose}
       footer={
         <button className="btn btn-primary" type="button" onClick={onClose}>
-          Done
+          {t('common.done')}
         </button>
       }
     >
       <div className="modal-body">
-        <p className="text-sm text-muted-foreground">Login</p>
-        <p className="font-medium break-all">{credentials.login}</p>
-        <p className="mt-3 text-sm text-muted-foreground">Password</p>
-        <p className="font-medium break-all">{credentials.password}</p>
-        <p className="mt-4 text-sm text-muted-foreground">This password is shown only once. Copy and share it securely.</p>
+        <p className="text-sm text-muted-foreground">{t('team.login')}</p>
+        <p dir="ltr" className="font-medium break-all">
+          {credentials.login}
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">{t('team.password')}</p>
+        <p dir="ltr" className="font-medium break-all">
+          {credentials.password}
+        </p>
+        <p className="mt-4 text-sm text-muted-foreground">{t('team.credentialsNote')}</p>
       </div>
     </Modal>
   );
@@ -98,36 +107,36 @@ export function PositionsModal({ positions, urls, onClose }) {
   return (
     <>
       <Modal
-        title="Manage positions"
+        title={t('team.positionsTitle')}
         onClose={onClose}
         maxWidth="720px"
         footer={
           <button className="btn btn-outline" type="button" onClick={onClose}>
-            Done
+            {t('common.done')}
           </button>
         }
       >
         <div className="modal-body">
           <form className="flex gap-2" method="post" action={urls.positionCreate}>
             <CsrfInput />
-            <input className="form-input" name="name" placeholder="New position name (e.g., Barista)" maxLength={25} required />
+            <input className="form-input" name="name" placeholder={t('team.newPosition')} aria-label={t('team.newPosition')} maxLength={25} required />
             <button className="btn btn-primary btn-sm" type="submit">
-              Add position
+              {t('team.addPosition')}
             </button>
           </form>
 
-          <table className="table mt-4" aria-label="Position list">
+          <table className="table mt-4" aria-label={t('team.positionList')}>
             <thead>
               <tr>
-                <th>Position</th>
-                <th className="w-45">Actions</th>
+                <th>{t('team.position')}</th>
+                <th className="w-45">{t('team.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {positions.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="text-sm text-muted-foreground">
-                    No positions yet.
+                    {t('team.noPositions')}
                   </td>
                 </tr>
               ) : (
@@ -138,8 +147,8 @@ export function PositionsModal({ positions, urls, onClose }) {
                       <button
                         className="btn btn-ghost btn-icon btn-icon-destructive"
                         type="button"
-                        aria-label={`Delete position ${position.name}`}
-                        title="Delete"
+                        aria-label={t('team.deletePositionLabel', { name: position.name })}
+                        title={t('common.delete')}
                         onClick={() => setPendingDelete(position)}
                       >
                         <Trash />
@@ -155,11 +164,11 @@ export function PositionsModal({ positions, urls, onClose }) {
 
       {pendingDelete ? (
         <ConfirmModal
-          title="Delete position"
-          message="Delete this position?"
+          title={t('team.deletePosition')}
+          message={t('team.deletePositionMessage')}
           detail={pendingDelete.name}
-          footnote="A position still required by a shift cannot be deleted."
-          confirmText="Yes, delete"
+          footnote={t('team.deletePositionNote')}
+          confirmText={t('common.yesDelete')}
           destructive
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => submitPost(urlFromTemplate(urls.positionDelete, pendingDelete.id))}

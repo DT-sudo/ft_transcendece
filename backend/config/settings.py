@@ -29,14 +29,20 @@ INSTALLED_APPS = [
     "apps.realtime",
     "apps.notifications",
     "apps.profiles",
+    "apps.twofactor",
+    "apps.i18n",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Picks the language from the language cookie, else the browser's Accept-Language.
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Then a signed-in user's saved language wins (apps.i18n).
+    "apps.i18n.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -91,7 +97,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "en-us"
+# ── Languages ───────────────────────────────────────────────────────────────
+# English, Czech and Arabic (right-to-left). Server text goes through gettext
+# (`backend/locale/<code>/LC_MESSAGES/django.po`, compiled to `.mo` with
+# `python manage.py compilemessages`); the React pages use the JSON catalogs in
+# `frontend/src/i18n/locales/`. Each name is written in its own language for the switcher.
+LANGUAGE_CODE = "en"
+LANGUAGES = [("en", "English"), ("cs", "Čeština"), ("ar", "العربية")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
+LANGUAGE_COOKIE_AGE = 365 * 24 * 60 * 60
+LANGUAGE_COOKIE_SAMESITE = "Lax"
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 USE_TZ = True
 
@@ -123,6 +138,7 @@ CSRF_TRUSTED_ORIGINS = env_list(
 SECURE_COOKIES = env_bool("SECURE_COOKIES", True)
 SESSION_COOKIE_SECURE = SECURE_COOKIES
 CSRF_COOKIE_SECURE = SECURE_COOKIES
+LANGUAGE_COOKIE_SECURE = SECURE_COOKIES
 
 # HSTS is only safe once TLS is definitely in place, so it stays off in DEBUG.
 if not DEBUG:

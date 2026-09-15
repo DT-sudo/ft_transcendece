@@ -4,6 +4,7 @@ import { useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { Avatar, presenceLabel } from '../../components/Avatar.jsx';
 import { Settings } from '../../components/Icons.jsx';
+import { t, tx } from '../../i18n/index.js';
 import { FRIEND_EVENTS, FriendActions, PeopleCard, PersonRow } from './People.jsx';
 
 // This person came online or left (only sent while their status is shown, to friends).
@@ -39,7 +40,7 @@ export function ProfilePage() {
                 {isSelf ? (
                   <a className="btn btn-outline" href={pageUrls.settings}>
                     <Settings size={16} />
-                    Edit profile
+                    {t('profile.editProfile')}
                   </a>
                 ) : (
                   <FriendActions person={person} relation={relation} urls={urls} />
@@ -48,37 +49,43 @@ export function ProfilePage() {
             </div>
 
             {relation.state === 'incoming' ? (
-              <p className="mt-4 text-sm text-muted-foreground">{person.fullName} sent you a friend request.</p>
+              <p className="mt-4 text-sm text-muted-foreground">{t('profile.sentYouRequest', { name: person.fullName })}</p>
             ) : null}
 
             {person.bio ? (
               <p className="mt-5 whitespace-pre-line">{person.bio}</p>
             ) : isSelf ? (
               <p className="mt-5 text-sm text-muted-foreground">
-                No bio yet. <a className="footer-link" href={pageUrls.settings}>Add one</a> so people know who you are.
+                {tx('profile.noBio', {
+                  link: (
+                    <a className="footer-link" href={pageUrls.settings}>
+                      {t('profile.addBio')}
+                    </a>
+                  ),
+                })}
               </p>
             ) : null}
 
             <dl className="profile-facts mt-5">
               {person.email ? (
                 <>
-                  <dt>Email</dt>
+                  <dt>{t('profile.email')}</dt>
                   <dd>
-                    <a className="footer-link" href={`mailto:${person.email}`}>
+                    <a className="footer-link" dir="ltr" href={`mailto:${person.email}`}>
                       {person.email}
                     </a>
                   </dd>
                 </>
               ) : null}
-              <dt>Member since</dt>
+              <dt>{t('profile.memberSince')}</dt>
               <dd>{formatMonth(person.memberSince)}</dd>
-              <dt>Friends</dt>
+              <dt>{t('profile.friends')}</dt>
               <dd>{person.friendCount}</dd>
             </dl>
           </section>
 
           {friends ? (
-            <PeopleCard id="profileFriends" title="Friends" empty="No friends yet.">
+            <PeopleCard id="profileFriends" title={t('profile.friends')} empty={t('profile.noFriends')}>
               {friends.map((friend) => (
                 <PersonRow key={friend.id} person={friend} detail={friend.role} />
               ))}

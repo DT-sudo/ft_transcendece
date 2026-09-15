@@ -7,6 +7,9 @@ from datetime import date, datetime
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils.formats import date_format
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from apps.accounts.models import User, UserRole
 from apps.shell import first_form_error
@@ -38,17 +41,17 @@ def _check_position_match(shift: Shift, employee_ids: list[int]) -> None:
         position_id=shift.position_id,
     ).count()
     if valid != len(employee_ids):
-        raise ValidationError("Selected employees must match the shift position.")
+        raise ValidationError(_("Selected employees must match the shift position."))
 
 
 def _check_capacity(shift: Shift, employee_ids: list[int]) -> None:
     if len(employee_ids) > shift.capacity:
-        raise ValidationError("Cannot assign more employees than shift capacity.")
+        raise ValidationError(_("Cannot assign more employees than shift capacity."))
 
 
 def _check_availability(shift: Shift, employee_ids: list[int]) -> None:
     if EmployeeUnavailability.objects.filter(employee_id__in=employee_ids, date=shift.date).exists():
-        raise ValidationError(f"Employee is unavailable on {shift.date.isoformat()}.")
+        raise ValidationError(_("Employee is unavailable on %(day)s.") % {"day": date_format(shift.date, "D j M Y")})
 
 
 def _check_no_overlap(shift: Shift, employee_ids: list[int]) -> None:
@@ -67,8 +70,13 @@ def _check_no_overlap(shift: Shift, employee_ids: list[int]) -> None:
     if conflict:
         other = conflict.shift
         raise ValidationError(
-            f"Employee already assigned to: {other.position} "
-            f"{other.start_time:%H:%M}–{other.end_time:%H:%M} ({other.date:%b %d})"
+            _("Employee already assigned to: %(position)s %(start)s–%(end)s (%(day)s)")
+            % {
+                "position": other.position.name,
+                "start": f"{other.start_time:%H:%M}",
+                "end": f"{other.end_time:%H:%M}",
+                "day": date_format(other.date, "j M"),
+            }
         )
 
 
@@ -84,7 +92,7 @@ def assign_employees_to_shift(shift: Shift, employee_ids: list[int]) -> None:
     Assignment.objects.bulk_create([Assignment(shift=shift, employee_id=eid) for eid in employee_ids])
 
 
-STALE_SHIFT = "Someone else changed this shift while you were editing it. Your changes were not saved."
+STALE_SHIFT = gettext_lazy("Someone else changed this shift while you were editing it. Your changes were not saved.")
 
 
 def save_shift(shift: Shift, post_data) -> Shift:
@@ -95,7 +103,7 @@ def save_shift(shift: Shift, post_data) -> Shift:
     """
     form = ShiftForm(post_data, instance=shift)
     if not form.is_valid():
-        raise ValidationError(first_form_error(form, "Please check the form fields."))
+        raise ValidationError(first_form_error(form, _("Please check the form fields.")))
     employee_ids = [int(value) for value in post_data.getlist("employee_ids") if value.isdigit()]
 
     with transaction.atomic():

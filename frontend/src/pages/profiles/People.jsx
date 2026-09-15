@@ -4,6 +4,7 @@ import { submitPost, urlFromTemplate } from '../../app/http.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Check, UserPlus } from '../../components/Icons.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
+import { t } from '../../i18n/index.js';
 
 /**
  * Live events after which the Friends and profile pages re-read their data. A friend's
@@ -57,13 +58,13 @@ export function FriendActions({ person, relation, urls, small = false }) {
       return (
         <button className={`btn btn-primary ${size}`} type="button" onClick={() => submitPost(urls.request, { user_id: person.id, ...back() })}>
           <UserPlus size={16} />
-          Add friend
+          {t('friends.add')}
         </button>
       );
     case 'outgoing':
       return (
         <button className={`btn btn-outline ${size}`} type="button" onClick={end}>
-          Cancel request
+          {t('friends.cancelRequest')}
         </button>
       );
     case 'incoming':
@@ -75,10 +76,10 @@ export function FriendActions({ person, relation, urls, small = false }) {
             onClick={() => submitPost(urlFromTemplate(urls.accept, relation.friendshipId), back())}
           >
             <Check size={16} />
-            Accept
+            {t('friends.accept')}
           </button>
           <button className={`btn btn-outline ${size}`} type="button" onClick={end}>
-            Decline
+            {t('friends.decline')}
           </button>
         </>
       );
@@ -86,14 +87,14 @@ export function FriendActions({ person, relation, urls, small = false }) {
       return (
         <>
           <button className={`btn btn-ghost btn-icon-destructive ${size}`} type="button" onClick={() => setConfirming(true)}>
-            Remove friend
+            {t('friends.remove')}
           </button>
           {confirming ? (
             <ConfirmModal
-              title="Remove friend"
-              message={`Remove ${person.fullName} from your friends?`}
-              footnote="They will no longer see your online status or your email."
-              confirmText="Yes, remove"
+              title={t('friends.remove')}
+              message={t('friends.removeMessage', { name: person.fullName })}
+              footnote={t('friends.removeNote')}
+              confirmText={t('friends.yesRemove')}
               destructive
               onCancel={() => setConfirming(false)}
               onConfirm={end}

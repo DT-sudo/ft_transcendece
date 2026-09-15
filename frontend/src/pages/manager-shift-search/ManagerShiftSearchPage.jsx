@@ -4,14 +4,16 @@ import { AppShell } from '../../components/AppShell.jsx';
 import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
 import { ChevronLeft, ChevronRight } from '../../components/Icons.jsx';
 import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
+import { t } from '../../i18n/index.js';
 
+// `sort` is the server's sort key; the label is looked up in the page's language when rendered.
 const COLUMNS = [
-  { sort: 'date', label: 'Date' },
-  { sort: 'time', label: 'Time' },
-  { sort: 'position', label: 'Position' },
-  { sort: 'worker', label: 'Workers' },
-  { label: 'Status' },
-  { label: 'Staffed' },
+  { id: 'date', sort: 'date' },
+  { id: 'time', sort: 'time' },
+  { id: 'position', sort: 'position' },
+  { id: 'workers', sort: 'worker' },
+  { id: 'status' },
+  { id: 'staffed' },
 ];
 
 /**
@@ -25,8 +27,8 @@ function SearchFilters({ filters, positions, workers }) {
         type="search"
         name="q"
         className="form-input w-auto min-w-64 flex-auto"
-        placeholder="Search by position or worker…"
-        aria-label="Search shifts"
+        placeholder={t('search.placeholder')}
+        aria-label={t('search.label')}
         defaultValue={filters.q}
       />
       <ShiftFilterSelects filters={filters} positions={positions} workers={workers} />
@@ -34,17 +36,18 @@ function SearchFilters({ filters, positions, workers }) {
       <input type="hidden" name="sort" defaultValue={filters.sort} />
       <input type="hidden" name="dir" defaultValue={filters.dir} />
       <button className="btn btn-primary" type="submit">
-        Search
+        {t('common.search')}
       </button>
       <a className="btn btn-ghost" href={window.location.pathname}>
-        Clear
+        {t('common.clear')}
       </a>
     </form>
   );
 }
 
 function SortHeader({ column, filters }) {
-  if (!column.sort) return <th>{column.label}</th>;
+  const label = t(`search.${column.id}`);
+  if (!column.sort) return <th>{label}</th>;
   const active = filters.sort === column.sort;
   const ascending = filters.dir === 'asc';
 
@@ -55,7 +58,7 @@ function SortHeader({ column, filters }) {
         type="button"
         onClick={() => navigateWith({ sort: column.sort, dir: active && ascending ? 'desc' : 'asc', page: '' })}
       >
-        {column.label}
+        {label}
         {active ? <span aria-hidden="true">{ascending ? '▲' : '▼'}</span> : null}
       </button>
     </th>
@@ -65,30 +68,26 @@ function SortHeader({ column, filters }) {
 function Pagination({ page, totalPages, total }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-sm text-muted-foreground">
-      <span>
-        {total} result{total === 1 ? '' : 's'}
-      </span>
+      <span>{t('search.results', { count: total })}</span>
       <div className="flex items-center gap-2">
         <button
           className="btn btn-outline btn-icon"
           type="button"
-          aria-label="Previous page"
+          aria-label={t('search.previousPage')}
           disabled={page <= 1}
           onClick={() => navigateWith({ page: page - 1 })}
         >
-          <ChevronLeft />
+          <ChevronLeft className="rtl:-scale-x-100" />
         </button>
-        <span>
-          Page {page} of {totalPages}
-        </span>
+        <span>{t('search.page', { page, total: totalPages })}</span>
         <button
           className="btn btn-outline btn-icon"
           type="button"
-          aria-label="Next page"
+          aria-label={t('search.nextPage')}
           disabled={page >= totalPages}
           onClick={() => navigateWith({ page: page + 1 })}
         >
-          <ChevronRight />
+          <ChevronRight className="rtl:-scale-x-100" />
         </button>
       </div>
     </div>
@@ -112,7 +111,7 @@ export function ManagerShiftSearchPage() {
               <thead>
                 <tr>
                   {COLUMNS.map((column) => (
-                    <SortHeader key={column.label} column={column} filters={filters} />
+                    <SortHeader key={column.id} column={column} filters={filters} />
                   ))}
                 </tr>
               </thead>
@@ -120,14 +119,14 @@ export function ManagerShiftSearchPage() {
                 {results.length === 0 ? (
                   <tr>
                     <td colSpan={COLUMNS.length} className="py-8 text-center text-muted-foreground">
-                      No shifts match these filters.
+                      {t('search.noResults')}
                     </td>
                   </tr>
                 ) : (
                   results.map((shift) => (
                     <tr key={shift.id}>
                       <td>
-                        <a className="font-medium text-primary hover:underline" href={`${urls.calendar}?date=${shift.date}`} title="Open in calendar">
+                        <a className="font-medium text-primary hover:underline" href={`${urls.calendar}?date=${shift.date}`} title={t('search.openInCalendar')}>
                           {formatDate(shift.date)}
                         </a>
                       </td>
@@ -138,7 +137,7 @@ export function ManagerShiftSearchPage() {
                         <span className="badge badge-default">{shift.position}</span>
                       </td>
                       <td>
-                        {shift.workers.map((worker) => worker.name).join(', ') || <span className="text-muted-foreground">Unassigned</span>}
+                        {shift.workers.map((worker) => worker.name).join(', ') || <span className="text-muted-foreground">{t('search.unassigned')}</span>}
                       </td>
                       <td>
                         <ShiftStatusBadge status={shift.status} />

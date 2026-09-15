@@ -1,10 +1,12 @@
+import { t } from '../i18n/index.js';
 import { minutesOf, shiftDurationMinutes } from './dates.js';
 
 // ── Status ──────────────────────────────────────────────────────────────────
 
-export const STATUS_OPTIONS = [
-  { id: 'draft', name: 'Draft' },
-  { id: 'published', name: 'Published' },
+/** The two statuses as `{ id, name }` select options, named in the current language. */
+export const statusOptions = () => [
+  { id: 'draft', name: t('status.draft') },
+  { id: 'published', name: t('status.published') },
 ];
 
 // ── Positions ───────────────────────────────────────────────────────────────
@@ -76,13 +78,13 @@ export function computeLaneLayout(shifts) {
 
 const LANE_GAP_PX = 4;
 
-/** Where a week-view chip goes: top and height from its times, left and width from its lane. */
+/** Where a week-view chip goes: top and height from its times, inline start and width from its lane (mirrored in RTL). */
 export function timedChipStyle(shift, lane, laneCount, hourHeightPx) {
   const width = 100 / laneCount;
   return {
     top: `${(minutesOf(shift.start_time) / 60) * hourHeightPx}px`,
     height: `${Math.max(18, (shiftDurationMinutes(shift) / 60) * hourHeightPx)}px`,
-    left: `calc(${lane * width}% + ${LANE_GAP_PX}px)`,
+    insetInlineStart: `calc(${lane * width}% + ${LANE_GAP_PX}px)`,
     width: `calc(${width}% - ${LANE_GAP_PX * 2}px)`,
   };
 }

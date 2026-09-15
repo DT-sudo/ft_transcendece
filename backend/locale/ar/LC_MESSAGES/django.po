@@ -1,0 +1,615 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-14 21:33+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+msgid "Enter your full name."
+msgstr "أدخل اسمك الكامل."
+
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+msgid "Incorrect email or password."
+msgstr "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+
+msgid "Full name"
+msgstr "الاسم الكامل"
+
+msgid "An account with this email already exists."
+msgstr "يوجد حساب بهذا البريد الإلكتروني بالفعل."
+
+msgid "Employees need a position."
+msgstr "يجب أن يكون للموظف منصب."
+
+msgid ""
+"Reassign or remove this user's shifts before switching between employee and "
+"manager roles."
+msgstr ""
+"أعد تعيين مناوبات هذا المستخدم أو احذفها قبل التبديل بين دوري الموظف "
+"والمدير."
+
+msgid "Admin"
+msgstr "مسؤول"
+
+msgid "Manager"
+msgstr "مدير"
+
+msgid "Employee"
+msgstr "موظف"
+
+msgid "Sign in"
+msgstr "تسجيل الدخول"
+
+#, python-format
+msgid "Welcome, %(name)s. Your account is ready."
+msgstr "مرحبًا %(name)s. حسابك جاهز."
+
+msgid "Create account"
+msgstr "إنشاء حساب"
+
+msgid "Demo accounts are missing. Run `python manage.py seed_demo` first."
+msgstr ""
+"الحسابات التجريبية غير موجودة. شغّل `python manage.py seed_demo` أولًا."
+
+msgid "User Management"
+msgstr "إدارة المستخدمين"
+
+msgid "Employee Management"
+msgstr "إدارة الموظفين"
+
+msgid "Please fix the errors and try again."
+msgstr "يُرجى تصحيح الأخطاء والمحاولة مرة أخرى."
+
+#, python-format
+msgid "%(role)s created."
+msgstr "تم إنشاء حساب (%(role)s)."
+
+msgid "Could not update the account."
+msgstr "تعذّر تحديث الحساب."
+
+#, python-format
+msgid "%(role)s updated."
+msgstr "تم تحديث حساب (%(role)s)."
+
+msgid "Password reset."
+msgstr "تمت إعادة تعيين كلمة المرور."
+
+#, python-format
+msgid "%(name)s doesn't use two-factor authentication."
+msgstr "%(name)s لا يستخدم التحقق بخطوتين."
+
+#, python-format
+msgid "Two-factor authentication reset for %(name)s."
+msgstr "تمت إعادة تعيين التحقق بخطوتين لـ %(name)s."
+
+#, python-format
+msgid ""
+"Cannot delete %(name)s: they still have shifts. Reassign or delete them "
+"first."
+msgstr ""
+"لا يمكن حذف %(name)s: لا تزال لديه مناوبات. أعد تعيينها أو احذفها أولًا."
+
+#, python-format
+msgid "Deleted %(role)s: %(name)s."
+msgstr "تم حذف (%(role)s): %(name)s."
+
+msgid "That language is not available."
+msgstr "هذه اللغة غير متاحة."
+
+#, python-format
+msgid "%(position)s, %(day)s, %(start)s–%(end)s"
+msgstr "%(position)s، %(day)s، %(start)s–%(end)s"
+
+#, python-format
+msgid "%(role)s added"
+msgstr "تمت إضافة %(role)s"
+
+#, python-format
+msgid "%(role)s updated"
+msgstr "تم تحديث %(role)s"
+
+#, python-format
+msgid "%(role)s deleted"
+msgstr "تم حذف %(role)s"
+
+msgid "Your role was changed"
+msgstr "تم تغيير دورك"
+
+#, python-format
+msgid "%(by)s made you %(role)s."
+msgstr "عيّنك %(by)s بدور %(role)s."
+
+msgid "Your details were updated"
+msgstr "تم تحديث بياناتك"
+
+#, python-format
+msgid "%(by)s changed your account."
+msgstr "عدّل %(by)s حسابك."
+
+msgid "Your password was reset"
+msgstr "تمت إعادة تعيين كلمة مرورك"
+
+#, python-format
+msgid "%(by)s set a new password for your account."
+msgstr "عيّن %(by)s كلمة مرور جديدة لحسابك."
+
+msgid "New shift published"
+msgstr "نُشرت مناوبة جديدة"
+
+#, python-format
+msgid "%(count)d new shift published"
+msgid_plural "%(count)d new shifts published"
+msgstr[0] "نُشرت %(count)d مناوبة جديدة"
+msgstr[1] "نُشرت %(count)d مناوبة جديدة"
+msgstr[2] "نُشرت %(count)d مناوبتان جديدتان"
+msgstr[3] "نُشرت %(count)d مناوبات جديدة"
+msgstr[4] "نُشرت %(count)d مناوبة جديدة"
+msgstr[5] "نُشرت %(count)d مناوبة جديدة"
+
+#, python-format
+msgid "and %(count)d more"
+msgid_plural "and %(count)d more"
+msgstr[0] "و%(count)d أخرى"
+msgstr[1] "و%(count)d أخرى"
+msgstr[2] "و%(count)d أخريان"
+msgstr[3] "و%(count)d أخرى"
+msgstr[4] "و%(count)d أخرى"
+msgstr[5] "و%(count)d أخرى"
+
+msgid "New shift assigned"
+msgstr "تم تعيين مناوبة جديدة"
+
+msgid "Removed from a shift"
+msgstr "أُزلت من مناوبة"
+
+msgid "Shift changed"
+msgstr "تغيّرت مناوبة"
+
+#, python-format
+msgid "%(before)s is now %(after)s"
+msgstr "%(before)s أصبحت الآن %(after)s"
+
+msgid "Shift cancelled"
+msgstr "أُلغيت مناوبة"
+
+msgid "Position created"
+msgstr "تم إنشاء منصب"
+
+msgid "Position deleted"
+msgstr "تم حذف منصب"
+
+msgid "Availability updated"
+msgstr "تم تحديث الإتاحة"
+
+#, python-format
+msgid "%(name)s is unavailable on %(day)s."
+msgstr "%(name)s غير متاح في %(day)s."
+
+#, python-format
+msgid "%(name)s is available again on %(day)s."
+msgstr "%(name)s متاح مجددًا في %(day)s."
+
+msgid "New friend request"
+msgstr "طلب صداقة جديد"
+
+#, python-format
+msgid "%(name)s wants to add you as a friend."
+msgstr "يريد %(name)s إضافتك صديقًا."
+
+msgid "Friend request accepted"
+msgstr "تم قبول طلب الصداقة"
+
+#, python-format
+msgid "%(name)s accepted your friend request."
+msgstr "قبل %(name)s طلب صداقتك."
+
+msgid "Friend removed"
+msgstr "تمت إزالة صديق"
+
+#, python-format
+msgid "%(name)s removed you from their friends."
+msgstr "أزالك %(name)s من أصدقائه."
+
+msgid "Two-factor authentication turned on"
+msgstr "تم تفعيل التحقق بخطوتين"
+
+msgid ""
+"Signing in to your account now also takes a code from your authenticator "
+"app."
+msgstr "أصبح تسجيل الدخول إلى حسابك يتطلب أيضًا رمزًا من تطبيق المصادقة."
+
+msgid "New recovery codes created"
+msgstr "تم إنشاء رموز استرداد جديدة"
+
+msgid ""
+"New recovery codes were created for your account. The old ones no longer "
+"work."
+msgstr "أُنشئت رموز استرداد جديدة لحسابك، ولم تعد الرموز القديمة صالحة."
+
+msgid "Two-factor authentication turned off"
+msgstr "تم إيقاف التحقق بخطوتين"
+
+msgid "Signing in to your account no longer takes a code."
+msgstr "لم يعد تسجيل الدخول إلى حسابك يتطلب رمزًا."
+
+msgid "Two-factor authentication reset"
+msgstr "تمت إعادة تعيين التحقق بخطوتين"
+
+#, python-format
+msgid ""
+"%(by)s turned off two-factor authentication for your account. Turn it on "
+"again in Account settings."
+msgstr ""
+"أوقف %(by)s التحقق بخطوتين لحسابك. يمكنك تفعيله مجددًا من إعدادات الحساب."
+
+msgid "Your PlanShift data export"
+msgstr "تصدير بياناتك من PlanShift"
+
+#, python-format
+msgid ""
+"Hi %(name)s,\n"
+"\n"
+"A copy of your personal data was just downloaded from your PlanShift account (%(when)s).\n"
+"\n"
+"If this wasn't you, someone else may have access to your account - sign in and change your password, or contact your manager immediately.\n"
+"\n"
+"— PlanShift"
+msgstr ""
+"مرحبًا %(name)s،\n"
+"\n"
+"تم للتو تنزيل نسخة من بياناتك الشخصية من حسابك في PlanShift ‏(%(when)s).\n"
+"\n"
+"إذا لم تكن أنت من فعل ذلك، فقد يكون لدى شخص آخر وصول إلى حسابك - سجّل الدخول وغيّر كلمة مرورك، أو تواصل مع مديرك فورًا.\n"
+"\n"
+"— PlanShift"
+
+msgid "Your PlanShift account has been deleted"
+msgstr "تم حذف حسابك في PlanShift"
+
+#, python-format
+msgid ""
+"Hi %(name)s,\n"
+"\n"
+"Your PlanShift account and the personal data associated with it (profile, shift assignments and unavailability) have been permanently deleted, as you requested.\n"
+"\n"
+"If you did not request this, contact your organisation's manager immediately.\n"
+"\n"
+"— PlanShift"
+msgstr ""
+"مرحبًا %(name)s،\n"
+"\n"
+"تم حذف حسابك في PlanShift والبيانات الشخصية المرتبطة به (الملف الشخصي وتعيينات المناوبات وأيام عدم الإتاحة) نهائيًا بناءً على طلبك.\n"
+"\n"
+"إذا لم تطلب ذلك، فتواصل مع مدير جهتك فورًا.\n"
+"\n"
+"— PlanShift"
+
+msgid "uploaded (stored as a 256x256 WebP)"
+msgstr "مرفوعة (مخزّنة بصيغة WebP بحجم 256×256)"
+
+msgid "Privacy & My Data"
+msgstr "الخصوصية وبياناتي"
+
+msgid "Email or password didn't match - account not deleted."
+msgstr "البريد الإلكتروني أو كلمة المرور غير مطابقة - لم يُحذف الحساب."
+
+msgid ""
+"Your account can't be deleted while you still have shifts on the schedule. "
+"Reassign or delete them first, then try again."
+msgstr ""
+"لا يمكن حذف حسابك ما دامت لديك مناوبات في الجدول. أعد تعيينها أو احذفها "
+"أولًا، ثم حاول مرة أخرى."
+
+msgid "Your account and all associated data have been deleted."
+msgstr "تم حذف حسابك وجميع البيانات المرتبطة به."
+
+msgid "Enter your current password to change your email."
+msgstr "أدخل كلمة مرورك الحالية لتغيير بريدك الإلكتروني."
+
+msgid "Choose a picture to upload."
+msgstr "اختر صورة لرفعها."
+
+msgid "That file isn't a picture we can read. Use JPEG, PNG, WebP or GIF."
+msgstr "هذا الملف ليس صورة يمكننا قراءتها. استخدم JPEG أو PNG أو WebP أو GIF."
+
+#, python-format
+msgid "The picture must be %(size)d MB or smaller."
+msgstr "يجب ألا يتجاوز حجم الصورة %(size)d ميغابايت."
+
+msgid "Use a JPEG, PNG, WebP or GIF picture."
+msgstr "استخدم صورة بصيغة JPEG أو PNG أو WebP أو GIF."
+
+#, python-format
+msgid "The picture must be at most %(pixels)d pixels on each side."
+msgstr "يجب ألا يتجاوز كل ضلع من الصورة %(pixels)d بكسل."
+
+msgid "You can't add yourself as a friend."
+msgstr "لا يمكنك إضافة نفسك صديقًا."
+
+#, python-format
+msgid "You and %(name)s are already friends."
+msgstr "أنت و%(name)s صديقان بالفعل."
+
+#, python-format
+msgid "You already sent %(name)s a friend request."
+msgstr "لقد أرسلت بالفعل طلب صداقة إلى %(name)s."
+
+#, python-format
+msgid "Removed %(name)s from your friends."
+msgstr "تمت إزالة %(name)s من أصدقائك."
+
+#, python-format
+msgid "Declined %(name)s's friend request."
+msgstr "تم رفض طلب الصداقة من %(name)s."
+
+#, python-format
+msgid "Cancelled your friend request to %(name)s."
+msgstr "تم إلغاء طلب صداقتك إلى %(name)s."
+
+msgid "Profile updated."
+msgstr "تم تحديث الملف الشخصي."
+
+msgid "Password changed."
+msgstr "تم تغيير كلمة المرور."
+
+msgid "Profile picture updated."
+msgstr "تم تحديث الصورة الشخصية."
+
+msgid "Profile picture removed."
+msgstr "تمت إزالة الصورة الشخصية."
+
+msgid "Account settings"
+msgstr "إعدادات الحساب"
+
+msgid "Friends"
+msgstr "الأصدقاء"
+
+msgid "That person was not found."
+msgstr "لم يُعثر على هذا الشخص."
+
+msgid "No account uses that email address."
+msgstr "لا يوجد حساب يستخدم عنوان البريد الإلكتروني هذا."
+
+#, python-format
+msgid "You and %(name)s are now friends."
+msgstr "أصبحت أنت و%(name)s صديقين."
+
+#, python-format
+msgid "Friend request sent to %(name)s."
+msgstr "تم إرسال طلب صداقة إلى %(name)s."
+
+msgid "Enter a position name."
+msgstr "أدخل اسم المنصب."
+
+msgid "A position with this name already exists."
+msgstr "يوجد منصب بهذا الاسم بالفعل."
+
+msgid "Draft"
+msgstr "مسودة"
+
+msgid "Published"
+msgstr "منشورة"
+
+msgid "End time must be after start time."
+msgstr "يجب أن يكون وقت الانتهاء بعد وقت البدء."
+
+msgid "Capacity must be at least 1."
+msgstr "يجب ألا تقل السعة عن 1."
+
+msgid "Selected employees must match the shift position."
+msgstr "يجب أن يطابق الموظفون المختارون منصب المناوبة."
+
+msgid "Cannot assign more employees than shift capacity."
+msgstr "لا يمكن تعيين موظفين أكثر من سعة المناوبة."
+
+#, python-format
+msgid "Employee is unavailable on %(day)s."
+msgstr "الموظف غير متاح في %(day)s."
+
+#, python-format
+msgid "Employee already assigned to: %(position)s %(start)s–%(end)s (%(day)s)"
+msgstr "الموظف معيَّن بالفعل في: %(position)s %(start)s–%(end)s (%(day)s)"
+
+msgid ""
+"Someone else changed this shift while you were editing it. Your changes were"
+" not saved."
+msgstr "غيّر شخص آخر هذه المناوبة أثناء تعديلك لها. لم تُحفظ تغييراتك."
+
+msgid "Please check the form fields."
+msgstr "يُرجى التحقق من حقول النموذج."
+
+msgid "Shift Management"
+msgstr "إدارة المناوبات"
+
+msgid "Shift updated."
+msgstr "تم تحديث المناوبة."
+
+msgid "Shift created."
+msgstr "تم إنشاء المناوبة."
+
+msgid "Shift deleted."
+msgstr "تم حذف المناوبة."
+
+msgid "Shift published."
+msgstr "تم نشر المناوبة."
+
+#, python-format
+msgid "Published %(count)d shift."
+msgid_plural "Published %(count)d shifts."
+msgstr[0] "تم نشر %(count)d مناوبة."
+msgstr[1] "تم نشر %(count)d مناوبة."
+msgstr[2] "تم نشر %(count)d مناوبتين."
+msgstr[3] "تم نشر %(count)d مناوبات."
+msgstr[4] "تم نشر %(count)d مناوبة."
+msgstr[5] "تم نشر %(count)d مناوبة."
+
+msgid "No draft shifts to publish."
+msgstr "لا توجد مناوبات مسودّة لنشرها."
+
+msgid "Could not create position."
+msgstr "تعذّر إنشاء المنصب."
+
+#, python-format
+msgid "Position created: %(name)s."
+msgstr "تم إنشاء المنصب: %(name)s."
+
+msgid "Cannot delete position: it is referenced by existing data."
+msgstr "لا يمكن حذف المنصب: هناك بيانات قائمة تشير إليه."
+
+#, python-format
+msgid "Position deleted: %(name)s."
+msgstr "تم حذف المنصب: %(name)s."
+
+msgid "Search Shifts"
+msgstr "البحث في المناوبات"
+
+msgid "Workforce Analytics"
+msgstr "تحليلات القوى العاملة"
+
+msgid "Date"
+msgstr "التاريخ"
+
+msgid "Start"
+msgstr "البداية"
+
+msgid "End"
+msgstr "النهاية"
+
+msgid "Position"
+msgstr "المنصب"
+
+msgid "Status"
+msgstr "الحالة"
+
+msgid "Capacity"
+msgstr "السعة"
+
+msgid "Assigned"
+msgstr "المعيَّنون"
+
+msgid "Worker hours"
+msgstr "ساعات العاملين"
+
+msgid "Workers"
+msgstr "العاملون"
+
+msgid "My Shifts"
+msgstr "مناوباتي"
+
+msgid "Enter a valid date."
+msgstr "أدخل تاريخًا صالحًا."
+
+msgid "Only dates from tomorrow onwards can be marked as unavailable."
+msgstr "لا يمكن تحديد عدم الإتاحة إلا للأيام بدءًا من الغد."
+
+msgid "You have a shift assigned on this day."
+msgstr "لديك مناوبة معيَّنة في هذا اليوم."
+
+msgid "Enter the code from your authenticator app, or a recovery code."
+msgstr "أدخل الرمز من تطبيق المصادقة، أو رمز استرداد."
+
+msgid "Enter the 6-digit code your app shows."
+msgstr "أدخل الرمز المكوّن من 6 أرقام الذي يعرضه تطبيقك."
+
+msgid ""
+"That code doesn't match. Check that your phone's clock is set automatically,"
+" then try the new code."
+msgstr ""
+"الرمز غير مطابق. تأكد من أن ساعة هاتفك مضبوطة تلقائيًا، ثم جرّب الرمز "
+"الجديد."
+
+msgid "Enter your password."
+msgstr "أدخل كلمة مرورك."
+
+msgid "Enter a code from your app, or a recovery code."
+msgstr "أدخل رمزًا من تطبيقك، أو رمز استرداد."
+
+msgid "Your password is incorrect."
+msgstr "كلمة المرور غير صحيحة."
+
+msgid "That code is not valid."
+msgstr "هذا الرمز غير صالح."
+
+msgid "Too many incorrect codes. Wait 5 minutes, then try again."
+msgstr "رموز خاطئة كثيرة جدًا. انتظر 5 دقائق ثم حاول مرة أخرى."
+
+#, python-format
+msgid "PlanShift: %(title)s"
+msgstr "PlanShift: %(title)s"
+
+#, python-format
+msgid ""
+"Hi %(name)s,\n"
+"\n"
+"%(detail)s\n"
+"\n"
+"If this wasn't you or someone you asked, change your password and contact your manager straight away.\n"
+"\n"
+"— PlanShift"
+msgstr ""
+"مرحبًا %(name)s،\n"
+"\n"
+"%(detail)s\n"
+"\n"
+"إذا لم تكن أنت أو شخصًا طلبتَ منه ذلك، فغيّر كلمة مرورك وتواصل مع مديرك فورًا.\n"
+"\n"
+"— PlanShift"
+
+msgid "Your sign-in timed out. Enter your password again."
+msgstr "انتهت مهلة تسجيل دخولك. أدخل كلمة المرور مرة أخرى."
+
+#, python-format
+msgid ""
+"You signed in with a recovery code, which now no longer works. %(count)d "
+"left: get new ones in Account settings if you're running out."
+msgid_plural ""
+"You signed in with a recovery code, which now no longer works. %(count)d "
+"left: get new ones in Account settings if you're running out."
+msgstr[0] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+msgstr[1] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+msgstr[2] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+msgstr[3] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+msgstr[4] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+msgstr[5] ""
+"سجّلت الدخول برمز استرداد لم يعد صالحًا الآن. المتبقي: %(count)d. أنشئ "
+"رموزًا جديدة من إعدادات الحساب إذا أوشكت على النفاد."
+
+msgid "That code is not valid. Try again."
+msgstr "هذا الرمز غير صالح. حاول مرة أخرى."
+
+msgid "Two-factor authentication"
+msgstr "التحقق بخطوتين"
+
+msgid "Two-factor authentication is on."
+msgstr "التحقق بخطوتين مفعّل."
+
+msgid "Two-factor authentication is off."
+msgstr "التحقق بخطوتين متوقف."
+
+msgid "New recovery codes created. The old ones no longer work."
+msgstr "تم إنشاء رموز استرداد جديدة، ولم تعد الرموز القديمة صالحة."

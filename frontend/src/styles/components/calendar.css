@@ -118,13 +118,13 @@
     color: var(--color-foreground);
     background-color: var(--color-muted);
     border-bottom: 1px solid var(--color-border);
-    border-right: 1px solid var(--color-border);
+    border-inline-end: 1px solid var(--color-border);
   }
 
   .calendar-cell {
     overflow: auto;
     scrollbar-width: thin;
-    border-right: 1px solid var(--color-border);
+    border-inline-end: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-card);
   }
@@ -132,7 +132,7 @@
   /* The weekday row counts as the first 7 siblings, so every 7th element ends a row. */
   .calendar-header-cell:nth-child(7),
   .calendar-cell:nth-child(7n) {
-    border-right: none;
+    border-inline-end: none;
   }
 
   .calendar-date {
@@ -179,7 +179,8 @@
     padding: 0 0.25rem 0.25rem;
   }
 
-  /* ── Week calendar: an hour column, then one column per day (set inline) over 24 hour rows ── */
+  /* ── Week calendar: an hour column, then one column per day (set inline) over 24 hour rows ──
+     Logical properties throughout, so right to left the hour column and borders mirror. */
 
   .calendar-grid-week {
     --week-hour-label-width: 72px;
@@ -191,17 +192,17 @@
   .calendar-grid-week .calendar-header-cell {
     padding: 0.5rem;
     /* The month grid's "every 7th cell ends a row" rule doesn't hold here. */
-    border-right: 1px solid var(--color-border);
+    border-inline-end: 1px solid var(--color-border);
   }
 
   .week-corner {
-    left: 0;
+    inset-inline-start: 0;
     z-index: 60;
   }
 
   .week-hour-label {
     position: sticky;
-    left: 0;
+    inset-inline-start: 0;
     z-index: 25;
     display: flex;
     justify-content: center;
@@ -211,12 +212,12 @@
     font-variant-numeric: tabular-nums;
     color: var(--color-foreground);
     background-color: var(--color-muted);
-    border-right: 1px solid var(--color-border);
+    border-inline-end: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
   }
 
   .week-cell {
-    border-right: 1px solid var(--color-border);
+    border-inline-end: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-card);
   }

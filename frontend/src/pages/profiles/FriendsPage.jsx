@@ -5,6 +5,7 @@ import { AppShell } from '../../components/AppShell.jsx';
 import { presenceLabel } from '../../components/Avatar.jsx';
 import { CsrfInput } from '../../components/Field.jsx';
 import { UserPlus } from '../../components/Icons.jsx';
+import { t } from '../../i18n/index.js';
 import { FRIEND_EVENTS, FriendActions, PeopleCard, PersonRow } from './People.jsx';
 
 // A friend came online or left: move their dot without re-reading the page.
@@ -33,20 +34,21 @@ export function FriendsPage() {
           <form className="flex flex-wrap items-center gap-2" method="post" action={urls.request}>
             <CsrfInput />
             <label className="form-label mb-0" htmlFor="friendEmail">
-              Add a friend by email
+              {t('friends.addByEmail')}
             </label>
             <input
               id="friendEmail"
               name="email"
               type="email"
+              dir="ltr"
               className="form-input w-72 max-w-full"
-              placeholder="colleague@example.com"
+              placeholder={t('friends.emailPlaceholder')}
               autoComplete="off"
               required
             />
             <button className="btn btn-primary" type="submit">
               <UserPlus size={16} />
-              Send request
+              {t('friends.send')}
             </button>
           </form>
         </div>
@@ -54,9 +56,9 @@ export function FriendsPage() {
         <div className="side-panel-layout mt-3">
           <PeopleCard
             id="friendsList"
-            title="Friends"
-            count={friends.length ? `${online} of ${friends.length} online` : ''}
-            empty="No friends yet. Add a colleague by their email address above."
+            title={t('friends.friends')}
+            count={friends.length ? t('friends.online', { online, total: friends.length }) : ''}
+            empty={t('friends.noFriends')}
           >
             {friends.map((friend) => (
               <FriendRow key={friend.id} person={friend} urls={urls} detail={`${friend.role} · ${presenceLabel(friend.status)}`} />
@@ -64,15 +66,15 @@ export function FriendsPage() {
           </PeopleCard>
 
           <div className="flex flex-col gap-3">
-            <PeopleCard id="incomingRequests" title="Friend requests" empty="No requests to answer.">
+            <PeopleCard id="incomingRequests" title={t('friends.requests')} empty={t('friends.noRequests')}>
               {incoming.map((request) => (
                 <FriendRow key={request.id} person={request} urls={urls} detail={`${request.role} · ${timeAgo(request.sentAt)}`} />
               ))}
             </PeopleCard>
 
-            <PeopleCard id="outgoingRequests" title="Sent requests" empty="No requests waiting for an answer.">
+            <PeopleCard id="outgoingRequests" title={t('friends.sentRequests')} empty={t('friends.noSentRequests')}>
               {outgoing.map((request) => (
-                <FriendRow key={request.id} person={request} urls={urls} detail={`Sent ${timeAgo(request.sentAt)}`} />
+                <FriendRow key={request.id} person={request} urls={urls} detail={t('friends.sentAgo', { time: timeAgo(request.sentAt) })} />
               ))}
             </PeopleCard>
           </div>

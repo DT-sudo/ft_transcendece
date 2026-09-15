@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.accounts.models import User
 from apps.notifications.services import notify
@@ -82,17 +83,17 @@ def friend_urls() -> dict:
 
 def send_request(sender: User, receiver: User) -> Friendship:
     if receiver.pk == sender.pk:
-        raise FriendshipError("You can't add yourself as a friend.")
+        raise FriendshipError(_("You can't add yourself as a friend."))
     existing = between(sender, receiver)
     if existing is None:
         friendship = Friendship.objects.create(from_user=sender, to_user=receiver)
-        notify([receiver], "New friend request", f"{sender.display_name} wants to add you as a friend.", actor=sender)
+        notify([receiver], "friend.requested", actor=sender, name=sender.display_name)
         push_to_user(receiver.pk, FRIENDS_CHANGED)
         return friendship
     if existing.accepted:
-        raise FriendshipError(f"You and {receiver.display_name} are already friends.")
+        raise FriendshipError(_("You and %(name)s are already friends.") % {"name": receiver.display_name})
     if existing.from_user_id == sender.pk:
-        raise FriendshipError(f"You already sent {receiver.display_name} a friend request.")
+        raise FriendshipError(_("You already sent %(name)s a friend request.") % {"name": receiver.display_name})
     # They asked first, so asking back is a yes.
     accept(existing)
     return existing
@@ -102,12 +103,7 @@ def accept(friendship: Friendship) -> None:
     friendship.status = FriendshipStatus.ACCEPTED
     friendship.accepted_at = timezone.now()
     friendship.save(update_fields=["status", "accepted_at"])
-    notify(
-        [friendship.from_user],
-        "Friend request accepted",
-        f"{friendship.to_user.display_name} accepted your friend request.",
-        actor=friendship.to_user,
-    )
+    notify([friendship.from_user], "friend.accepted", actor=friendship.to_user, name=friendship.to_user.display_name)
     push_to_user(friendship.from_user_id, FRIENDS_CHANGED)
 
 
@@ -115,12 +111,12 @@ def end(friendship: Friendship, user: User) -> str:
     """Decline, cancel or unfriend (they all delete the row); returns the flash message for `user`."""
     other = friendship.other(user)
     if friendship.accepted:
-        notify([other], "Friend removed", f"{user.display_name} removed you from their friends.", actor=user)
-        text = f"Removed {other.display_name} from your friends."
+        notify([other], "friend.removed", actor=user, name=user.display_name)
+        text = _("Removed %(name)s from your friends.") % {"name": other.display_name}
     elif friendship.to_user_id == user.pk:
-        text = f"Declined {other.display_name}'s friend request."
+        text = _("Declined %(name)s's friend request.") % {"name": other.display_name}
     else:
-        text = f"Cancelled your friend request to {other.display_name}."
+        text = _("Cancelled your friend request to %(name)s.") % {"name": other.display_name}
     friendship.delete()
     push_to_user(other.pk, FRIENDS_CHANGED)
     return text

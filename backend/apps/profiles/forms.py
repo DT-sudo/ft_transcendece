@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.forms import AccountForm, clean_full_name
 from apps.accounts.models import User
@@ -26,7 +27,7 @@ class ProfileForm(AccountForm):
         # `self.instance` still holds the saved email here: the posted one is copied onto it after clean().
         email_changed = cleaned.get("email") and cleaned["email"] != self.instance.email
         if email_changed and not self.instance.check_password(cleaned.get("current_password") or ""):
-            self.add_error("current_password", "Enter your current password to change your email.")
+            self.add_error("current_password", _("Enter your current password to change your email."))
         return cleaned
 
 
@@ -34,17 +35,17 @@ class AvatarForm(forms.Form):
     # Django's ImageField has Pillow open and verify the file, so a renamed text file is refused.
     avatar = forms.ImageField(
         error_messages={
-            "required": "Choose a picture to upload.",
-            "invalid_image": "That file isn't a picture we can read. Use JPEG, PNG, WebP or GIF.",
+            "required": _("Choose a picture to upload."),
+            "invalid_image": _("That file isn't a picture we can read. Use JPEG, PNG, WebP or GIF."),
         }
     )
 
     def clean_avatar(self):
         upload = self.cleaned_data["avatar"]
         if upload.size > avatars.MAX_BYTES:
-            raise ValidationError(f"The picture must be {avatars.MAX_BYTES // 2**20} MB or smaller.")
+            raise ValidationError(_("The picture must be %(size)d MB or smaller.") % {"size": avatars.MAX_BYTES // 2**20})
         if upload.image.format not in avatars.FORMATS:
-            raise ValidationError("Use a JPEG, PNG, WebP or GIF picture.")
+            raise ValidationError(_("Use a JPEG, PNG, WebP or GIF picture."))
         if max(upload.image.size) > avatars.MAX_SIDE:
-            raise ValidationError(f"The picture must be at most {avatars.MAX_SIDE} pixels on each side.")
+            raise ValidationError(_("The picture must be at most %(pixels)d pixels on each side.") % {"pixels": avatars.MAX_SIDE})
         return upload

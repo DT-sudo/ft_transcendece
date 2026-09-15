@@ -1,5 +1,6 @@
 import { getBootstrap } from '../../app/http.js';
 import { CsrfInput, Field } from '../../components/Field.jsx';
+import { t } from '../../i18n/index.js';
 import { AuthLayout, FormError } from './AuthLayout.jsx';
 
 /** Native form: the browser checks required/type, Django validates and re-renders field errors. */
@@ -7,22 +8,22 @@ export function LoginPage() {
   const { data, messages } = getBootstrap();
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to your account" messages={messages}>
+    <AuthLayout title={t('login.title')} subtitle={t('login.subtitle')} messages={messages}>
       {data.showDemo ? (
         <div className="mt-4">
           <a className="btn btn-outline w-full" href={data.urls.demoAdmin}>
-            Demo: Admin login
+            {t('login.demoAdmin')}
           </a>
           <a className="btn btn-outline mt-3 w-full" href={data.urls.demoManager}>
-            Demo: Manager login
+            {t('login.demoManager')}
           </a>
           <a className="btn btn-outline mt-3 w-full" href={data.urls.demoEmployee}>
-            Demo: Employee login
+            {t('login.demoEmployee')}
           </a>
 
           <div className="my-6 flex items-center">
             <div className="h-px flex-1 bg-border" />
-            <span className="px-4 text-xs uppercase text-muted-foreground">or</span>
+            <span className="px-4 text-xs uppercase text-muted-foreground">{t('common.or')}</span>
             <div className="h-px flex-1 bg-border" />
           </div>
         </div>
@@ -37,8 +38,9 @@ export function LoginPage() {
           id="email"
           name="username"
           type="email"
-          label="Email"
-          placeholder="you@example.com"
+          dir="ltr"
+          label={t('login.email')}
+          placeholder={t('login.emailPlaceholder')}
           autoComplete="email"
           required
           defaultValue={data.email}
@@ -49,22 +51,22 @@ export function LoginPage() {
           id="password"
           name="password"
           type="password"
-          label="Password"
-          placeholder="Enter your password"
+          label={t('login.password')}
+          placeholder={t('login.passwordPlaceholder')}
           autoComplete="current-password"
           required
           error={data.fieldErrors.password}
         />
 
         <button type="submit" className="btn btn-primary w-full">
-          Sign in
+          {t('login.submit')}
         </button>
       </form>
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        New here?{' '}
+        {t('login.newHere')}{' '}
         <a className="font-medium text-primary hover:underline" href={data.urls.signup}>
-          Create a manager account
+          {t('login.createManager')}
         </a>
       </p>
     </AuthLayout>

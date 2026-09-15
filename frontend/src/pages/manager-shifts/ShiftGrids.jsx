@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatDuration, navigateWith, pad2, shiftDurationMinutes, weekDays } from '../../app/dates.js';
 import { computeLaneLayout, groupShiftsByDate, positionPalette, timedChipStyle } from '../../app/shifts.js';
 import { MonthCalendar } from '../../components/Calendar.jsx';
+import { t, useLanguage } from '../../i18n/index.js';
 
 // `editors` (below) maps a shift id to the names of the other managers editing it.
 
@@ -21,9 +22,9 @@ function chipLook(shift, variant) {
 }
 
 const chipTitle = (shift, editors) =>
-  `${shift.position} ${shift.start_time}-${shift.end_time}${editors ? ` (${editors.join(', ')} editing)` : ''}`;
+  `${shift.position} ${shift.start_time}-${shift.end_time}${editors ? ` (${t('shifts.editing', { names: editors.join(', ') })})` : ''}`;
 
-const EditingMark = ({ editors }) => (editors ? <span aria-label={`${editors.join(', ')} editing`}>✎ </span> : null);
+const EditingMark = ({ editors }) => (editors ? <span aria-label={t('shifts.editing', { names: editors.join(', ') })}>✎ </span> : null);
 
 /** Month view: one compact row per shift that sheds detail as the cell narrows. */
 function ShiftChip({ shift, editors, onSelect }) {
@@ -96,7 +97,7 @@ export function MonthGrid({ anchorISO, todayISO, shifts, editors, onSelectShift,
     <MonthCalendar
       anchorISO={anchorISO}
       todayISO={todayISO}
-      ariaLabel="Month schedule"
+      ariaLabel={t('shifts.monthSchedule')}
       onDayClick={(day) => (day.inMonth ? onCreateSlot(day.iso) : navigateWith({ date: day.iso }))}
       renderDay={(day) => {
         const dayShifts = byDate.get(day.iso);
@@ -122,7 +123,9 @@ export function WeekGrid({ startISO, todayISO, shifts, editors, onSelectShift, o
   const gridRef = useRef(null);
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT_PX);
 
-  const days = useMemo(() => weekDays(startISO), [startISO]);
+  const language = useLanguage();
+  // The day labels are written in the page's language.
+  const days = useMemo(() => weekDays(startISO), [startISO, language]);
   const byDate = useMemo(() => groupShiftsByDate(shifts), [shifts]);
   const lanesByDate = useMemo(
     () => new Map(days.map(({ iso }) => [iso, computeLaneLayout(byDate.get(iso) || [])])),
@@ -145,7 +148,7 @@ export function WeekGrid({ startISO, todayISO, shifts, editors, onSelectShift, o
   }, [gridTemplateColumns]);
 
   return (
-    <div ref={gridRef} className="calendar-grid calendar-grid-week" style={{ gridTemplateColumns }} aria-label="Week schedule">
+    <div ref={gridRef} className="calendar-grid calendar-grid-week" style={{ gridTemplateColumns }} aria-label={t('shifts.weekSchedule')}>
       <div className="calendar-header-cell week-corner" style={{ gridColumn: 1, gridRow: 1 }} />
 
       {days.map((day, index) => (

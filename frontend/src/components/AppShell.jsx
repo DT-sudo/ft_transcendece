@@ -1,5 +1,7 @@
 import { getBootstrap, submitPost } from '../app/http.js';
+import { t } from '../i18n/index.js';
 import { Avatar } from './Avatar.jsx';
+import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Dropdown } from './Menus.jsx';
 import { NotificationBell, ToastProvider } from './Notifications.jsx';
 
@@ -8,10 +10,10 @@ function Header({ user, nav, urls }) {
     <header className="sticky top-0 z-45 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-border bg-card px-4 py-1.5 shadow-header">
       <div>{user ? <NotificationBell /> : null}</div>
 
-      <nav className="flex items-center justify-center gap-2" aria-label="Primary">
+      <nav className="flex items-center justify-center gap-2" aria-label={t('nav.primary')}>
         {nav.map((link) => (
           <a key={link.href} href={link.href} className={`nav-link ${link.active ? 'nav-link-active' : ''}`}>
-            {link.label}
+            {t(`nav.${link.id}`)}
           </a>
         ))}
       </nav>
@@ -21,7 +23,7 @@ function Header({ user, nav, urls }) {
         {user ? (
           <Dropdown
             trigger={({ toggle }) => (
-              <button className="btn btn-ghost btn-sm gap-0 p-0" type="button" onClick={toggle} aria-label="User menu">
+              <button className="btn btn-ghost btn-sm gap-0 p-0" type="button" onClick={toggle} aria-label={t('header.userMenu')}>
                 <Avatar name={user.fullName} src={user.avatarUrl} size="header" primary />
               </button>
             )}
@@ -30,20 +32,20 @@ function Header({ user, nav, urls }) {
             <div className="dropdown-item dropdown-item-static">{user.role}</div>
             <div className="dropdown-divider" />
             <a className="dropdown-item" href={user.profileUrl}>
-              My profile
+              {t('header.myProfile')}
             </a>
             <a className="dropdown-item" href={urls.settings}>
-              Account settings
+              {t('header.accountSettings')}
             </a>
             <a className="dropdown-item" href={urls.privacyCenter}>
-              Privacy & my data
+              {t('header.privacy')}
             </a>
             <button
               className="dropdown-item dropdown-item-destructive"
               type="button"
               onClick={() => submitPost(urls.logout)}
             >
-              Logout
+              {t('header.logout')}
             </button>
           </Dropdown>
         ) : null}
@@ -52,24 +54,28 @@ function Header({ user, nav, urls }) {
   );
 }
 
-/** Pinned footer with the Privacy Policy and Terms of Service links, reachable signed in or not; `children` go in the middle. */
+/**
+ * Pinned footer on every page, signed in or not: the language switcher and the Privacy Policy and
+ * Terms of Service links; `children` go in the middle.
+ */
 export function Footer({ children }) {
   const { urls } = getBootstrap();
 
   return (
     <footer className="site-footer">
-      <p className="text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PlanShift — shift scheduling for hourly teams.
-      </p>
+      <p className="text-xs text-muted-foreground">{t('footer.tagline', { year: new Date().getFullYear() })}</p>
       {children}
-      <nav className="flex items-center gap-4" aria-label="Legal">
-        <a className="footer-link" href={urls.privacy}>
-          Privacy Policy
-        </a>
-        <a className="footer-link" href={urls.terms}>
-          Terms of Service
-        </a>
-      </nav>
+      <div className="flex flex-wrap items-center gap-4">
+        <LanguageSwitcher id="footerLanguage" />
+        <nav className="flex items-center gap-4" aria-label={t('footer.legal')}>
+          <a className="footer-link" href={urls.privacy}>
+            {t('footer.privacyPolicy')}
+          </a>
+          <a className="footer-link" href={urls.terms}>
+            {t('footer.terms')}
+          </a>
+        </nav>
+      </div>
     </footer>
   );
 }

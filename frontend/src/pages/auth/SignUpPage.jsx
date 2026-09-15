@@ -1,5 +1,6 @@
 import { getBootstrap } from '../../app/http.js';
 import { CsrfInput, Field } from '../../components/Field.jsx';
+import { t, tx } from '../../i18n/index.js';
 import { AuthLayout, FormError } from './AuthLayout.jsx';
 
 /** Native form: the browser checks required/type/length, Django validates and re-renders field errors. */
@@ -8,11 +9,7 @@ export function SignUpPage() {
   const errors = data.fieldErrors;
 
   return (
-    <AuthLayout
-      title="Create your account"
-      subtitle="Set up a manager account and start scheduling your team"
-      messages={messages}
-    >
+    <AuthLayout title={t('signup.title')} subtitle={t('signup.subtitle')} messages={messages}>
       <FormError message={data.error} />
 
       <form className="mt-3" method="post" action={data.urls.signup}>
@@ -22,8 +19,8 @@ export function SignUpPage() {
           id="fullName"
           name="full_name"
           type="text"
-          label="Full name"
-          placeholder="Jane Doe"
+          label={t('signup.fullName')}
+          placeholder={t('signup.fullNamePlaceholder')}
           autoComplete="name"
           required
           minLength={2}
@@ -35,10 +32,11 @@ export function SignUpPage() {
           id="email"
           name="email"
           type="email"
-          label="Email"
-          placeholder="you@example.com"
+          dir="ltr"
+          label={t('login.email')}
+          placeholder={t('login.emailPlaceholder')}
           autoComplete="email"
-          hint="You will use this address to sign in."
+          hint={t('signup.emailHint')}
           required
           defaultValue={data.values.email}
           error={errors.email}
@@ -48,10 +46,10 @@ export function SignUpPage() {
           id="password1"
           name="password1"
           type="password"
-          label="Password"
-          placeholder="At least 8 characters"
+          label={t('login.password')}
+          placeholder={t('signup.passwordPlaceholder')}
           autoComplete="new-password"
-          hint="Minimum 8 characters, not entirely numeric, and not similar to your name or email."
+          hint={t('signup.passwordHint')}
           required
           minLength={8}
           error={errors.password1}
@@ -61,8 +59,8 @@ export function SignUpPage() {
           id="password2"
           name="password2"
           type="password"
-          label="Confirm password"
-          placeholder="Repeat your password"
+          label={t('signup.confirmPassword')}
+          placeholder={t('signup.confirmPlaceholder')}
           autoComplete="new-password"
           required
           minLength={8}
@@ -70,33 +68,33 @@ export function SignUpPage() {
         />
 
         <button type="submit" className="btn btn-primary w-full">
-          Create account
+          {t('signup.submit')}
         </button>
       </form>
 
       <p className="mt-5 text-center text-xs text-muted-foreground">
-        By creating an account you agree to our{' '}
-        <a className="underline hover:text-foreground" href={urls.terms}>
-          Terms of Service
-        </a>{' '}
-        and{' '}
-        <a className="underline hover:text-foreground" href={urls.privacy}>
-          Privacy Policy
-        </a>
-        .
+        {tx('signup.agree', {
+          terms: (
+            <a className="underline hover:text-foreground" href={urls.terms}>
+              {t('footer.terms')}
+            </a>
+          ),
+          privacy: (
+            <a className="underline hover:text-foreground" href={urls.privacy}>
+              {t('footer.privacyPolicy')}
+            </a>
+          ),
+        })}
       </p>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
+        {t('signup.haveAccount')}{' '}
         <a className="font-medium text-primary hover:underline" href={data.urls.login}>
-          Sign in
+          {t('signup.signIn')}
         </a>
       </p>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Employees do not sign up here — your manager creates your account and gives you your
-        password.
-      </p>
+      <p className="mt-4 text-center text-xs text-muted-foreground">{t('signup.employeesNote')}</p>
     </AuthLayout>
   );
 }

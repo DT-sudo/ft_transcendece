@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { isRtl, t } from '../../i18n/index.js';
+
 // Plain SVG charts; the project has no chart library.
 
 const HEIGHT = 200;
@@ -12,7 +14,7 @@ const DONUT_RADIUS = 70;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 export function EmptyChart() {
-  return <p className="chart-empty">No data for these filters.</p>;
+  return <p className="chart-empty">{t('analytics.noData')}</p>;
 }
 
 /** The element's rendered width, so the viewBox matches its box and text never stretches. */
@@ -33,17 +35,20 @@ const truncate = (text) => (text.length > MAX_LABEL_LENGTH ? `${text.slice(0, MA
 
 /**
  * Line or bar chart of `data[i][valueKey]` with a hover tooltip. Points sit in the
- * middle of equal slots, so both kinds share one x scale.
+ * middle of equal slots, so both kinds share one x scale. Right to left, the whole
+ * chart mirrors: the first point and the value axis move to the right.
  */
 export function XYChart({ kind, label, data, labelKey, valueKey, formatLabel = String, formatValue = String, color = 'var(--color-primary)' }) {
   const [ref, width] = useWidth();
   const [hovered, setHovered] = useState(null);
 
+  // Geometry is worked out left to right, then mirrored for RTL pages.
+  const x = isRtl() ? (value) => width - value : (value) => value;
   const max = Math.max(1, ...data.map((item) => item[valueKey]));
   const slot = (width - PAD.left - PAD.right) / Math.max(1, data.length);
   const baseline = PAD.top + PLOT_HEIGHT;
   const points = data.map((item, index) => ({
-    x: PAD.left + slot * (index + 0.5),
+    x: x(PAD.left + slot * (index + 0.5)),
     y: baseline - (item[valueKey] / max) * PLOT_HEIGHT,
     item,
   }));
@@ -62,12 +67,13 @@ export function XYChart({ kind, label, data, labelKey, valueKey, formatLabel = S
       ) : (
         <svg viewBox={`0 0 ${width} ${HEIGHT}`} className="chart-svg" role="img" aria-label={label}>
           {[0, 0.5, 1].map((fraction) => (
-            <line key={fraction} className="chart-gridline" x1={PAD.left} x2={width - PAD.right} y1={PAD.top + PLOT_HEIGHT * fraction} y2={PAD.top + PLOT_HEIGHT * fraction} />
+            <line key={fraction} className="chart-gridline" x1={x(PAD.left)} x2={x(width - PAD.right)} y1={PAD.top + PLOT_HEIGHT * fraction} y2={PAD.top + PLOT_HEIGHT * fraction} />
           ))}
-          <text className="chart-axis-label" x={PAD.left - 6} y={PAD.top + 4} textAnchor="end">
+          {/* text-anchor "end" follows the page direction, so these labels hug the plot on both sides. */}
+          <text className="chart-axis-label" x={x(PAD.left - 6)} y={PAD.top + 4} textAnchor="end">
             {formatValue(max)}
           </text>
-          <text className="chart-axis-label" x={PAD.left - 6} y={baseline} textAnchor="end">
+          <text className="chart-axis-label" x={x(PAD.left - 6)} y={baseline} textAnchor="end">
             0
           </text>
 
@@ -153,7 +159,7 @@ export function DonutChart({ label, segments }) {
           {total}
         </text>
         <text x="100" y="116" textAnchor="middle" className="chart-axis-label">
-          total
+          {t('analytics.total')}
         </text>
       </svg>
 

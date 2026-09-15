@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { timeAgo } from '../app/dates.js';
 import { getJSON, postForm } from '../app/http.js';
 import { useLiveEvents } from '../app/live.js';
+import { onLanguageChange, t } from '../i18n/index.js';
 import { Bell } from './Icons.jsx';
 import { Modal } from './Modal.jsx';
 
@@ -70,16 +71,26 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
     },
   );
 
+  // Notifications are written in the reader's language on the server: re-read them after a switch.
+  useEffect(() => {
+    if (!urls) return undefined;
+    return onLanguageChange(() =>
+      getJSON(urls.list)
+        .then((payload) => setHistory(payload.notifications))
+        .catch(() => {}),
+    );
+  }, [urls]);
+
   // Django flash messages arrive with the page payload; show each once (StrictMode runs effects twice).
   const flashed = useRef(false);
   useEffect(() => {
     if (flashed.current) return;
     flashed.current = true;
-    for (const { level, text } of initialMessages) showToast(level, level[0].toUpperCase() + level.slice(1), text);
+    for (const { level, text } of initialMessages) showToast(level, t(`toast.${level}`), text);
   }, [initialMessages, showToast]);
 
   const center = useMemo(() => {
-    const save = (url) => postForm(url, {}).catch(() => showToast('error', 'Error', 'Could not update notifications.'));
+    const save = (url) => postForm(url, {}).catch(() => showToast('error', t('toast.error'), t('notifications.saveFailed')));
     return {
       history,
       markAllRead: () => {
@@ -122,7 +133,7 @@ export function NotificationBell() {
       <button
         className="btn btn-ghost btn-icon relative"
         type="button"
-        aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+        aria-label={unread ? t('notifications.unread', { count: unread }) : t('notifications.title')}
         onClick={() => {
           setOpen(true);
           markAllRead();
@@ -136,12 +147,12 @@ export function NotificationBell() {
       {open
         ? createPortal(
             <Modal
-              title="Notifications"
+              title={t('notifications.title')}
               onClose={() => setOpen(false)}
               footer={
                 history.length ? (
                   <button className="btn btn-outline" type="button" onClick={clear}>
-                    Clear history
+                    {t('notifications.clear')}
                   </button>
                 ) : null
               }
@@ -159,7 +170,7 @@ export function NotificationBell() {
                   ))}
                 </ul>
               ) : (
-                <p className="modal-body text-center text-sm text-muted-foreground">No notifications yet.</p>
+                <p className="modal-body text-center text-sm text-muted-foreground">{t('notifications.empty')}</p>
               )}
             </Modal>,
             document.body,

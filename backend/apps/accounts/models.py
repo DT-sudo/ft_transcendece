@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 def generate_employee_id() -> str:
     return f"EMP-{secrets.randbelow(900000) + 100000}"
@@ -19,9 +20,9 @@ def avatar_path(user: User, filename: str) -> str:
     return f"avatars/{uuid.uuid4().hex}.webp"
 
 class UserRole(models.TextChoices):
-    ADMIN = "admin", "Admin"
-    MANAGER = "manager", "Manager"
-    EMPLOYEE = "employee", "Employee"
+    ADMIN = "admin", _("Admin")
+    MANAGER = "manager", _("Manager")
+    EMPLOYEE = "employee", _("Employee")
 
 
 # Admins run the schedule like managers, and also manage every account and its role.
@@ -43,13 +44,16 @@ class User(AbstractUser):
     # Online status (`apps.profiles.presence`): open sockets, and when one last confirmed it is alive.
     open_sockets = models.PositiveIntegerField(default=0, editable=False)
     last_seen = models.DateTimeField(null=True, blank=True, editable=False)
+    # One of settings.LANGUAGES; empty until the first signed-in request (apps.i18n.middleware).
+    # Emails and live notifications to this user are written in it.
+    language = models.CharField(max_length=8, blank=True)
     @property
     def display_name(self) -> str:
         return self.get_full_name() or self.username
     @property
     def role_label(self) -> str:
         """The line under a name: an employee's position, otherwise the role."""
-        return self.position.name if self.is_employee and self.position else self.get_role_display()
+        return self.position.name if self.is_employee and self.position else str(self.get_role_display())
     @property
     def avatar_url(self) -> str | None:
         if not self.avatar:

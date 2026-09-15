@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
-import { WEEKDAY_LABELS, addDays, addMonths, monthMatrix, navigateWith } from '../app/dates.js';
+import { addDays, addMonths, monthMatrix, navigateWith, weekdayLabels } from '../app/dates.js';
+import { t, useLanguage } from '../i18n/index.js';
 import { ChevronLeft, ChevronRight } from './Icons.jsx';
 
 /** Previous / Today / Next: reloads the page on the neighbouring month, or week when `view` is "week" (`?date=`). */
@@ -10,14 +11,25 @@ export function CalendarNav({ anchorISO, todayISO, view = 'month' }) {
 
   return (
     <div className="flex items-center gap-2">
-      <button className="btn btn-outline btn-icon" type="button" onClick={() => step(-1)} aria-label={`Previous ${view}`}>
-        <ChevronLeft />
+      {/* In RTL the row mirrors, so "previous" sits on the right and its chevron flips to point there. */}
+      <button
+        className="btn btn-outline btn-icon"
+        type="button"
+        onClick={() => step(-1)}
+        aria-label={view === 'week' ? t('calendar.previousWeek') : t('calendar.previousMonth')}
+      >
+        <ChevronLeft className="rtl:-scale-x-100" />
       </button>
       <button className="btn btn-outline btn-sm" type="button" onClick={() => navigateWith({ date: todayISO })}>
-        Today
+        {t('calendar.today')}
       </button>
-      <button className="btn btn-outline btn-icon" type="button" onClick={() => step(1)} aria-label={`Next ${view}`}>
-        <ChevronRight />
+      <button
+        className="btn btn-outline btn-icon"
+        type="button"
+        onClick={() => step(1)}
+        aria-label={view === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')}
+      >
+        <ChevronRight className="rtl:-scale-x-100" />
       </button>
     </div>
   );
@@ -25,11 +37,13 @@ export function CalendarNav({ anchorISO, todayISO, view = 'month' }) {
 
 /** Six-week month grid shared by the manager and employee calendars. */
 export function MonthCalendar({ anchorISO, todayISO, ariaLabel, dayClassName, renderDay, onDayClick }) {
-  const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO]);
+  const language = useLanguage();
+  // The week starts on a different day per language, so the matrix follows it.
+  const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO, language]);
 
   return (
     <div className="calendar-grid" aria-label={ariaLabel}>
-      {WEEKDAY_LABELS.map((label) => (
+      {weekdayLabels().map((label) => (
         <div className="calendar-header-cell" key={label}>
           {label}
         </div>
