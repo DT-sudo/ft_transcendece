@@ -609,25 +609,6 @@ python manage.py test apps
 - [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) — dialog and live-region patterns
   used by the modals and toasts
 
-### How AI was used
-
-AI assistance (Claude) was used on specific, bounded tasks. Every suggestion was reviewed, adapted
-to this codebase's conventions, and tested before being kept; nothing was accepted that a team
-member could not explain.
-
-| Area | How AI was used |
-|---|---|
-| Subject compliance audit | Cross-checking the implementation against Chapter III of the subject and listing what was missing — this produced the HTTPS, sign-up, legal-pages and `.env` work items. |
-| nginx / TLS configuration | Drafting the proxy configuration and the self-signed certificate generation script. Verified by hand: the HTTP→HTTPS redirect, the negotiated TLS version, and the cookie flags were all checked with `curl` and `openssl s_client`. |
-| Legal page drafting | Producing a first draft of the Privacy Policy and Terms of Service from a description of what the app actually stores. Every claim was then checked against the code — the data list, the retention behaviour and the security section describe real behaviour, not boilerplate. |
-| Test coverage | Suggesting edge cases for the authentication tests (case-insensitive email, inactive accounts, timing behaviour on unknown addresses). |
-| Documentation | Structuring this README against the Chapter VI requirements. |
-| Debugging | Explaining why `UserAttributeSimilarityValidator` was not catching name-derived passwords, which led to the `_post_clean` fix. |
-
-AI was **not** used to generate the scheduling rule engine, or the
-architecture decisions — these are the parts the team is examined on, and they were designed and
-written by hand.
-
 ---
 
 ## Known limitations
