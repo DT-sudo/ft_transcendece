@@ -43,7 +43,7 @@ function EmployeeShiftsContent() {
     <main className="p-4 pt-0">
       <div className="card page-toolbar-card">
         <div className="shifts-toolbar">
-          <div className="shifts-toolbar-left text-sm text-muted-foreground">{t('employeeShifts.hint')}</div>
+          <div className="shifts-toolbar-left" />
           <div className="shifts-toolbar-center justify-self-center">
             <div className="calendar-period">{formatMonth(data.anchor)}</div>
           </div>

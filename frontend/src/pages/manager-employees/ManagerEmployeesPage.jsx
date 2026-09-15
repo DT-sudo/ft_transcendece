@@ -8,6 +8,9 @@ import { ConfirmModal } from '../../components/Modal.jsx';
 import { t } from '../../i18n/index.js';
 import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeModals.jsx';
 
+/** "EMP-123456 (maya@example.com)": names the account in a confirmation. */
+const accountLabel = (employee) => `${employee.employeeId} (${employee.email})`;
+
 function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onResetTwoFactor, onDelete }) {
   return (
     <tr>
@@ -146,7 +149,7 @@ export function ManagerEmployeesPage() {
         <ConfirmModal
           title={t('team.resetPassword')}
           message={t('team.resetPasswordMessage')}
-          detail={`${pendingReset.employeeId} (${pendingReset.email})`}
+          detail={accountLabel(pendingReset)}
           onCancel={() => setPendingReset(null)}
           onConfirm={() => submitPost(urlFromTemplate(urls.resetPassword, pendingReset.id))}
         />
@@ -156,7 +159,7 @@ export function ManagerEmployeesPage() {
         <ConfirmModal
           title={t('team.resetTwoFactorTitle')}
           message={t('team.resetTwoFactorMessage')}
-          detail={`${pendingTwoFactorReset.employeeId} (${pendingTwoFactorReset.email})`}
+          detail={accountLabel(pendingTwoFactorReset)}
           footnote={t('team.resetTwoFactorNote')}
           confirmText={t('team.yesReset')}
           destructive
@@ -169,7 +172,7 @@ export function ManagerEmployeesPage() {
         <ConfirmModal
           title={isUsers ? t('team.deleteUser') : t('team.deleteEmployee')}
           message={isUsers ? t('team.deleteUserMessage') : t('team.deleteEmployeeMessage')}
-          detail={`${pendingDelete.employeeId} (${pendingDelete.email})`}
+          detail={accountLabel(pendingDelete)}
           footnote={isUsers ? t('team.deleteUserNote') : t('team.deleteEmployeeNote')}
           confirmText={t('common.yesDelete')}
           destructive

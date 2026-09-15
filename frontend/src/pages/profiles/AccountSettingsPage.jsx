@@ -420,10 +420,7 @@ export function AccountSettingsPage() {
         <div className="card page-toolbar-card">
           <div className="flex flex-wrap items-center gap-3">
             <Settings size={20} className="text-muted-foreground" />
-            <div className="flex-1">
-              <h1 className="card-title">{t('settings.title')}</h1>
-              <p className="text-sm text-muted-foreground">{t('settings.subtitle')}</p>
-            </div>
+            <h1 className="card-title flex-1">{t('settings.title')}</h1>
             <a className="btn btn-outline" href={person.profileUrl}>
               <UserIcon size={16} />
               {t('settings.viewProfile')}

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { addDays, addMonths, monthMatrix, navigateWith, weekdayLabels } from '../app/dates.js';
-import { t, useLanguage } from '../i18n/index.js';
+import { t } from '../i18n/index.js';
 import { ChevronLeft, ChevronRight } from './Icons.jsx';
 
 /** Previous / Today / Next: reloads the page on the neighbouring month, or week when `view` is "week" (`?date=`). */
@@ -37,9 +37,7 @@ export function CalendarNav({ anchorISO, todayISO, view = 'month' }) {
 
 /** Six-week month grid shared by the manager and employee calendars. */
 export function MonthCalendar({ anchorISO, todayISO, ariaLabel, dayClassName, renderDay, onDayClick }) {
-  const language = useLanguage();
-  // The week starts on a different day per language, so the matrix follows it.
-  const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO, language]);
+  const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO]);
 
   return (
     <div className="calendar-grid" aria-label={ariaLabel}>

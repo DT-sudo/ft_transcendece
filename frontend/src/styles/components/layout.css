@@ -64,6 +64,14 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background-color: var(--color-card);
+    width: 100%;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .employee-sidebar-item-active {
+    border-color: hsl(38 92% 50% / 0.55);
+    box-shadow: 0 0 0 3px hsl(38 92% 50% / 0.12);
   }
 
   .employee-sidebar-unavailable {

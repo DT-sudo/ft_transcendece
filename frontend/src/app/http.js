@@ -42,12 +42,15 @@ export async function getJSON(url) {
   return response.json();
 }
 
-/** The current page's `data`, fresh from the server (`render_app` answers `?format=json`). */
-export function getPageData() {
+/** The current page's URL asking for just its `data` (`render_app` answers `?format=json`). */
+export function pageDataUrl() {
   const url = new URL(window.location.href);
   url.searchParams.set('format', 'json');
-  return getJSON(url);
+  return url;
 }
+
+/** The current page's `data`, fresh from the server. */
+export const getPageData = () => getJSON(pageDataUrl());
 
 /** POST as a fetch and return the JSON body; throws with the server's (translated) message on failure, if it sent one. */
 export async function postForm(url, data) {

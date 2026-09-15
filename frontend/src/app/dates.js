@@ -1,5 +1,8 @@
 // All dates travel as ISO strings (YYYY-MM-DD); labels are formatted here in the page's language.
-import { firstDayOfWeek, intlLocale, t } from '../i18n/index.js';
+import { intlLocale, t } from '../i18n/index.js';
+
+// 0 = Sunday. Weeks run Monday to Sunday in every language, like the server's week view.
+const FIRST_DAY_OF_WEEK = 1;
 
 export const pad2 = (value) => String(value).padStart(2, '0');
 
@@ -28,12 +31,12 @@ export function weekDays(startISO) {
   });
 }
 
-/** The 6x7 day matrix a month view paints, starting on the language's first day of the week. */
+/** The 6x7 day matrix a month view paints, starting on Monday. */
 export function monthMatrix(anchorISO, todayISO) {
   const anchor = dateFromISO(anchorISO);
   const month = anchor.getMonth();
   const first = new Date(anchor.getFullYear(), month, 1);
-  const daysBefore = (first.getDay() - firstDayOfWeek() + 7) % 7;
+  const daysBefore = (first.getDay() - FIRST_DAY_OF_WEEK + 7) % 7;
 
   return Array.from({ length: 42 }, (_, index) => {
     const date = new Date(first.getFullYear(), month, 1 - daysBefore + index);
@@ -46,7 +49,7 @@ export function monthMatrix(anchorISO, todayISO) {
 export function weekdayLabels() {
   // 1 January 2023 was a Sunday (day 0).
   return Array.from({ length: 7 }, (_, index) =>
-    new Date(2023, 0, 1 + ((firstDayOfWeek() + index) % 7)).toLocaleDateString(intlLocale(), { weekday: 'short' }),
+    new Date(2023, 0, 1 + ((FIRST_DAY_OF_WEEK + index) % 7)).toLocaleDateString(intlLocale(), { weekday: 'short' }),
   );
 }
 

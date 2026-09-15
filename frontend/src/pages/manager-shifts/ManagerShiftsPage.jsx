@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { formatDate, pad2 } from '../../app/dates.js';
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
@@ -122,6 +122,12 @@ function ManagerShiftsContent({ data }) {
   const [detailsShiftId, setDetailsShiftId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [shiftForm, setShiftForm] = useState(null);
+  // Clicking an employee in the sidebar outlines their shifts in both views; clicking again clears it.
+  const [highlightedEmployeeId, setHighlightedEmployeeId] = useState(null);
+  const highlightedShiftIds = useMemo(
+    () => new Set(shifts.filter((shift) => shift.assigned_employee_ids.includes(highlightedEmployeeId)).map((shift) => shift.id)),
+    [shifts, highlightedEmployeeId],
+  );
 
   // A page restored from the back/forward cache would show stale shifts.
   useEffect(() => {
@@ -164,6 +170,8 @@ function ManagerShiftsContent({ data }) {
             periodStart={start}
             periodEnd={end}
             flashedEmployeeId={flashedEmployeeId}
+            highlightedEmployeeId={highlightedEmployeeId}
+            onToggleEmployee={(id) => setHighlightedEmployeeId((current) => (current === id ? null : id))}
           />
 
           <div className="card calendar-fill mt-3">
@@ -173,6 +181,7 @@ function ManagerShiftsContent({ data }) {
                 todayISO={today}
                 shifts={shifts}
                 editors={editors}
+                highlightedShiftIds={highlightedShiftIds}
                 onSelectShift={setDetailsShiftId}
                 onCreateSlot={openCreateForm}
               />
@@ -182,6 +191,7 @@ function ManagerShiftsContent({ data }) {
                 todayISO={today}
                 shifts={shifts}
                 editors={editors}
+                highlightedShiftIds={highlightedShiftIds}
                 onSelectShift={setDetailsShiftId}
                 onCreateSlot={openCreateForm}
               />

@@ -49,7 +49,21 @@ export function Field({ id, label, error, hint, required = false, as: Control = 
 }
 
 /** onChange handler for filters that apply straight away: submits the control's form. */
-export const submitForm = (event) => event.target.form.requestSubmit();
+const submitForm = (event) => event.target.form.requestSubmit();
+
+/** An empty option labelled `emptyLabel`, then one per `{ id, name }` option. */
+function Options({ emptyLabel, options }) {
+  return (
+    <>
+      <option value="">{emptyLabel}</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.name}
+        </option>
+      ))}
+    </>
+  );
+}
 
 /** Inline "Label: [All ▾]" select over `{ id, name }` options; the empty value means no filter. */
 export function FilterSelect({ id, label, options, ...selectProps }) {
@@ -59,12 +73,7 @@ export function FilterSelect({ id, label, options, ...selectProps }) {
         {label}
       </label>
       <select id={id} className="form-select w-auto" {...selectProps}>
-        <option value="">{t('common.all')}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-          </option>
-        ))}
+        <Options emptyLabel={t('common.all')} options={options} />
       </select>
     </div>
   );
@@ -103,12 +112,7 @@ export function SelectField({ id, label, placeholder, options, required = false,
     <div className="mb-4">
       <Label id={id} label={label} required={required} />
       <select id={id} className="form-select" required={required} {...selectProps}>
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-          </option>
-        ))}
+        <Options emptyLabel={placeholder} options={options} />
       </select>
     </div>
   );

@@ -20,6 +20,14 @@ def clean_full_name(value: str | None) -> str:
     return full_name
 
 
+def _unique_email(value: str | None, instance: User) -> str:
+    """The lowercased email, refused when another account already signs in with it."""
+    email = (value or "").strip().lower()
+    if User.objects.filter(username=email).exclude(pk=instance.pk).exists():
+        raise ValidationError(_("An account with this email already exists."))
+    return email
+
+
 class EmailAuthenticationForm(AuthenticationForm):
     """Login by email address.
 
@@ -53,10 +61,7 @@ class SignUpForm(BaseUserCreationForm):
         return clean_full_name(self.cleaned_data.get("full_name"))
 
     def clean_email(self) -> str:
-        email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(username=email).exists():
-            raise ValidationError(_("An account with this email already exists."))
-        return email
+        return _unique_email(self.cleaned_data["email"], self.instance)
 
     def _post_clean(self) -> None:
         # Fill the instance before the password validators run, so a password
@@ -77,10 +82,7 @@ class AccountForm(forms.ModelForm):
         self.fields["email"].required = True
 
     def clean_email(self) -> str:
-        email = (self.cleaned_data.get("email") or "").strip().lower()
-        if User.objects.filter(username=email).exclude(pk=self.instance.pk).exists():
-            raise ValidationError(_("An account with this email already exists."))
-        return email
+        return _unique_email(self.cleaned_data.get("email"), self.instance)
 
     def save(self, commit=True) -> User:
         user = super().save(commit=False)

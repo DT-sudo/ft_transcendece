@@ -155,7 +155,6 @@
     "confirmPassword": "Potvrďte své heslo"
   },
   "employeeShifts": {
-    "hint": "Kliknutím na volný budoucí den ho označíte jako nedostupný.",
     "calendar": "Měsíční kalendář",
     "markedUnavailable": "Označeno jako nedostupné",
     "markedAvailable": "Označeno jako dostupné",
@@ -163,6 +162,7 @@
   },
   "shifts": {
     "employees": "Zaměstnanci",
+    "highlightShifts": "Zvýraznit směny: {name}",
     "unavailableDays": "Nedostupnost: {days}",
     "legend": "Barvy pozic",
     "monthSchedule": "Měsíční rozpis",
@@ -338,7 +338,6 @@
   },
   "settings": {
     "title": "Nastavení účtu",
-    "subtitle": "Váš profil, fotografie, heslo, jazyk a zabezpečení přihlášení.",
     "viewProfile": "Zobrazit můj profil",
     "privacyLink": "Chcete-li stáhnout nebo smazat své údaje, přejděte na stránku {link}.",
     "avatarTitle": "Profilová fotografie",

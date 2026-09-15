@@ -157,7 +157,6 @@
     "confirmPassword": "أكّد كلمة مرورك"
   },
   "employeeShifts": {
-    "hint": "انقر على يوم مستقبلي خالٍ لتحديده كيوم غير متاح.",
     "calendar": "تقويم الشهر",
     "markedUnavailable": "تم التحديد كغير متاح",
     "markedAvailable": "تم التحديد كمتاح",
@@ -165,6 +164,7 @@
   },
   "shifts": {
     "employees": "الموظفون",
+    "highlightShifts": "إبراز مناوبات {name}",
     "unavailableDays": "غير متاح: {days}",
     "legend": "ألوان المناصب",
     "monthSchedule": "جدول الشهر",
@@ -346,7 +346,6 @@
   },
   "settings": {
     "title": "إعدادات الحساب",
-    "subtitle": "ملفك الشخصي وصورتك وكلمة مرورك ولغتك وأمان تسجيل الدخول.",
     "viewProfile": "عرض ملفي الشخصي",
     "privacyLink": "لتنزيل بياناتك أو حذفها، راجع صفحة {link}.",
     "avatarTitle": "الصورة الشخصية",

@@ -3,7 +3,7 @@
 // pages, notifications) is translated by Django, in the same language.
 import { cloneElement, isValidElement, useSyncExternalStore } from 'react';
 
-import { getBootstrap, postForm } from '../app/http.js';
+import { getBootstrap, pageDataUrl, postForm } from '../app/http.js';
 import ar from './locales/ar.json';
 import cs from './locales/cs.json';
 import en from './locales/en.json';
@@ -15,16 +15,12 @@ const FALLBACK = 'en';
 let language = CATALOGS[document.documentElement.lang] ? document.documentElement.lang : FALLBACK;
 const listeners = new Set();
 
-export const getLanguage = () => language;
+const getLanguage = () => language;
 
 export const isRtl = () => document.documentElement.dir === 'rtl';
 
 /** For `Intl` formatters. Arabic keeps Western digits, like the times and numbers typed into the forms. */
 export const intlLocale = () => (language === 'ar' ? 'ar-u-nu-latn' : language);
-
-// 0 = Sunday: Czech weeks start on Monday and Arabic ones on Saturday.
-const FIRST_DAY_OF_WEEK = { en: 0, cs: 1, ar: 6 };
-export const firstDayOfWeek = () => FIRST_DAY_OF_WEEK[language];
 
 const lookup = (catalog, key) => key.split('.').reduce((node, part) => node?.[part], catalog);
 
@@ -71,10 +67,8 @@ export function onLanguageChange(callback) {
 
 /** The page's data re-read from the server, now written in the new language; null when it can't be. */
 async function rereadPage() {
-  const url = new URL(window.location.href);
-  url.searchParams.set('format', 'json');
   try {
-    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    const response = await fetch(pageDataUrl(), { headers: { Accept: 'application/json' } });
     if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) return null;
     return { data: await response.json(), title: response.headers.get('X-Page-Title') };
   } catch {

@@ -58,7 +58,7 @@ export function ShiftsToolbar({ data, onCreateShift }) {
             {t('shifts.add')}
           </button>
 
-          <form method="post" action={urls.publishAll} className="inline">
+          <form method="post" action={urls.publishAll} className="flex">
             <CsrfInput />
             <input type="hidden" name="view" value={view} readOnly />
             <input type="hidden" name="date" value={anchor} readOnly />

@@ -153,7 +153,6 @@
     "confirmPassword": "Confirm your password"
   },
   "employeeShifts": {
-    "hint": "Click a free future day to mark it unavailable.",
     "calendar": "Month calendar",
     "markedUnavailable": "Marked unavailable",
     "markedAvailable": "Marked available",
@@ -161,6 +160,7 @@
   },
   "shifts": {
     "employees": "Employees",
+    "highlightShifts": "Highlight shifts for {name}",
     "unavailableDays": "Unavailable: {days}",
     "legend": "Position colours",
     "monthSchedule": "Month schedule",
@@ -330,7 +330,6 @@
   },
   "settings": {
     "title": "Account settings",
-    "subtitle": "Your profile, picture, password, language and sign-in security.",
     "viewProfile": "View my profile",
     "privacyLink": "To download or delete your data, see {link}.",
     "avatarTitle": "Profile picture",

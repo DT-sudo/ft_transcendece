@@ -53,6 +53,11 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
     );
   }, []);
 
+  const reloadHistory = () =>
+    getJSON(urls.list)
+      .then((payload) => setHistory(payload.notifications))
+      .catch(() => {});
+
   // A notification pushed while the page is open joins the history and raises a toast.
   useLiveEvents(
     (event) => {
@@ -61,24 +66,14 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
       setHistory((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
       showToast(entry.level, entry.title, entry.description);
     },
-    {
-      enabled: Boolean(urls),
-      // Pushes are not replayed after a dropped connection, so re-read the history.
-      onReconnect: () =>
-        getJSON(urls.list)
-          .then((payload) => setHistory(payload.notifications))
-          .catch(() => {}),
-    },
+    // Pushes are not replayed after a dropped connection, so re-read the history.
+    { enabled: Boolean(urls), onReconnect: reloadHistory },
   );
 
   // Notifications are written in the reader's language on the server: re-read them after a switch.
   useEffect(() => {
     if (!urls) return undefined;
-    return onLanguageChange(() =>
-      getJSON(urls.list)
-        .then((payload) => setHistory(payload.notifications))
-        .catch(() => {}),
-    );
+    return onLanguageChange(reloadHistory);
   }, [urls]);
 
   // Django flash messages arrive with the page payload; show each once (StrictMode runs effects twice).

@@ -13,6 +13,8 @@
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
+    /* A fixed line height, so every language's font gives the buttons the same height. */
+    line-height: 1.25rem;
     border-radius: var(--radius-card);
     border: none;
     cursor: pointer;
