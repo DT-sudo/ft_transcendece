@@ -1,4 +1,4 @@
-"""Sign-up, login, logout, demo logins, and the manager-side employee directory."""
+"""Sign-up, login, logout, demo logins, and the admin-side account and position directory."""
 
 from __future__ import annotations
 
@@ -19,26 +19,33 @@ from apps.notifications.services import managers, notify
 from apps.privacy.emails import send_account_deleted_email
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
 from apps.scheduling.management.commands.seed_demo import DEMO_ACCOUNTS, DEMO_EMPLOYEE_EMAIL
-from apps.scheduling.services import position_options
 from apps.twofactor import services as two_factor
 from apps.twofactor.views import begin_login
 
-from .forms import EmailAuthenticationForm, EmployeeForm, SignUpForm, UserForm
-from .models import User, UserRole
+from .forms import EmailAuthenticationForm, PositionForm, SignUpForm, UserForm
+from .models import MANAGER_POSITION_NAME, Position, User, UserRole
+from .services import position_options
 
 # ── Role decorators ─────────────────────────────────────────────────────────
 
 
-def _role_required(attr: str, other_home: str):
-    """Require login and a role; a signed-in user of the other role goes to their own home."""
+def home_page(user) -> str:
+    """The page that holds this account's own work: accounts, the schedule, or your shifts."""
+    if user.is_admin:
+        return "manager_employees"
+    return "manager_shifts" if user.is_manager else "employee_shifts"
+
+
+def _requires(allowed):
+    """Require login and a role; anyone else is sent to their own home page."""
 
     def decorator(view):
         @wraps(view)
         def wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect("login")
-            if not getattr(request.user, attr):
-                return redirect(other_home)
+            if not allowed(request.user):
+                return redirect(home_page(request.user))
             return view(request, *args, **kwargs)
 
         return wrapped
@@ -46,8 +53,12 @@ def _role_required(attr: str, other_home: str):
     return decorator
 
 
-manager_required = _role_required("is_manager", "employee_shifts")
-employee_required = _role_required("is_employee", "manager_shifts")
+# The three jobs the app is split into: admins provision accounts and positions, managers run
+# the schedule, employees work it. Colleagues (friends) are for the two who actually work here.
+admin_required = _requires(lambda user: user.is_admin)
+manager_required = _requires(lambda user: user.is_manager and not user.is_admin)
+employee_required = _requires(lambda user: user.is_employee)
+non_admin_required = _requires(lambda user: not user.is_admin)
 
 
 # ── Authentication ──────────────────────────────────────────────────────────
@@ -127,7 +138,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def home(request: HttpRequest) -> HttpResponse:
     """Send each role to its own landing page."""
-    return redirect("manager_shifts" if request.user.is_manager else "employee_shifts")
+    return redirect(home_page(request.user))
 
 
 # ── Demo accounts (ENABLE_DEMO_LOGIN) ───────────────────────────────────────
@@ -146,16 +157,11 @@ def demo_login(request: HttpRequest, role: str) -> HttpResponse:
     return begin_login(request, user)
 
 
-# ── Employee directory (managers) ───────────────────────────────────────────
+# ── Accounts (admins) ───────────────────────────────────────────────────────
 
 
 def _managed_user_or_404(request: HttpRequest, user_id: int) -> User:
     return get_object_or_404(request.user.managed_users(), pk=user_id)
-
-
-def _account_form(request: HttpRequest):
-    """Admins also pick the role; a manager's form always makes an employee (the model's default role)."""
-    return UserForm if request.user.is_admin else EmployeeForm
 
 
 def _set_generated_password(request: HttpRequest, employee: User) -> None:
@@ -170,15 +176,13 @@ def _back(request: HttpRequest, level: int, text: str) -> HttpResponse:
     return flash_redirect(request, level, text, "manager_employees")
 
 
-@manager_required
+@admin_required
 @require_GET
 def manager_employees(request: HttpRequest) -> HttpResponse:
-    is_admin = request.user.is_admin
-
     return render_app(
         request,
         page="manager-employees",
-        title=_("User Management") if is_admin else _("Employee Management"),
+        title=_("User Management"),
         nav_active="manager_employees",
         data={
             "employees": [
@@ -197,8 +201,7 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
                 }
                 for e in request.user.managed_users().select_related("position", "totp_device")
             ],
-            # Present only for admins, who can assign roles.
-            "roles": [{"id": value, "name": label} for value, label in UserRole.choices] if is_admin else None,
+            "roles": [{"id": value, "name": label} for value, label in UserRole.choices],
             "positions": position_options(),
             "credentials": request.session.pop("one_time_credentials", None),
             "urls": {
@@ -214,10 +217,10 @@ def manager_employees(request: HttpRequest) -> HttpResponse:
     )
 
 
-@manager_required
+@admin_required
 @require_POST
 def manager_employees_create(request: HttpRequest) -> HttpResponse:
-    form = _account_form(request)(request.POST)
+    form = UserForm(request.POST)
     if not form.is_valid():
         return _back(request, messages.ERROR, first_form_error(form, _("Please fix the errors and try again.")))
 
@@ -227,25 +230,25 @@ def manager_employees_create(request: HttpRequest) -> HttpResponse:
     return _back(request, messages.SUCCESS, _("%(role)s created.") % {"role": account.get_role_display()})
 
 
-@manager_required
+@admin_required
 @require_POST
 def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
     account = _managed_user_or_404(request, user_id)
-    form = _account_form(request)(request.POST, instance=account)
+    form = UserForm(request.POST, instance=account)
     if not form.is_valid():
         return _back(request, messages.ERROR, first_form_error(form, _("Could not update the account.")))
     account = form.save()
     if form.has_changed():
         actor = request.user
         notify(managers(), "account.updated", actor=actor, role=account.role, name=account.display_name)
-        if "role" in form.changed_data:
+        if "role" in form.changed_data or getattr(form, "promoted", False):
             notify([account], "account.role_changed", actor=actor, by=actor.display_name, role=account.role)
         else:
             notify([account], "account.details_updated", actor=actor, by=actor.display_name)
     return _back(request, messages.SUCCESS, _("%(role)s updated.") % {"role": account.get_role_display()})
 
 
-@manager_required
+@admin_required
 @require_POST
 def reset_employee_password(request: HttpRequest, user_id: int) -> HttpResponse:
     employee = _managed_user_or_404(request, user_id)
@@ -254,7 +257,7 @@ def reset_employee_password(request: HttpRequest, user_id: int) -> HttpResponse:
     return _back(request, messages.SUCCESS, _("Password reset."))
 
 
-@manager_required
+@admin_required
 @require_POST
 def reset_employee_two_factor(request: HttpRequest, user_id: int) -> HttpResponse:
     """Turn off 2FA for someone who lost both their phone and their recovery codes; they are told by email."""
@@ -264,10 +267,10 @@ def reset_employee_two_factor(request: HttpRequest, user_id: int) -> HttpRespons
     return _back(request, messages.SUCCESS, _("Two-factor authentication reset for %(name)s.") % {"name": account.display_name})
 
 
-@manager_required
+@admin_required
 @require_POST
 def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
-    """Erase an employee's account on the manager's initiative.
+    """Erase an account on the admin's initiative.
 
     This is the other door to the same GDPR erasure right as
     `apps.privacy.delete_my_account` - the Privacy Policy tells users they can
@@ -286,3 +289,31 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     send_account_deleted_email(email, label, language)
     notify(managers(), "account.deleted", actor=request.user, level="warning", role=role, name=label)
     return _back(request, messages.SUCCESS, _("Deleted %(role)s: %(name)s.") % {"role": role_label.lower(), "name": label})
+
+
+# ── Positions (Users page) ──────────────────────────────────────────────────
+
+
+@admin_required
+@require_POST
+def position_create(request: HttpRequest) -> HttpResponse:
+    form = PositionForm(request.POST)
+    if not form.is_valid():
+        return _back(request, messages.ERROR, first_form_error(form, _("Could not create position.")))
+    position = form.save()
+    notify(managers(), "position.created", actor=request.user, name=position.name)
+    return _back(request, messages.SUCCESS, _("Position created: %(name)s.") % {"name": position.name})
+
+
+@admin_required
+@require_POST
+def position_delete(request: HttpRequest, position_id: int) -> HttpResponse:
+    position = get_object_or_404(Position, pk=position_id)
+    if position.name == MANAGER_POSITION_NAME:
+        return _back(request, messages.ERROR, _("The Manager position can't be deleted."))
+    try:
+        position.delete()
+    except ProtectedError:
+        return _back(request, messages.ERROR, _("Cannot delete position: it is referenced by existing data."))
+    notify(managers(), "position.deleted", actor=request.user, level="warning", name=position.name)
+    return _back(request, messages.SUCCESS, _("Position deleted: %(name)s.") % {"name": position.name})

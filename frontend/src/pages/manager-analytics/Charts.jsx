@@ -10,9 +10,6 @@ const PLOT_HEIGHT = HEIGHT - PAD.top - PAD.bottom;
 const MAX_BAR_WIDTH = 48;
 const MAX_LABEL_LENGTH = 10;
 
-const DONUT_RADIUS = 70;
-const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
-
 export function EmptyChart() {
   return <p className="chart-empty">{t('analytics.noData')}</p>;
 }
@@ -122,58 +119,97 @@ export function XYChart({ kind, label, data, labelKey, valueKey, formatLabel = S
   );
 }
 
-/** Donut of `{ label, value, color }` segments with a legend; each segment is a dashed circle stroke. */
-export function DonutChart({ label, segments }) {
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-  if (!total) return <EmptyChart />;
+/**
+ * One bar per worker against the legal maximum for the filtered period (`maxHours`): a gray bar
+ * the height of the maximum sits behind a coloured bar the height of the hours actually worked.
+ * Within the limit the bar is green and the gray shows through above it as remaining capacity;
+ * over the limit the bar is red and rises past the gray, covering it.
+ */
+export function WorkerHoursChart({ label, data, maxHours, formatValue = String }) {
+  const [ref, width] = useWidth();
+  const [hovered, setHovered] = useState(null);
 
-  let offset = 0;
+  const x = isRtl() ? (value) => width - value : (value) => value;
+  const max = Math.max(1, maxHours, ...data.map((item) => item.hours));
+  const slot = (width - PAD.left - PAD.right) / Math.max(1, data.length);
+  const baseline = PAD.top + PLOT_HEIGHT;
+  const barWidth = Math.min(slot * 0.65, MAX_BAR_WIDTH);
+  const scale = (hours) => (hours / max) * PLOT_HEIGHT;
+  const hover = (index) => ({ onMouseEnter: () => setHovered(index), onMouseLeave: () => setHovered(null) });
+
+  const bars = data.map((item, index) => {
+    const centerX = x(PAD.left + slot * (index + 0.5));
+    const overtime = item.hours > maxHours;
+    return { item, index, centerX, overtime, maxHeight: scale(maxHours), hoursHeight: scale(item.hours) };
+  });
+  const tip = bars[hovered];
+
   return (
-    <div className="chart-donut-layout">
-      <svg
-        viewBox="0 0 200 200"
-        className="chart-donut"
-        role="img"
-        aria-label={`${label}: ${segments.map((segment) => `${segment.label} ${segment.value}`).join(', ')}`}
-      >
-        {segments.map((segment) => {
-          const length = (segment.value / total) * DONUT_CIRCUMFERENCE;
-          const arc = (
-            <circle
-              key={segment.label}
-              cx="100"
-              cy="100"
-              r={DONUT_RADIUS}
-              fill="none"
-              stroke={segment.color}
-              strokeWidth="32"
-              strokeDasharray={`${length} ${DONUT_CIRCUMFERENCE - length}`}
-              strokeDashoffset={-offset}
-              transform="rotate(-90 100 100)"
-            />
-          );
-          offset += length;
-          return arc;
-        })}
-        <text x="100" y="98" textAnchor="middle" className="chart-donut-total">
-          {total}
-        </text>
-        <text x="100" y="116" textAnchor="middle" className="chart-axis-label">
-          {t('analytics.total')}
-        </text>
-      </svg>
+    <>
+      <div className="chart-wrap" ref={ref}>
+        {data.length === 0 ? (
+          <EmptyChart />
+        ) : (
+          <svg viewBox={`0 0 ${width} ${HEIGHT}`} className="chart-svg" role="img" aria-label={label}>
+            {[0, 0.5, 1].map((fraction) => (
+              <line key={fraction} className="chart-gridline" x1={x(PAD.left)} x2={x(width - PAD.right)} y1={PAD.top + PLOT_HEIGHT * fraction} y2={PAD.top + PLOT_HEIGHT * fraction} />
+            ))}
+            <text className="chart-axis-label" x={x(PAD.left - 6)} y={PAD.top + 4} textAnchor="end">
+              {formatValue(max)}
+            </text>
+            <text className="chart-axis-label" x={x(PAD.left - 6)} y={baseline} textAnchor="end">
+              0
+            </text>
 
-      <ul className="chart-legend">
-        {segments.map((segment) => (
-          <li key={segment.label} className="chart-legend-item">
-            <span className="chart-legend-swatch" style={{ backgroundColor: segment.color }} aria-hidden="true" />
-            {segment.label}
-            <span className="text-muted-foreground">
-              {segment.value} ({Math.round((segment.value / total) * 100)}%)
-            </span>
+            {bars.map(({ index, centerX, overtime, maxHeight, hoursHeight }) => (
+              <g key={index} opacity={hovered === null || hovered === index ? 1 : 0.55} {...hover(index)}>
+                <rect x={centerX - barWidth / 2} y={baseline - maxHeight} width={barWidth} height={maxHeight} rx={3} fill="var(--color-shift-past)" />
+                <rect
+                  x={centerX - barWidth / 2}
+                  y={baseline - hoursHeight}
+                  width={barWidth}
+                  height={hoursHeight}
+                  rx={3}
+                  fill={overtime ? 'var(--color-destructive)' : 'var(--color-shift-published)'}
+                />
+              </g>
+            ))}
+
+            {bars.map(({ item, centerX }) => (
+              <text key={centerX} className="chart-axis-label" x={centerX} y={HEIGHT - 8} textAnchor="middle">
+                {truncate(item.worker)}
+              </text>
+            ))}
+          </svg>
+        )}
+
+        {tip ? (
+          <div className="chart-tooltip" style={{ left: `${(tip.centerX / width) * 100}%`, top: `${((baseline - Math.max(tip.maxHeight, tip.hoursHeight)) / HEIGHT) * 100}%` }}>
+            <div className="font-medium">{tip.item.worker}</div>
+            <div>
+              {formatValue(tip.item.hours)} / {formatValue(maxHours)}
+              {tip.overtime ? ` · ${t('analytics.overtime')}` : ''}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {data.length > 0 ? (
+        <ul className="chart-legend chart-legend-row">
+          <li className="chart-legend-item">
+            <span className="chart-legend-swatch" style={{ backgroundColor: 'var(--color-shift-past)' }} aria-hidden="true" />
+            {t('analytics.legalMax')}
           </li>
-        ))}
-      </ul>
-    </div>
+          <li className="chart-legend-item">
+            <span className="chart-legend-swatch" style={{ backgroundColor: 'var(--color-shift-published)' }} aria-hidden="true" />
+            {t('analytics.withinLimit')}
+          </li>
+          <li className="chart-legend-item">
+            <span className="chart-legend-swatch" style={{ backgroundColor: 'var(--color-destructive)' }} aria-hidden="true" />
+            {t('analytics.overtime')}
+          </li>
+        </ul>
+      ) : null}
+    </>
   );
 }

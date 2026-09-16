@@ -8,10 +8,10 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounts.models import User, UserRole
+from apps.accounts.models import Position, User, UserRole
 from apps.profiles.models import Friendship, FriendshipStatus
 from apps.profiles.services import between
-from apps.scheduling.models import EmployeeUnavailability, Position, Shift, ShiftStatus
+from apps.scheduling.models import EmployeeUnavailability, Shift, ShiftStatus
 from apps.scheduling.services import assign_employees_to_shift
 
 DEMO_PASSWORD = "demo12345!"

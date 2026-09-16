@@ -11,8 +11,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import User, UserRole
-from apps.scheduling.models import EmployeeUnavailability, Position, Shift
+from apps.accounts.models import Position, User, UserRole
+from apps.scheduling.models import EmployeeUnavailability, Shift
 
 from .consumers import ScheduleConsumer
 from .events import MANAGERS_GROUP, user_group

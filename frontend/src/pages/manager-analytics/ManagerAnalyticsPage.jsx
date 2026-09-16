@@ -7,7 +7,7 @@ import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx'
 import { ChevronDown } from '../../components/Icons.jsx';
 import { Dropdown } from '../../components/Menus.jsx';
 import { t } from '../../i18n/index.js';
-import { DonutChart, EmptyChart, XYChart } from './Charts.jsx';
+import { EmptyChart, WorkerHoursChart, XYChart } from './Charts.jsx';
 
 const KPIS = [
   { key: 'shifts', label: 'analytics.shifts', accent: 'var(--color-primary)' },
@@ -15,8 +15,6 @@ const KPIS = [
   { key: 'hours', label: 'analytics.hours', accent: 'var(--color-shift-published)', format: formatHours },
   { key: 'open_shifts', label: 'analytics.openShifts', accent: 'var(--color-warning)' },
 ];
-
-const STATUS_COLORS = { draft: 'var(--color-shift-past)', published: 'var(--color-shift-published)' };
 
 const shiftCount = (count) => t('analytics.shiftCount', { count });
 
@@ -123,31 +121,8 @@ export function ManagerAnalyticsPage() {
             />
           </ChartCard>
 
-          <ChartCard title={t('analytics.byPosition')}>
-            <XYChart kind="bar" label={t('analytics.byPosition')} data={analytics.by_position} labelKey="position" valueKey="count" />
-          </ChartCard>
-
-          <ChartCard title={t('analytics.shiftStatus')}>
-            <DonutChart
-              label={t('analytics.shiftStatus')}
-              segments={analytics.by_status.map(({ status, count }) => ({
-                label: nameOf(statuses, status),
-                value: count,
-                color: STATUS_COLORS[status],
-              }))}
-            />
-          </ChartCard>
-
           <ChartCard title={t('analytics.hoursPerWorker')} wide>
-            <XYChart
-              kind="bar"
-              label={t('analytics.hoursPerWorker')}
-              data={analytics.top_workers}
-              labelKey="worker"
-              valueKey="hours"
-              formatValue={formatHours}
-              color="var(--color-shift-published)"
-            />
+            <WorkerHoursChart label={t('analytics.hoursPerWorker')} data={analytics.top_workers} maxHours={analytics.max_hours} formatValue={formatHours} />
           </ChartCard>
 
           <ChartCard title={t('analytics.topWorkers')}>

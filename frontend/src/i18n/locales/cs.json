@@ -25,9 +25,8 @@
     "search": "Hledání",
     "analytics": "Analýza",
     "users": "Uživatelé",
-    "team": "Tým",
     "myShifts": "Moje směny",
-    "friends": "Přátelé"
+    "friends": "Kolegové"
   },
   "header": {
     "userMenu": "Uživatelská nabídka",
@@ -237,9 +236,10 @@
     "reportFilters": "{from} – {to} · Pozice: {position} · Pracovník: {worker} · Stav: {status}",
     "generated": "Vytvořeno {time}",
     "overTime": "Směny v čase",
-    "byPosition": "Směny podle pozice",
-    "shiftStatus": "Stav směn",
     "hoursPerWorker": "Hodiny na pracovníka",
+    "legalMax": "Zákonné maximum",
+    "withinLimit": "V limitu",
+    "overtime": "Přečas",
     "topWorkers": "Nejvytíženější pracovníci",
     "topPositions": "Nejčastější pozice",
     "shiftCount": {
@@ -248,15 +248,12 @@
       "many": "{count} směny",
       "other": "{count} směn"
     },
-    "noData": "Pro tyto filtry nejsou žádná data.",
-    "total": "celkem"
+    "noData": "Pro tyto filtry nejsou žádná data."
   },
   "team": {
     "addUser": "Přidat uživatele",
-    "addEmployee": "Přidat zaměstnance",
     "managePositions": "Spravovat pozice",
     "userList": "Seznam uživatelů",
-    "employeeList": "Seznam zaměstnanců",
     "avatar": "Fotografie",
     "employeeId": "ID zaměstnance",
     "fullName": "Celé jméno",
@@ -274,17 +271,11 @@
     "resetTwoFactorNote": "Udělejte to jen pro někoho, kdo ztratil telefon i záložní kódy. Dostane o tom e-mail a může si ověření znovu zapnout.",
     "yesReset": "Ano, zrušit",
     "deleteUser": "Smazat uživatele",
-    "deleteEmployee": "Smazat zaměstnance",
     "deleteUserMessage": "Opravdu chcete smazat tohoto uživatele?",
-    "deleteEmployeeMessage": "Opravdu chcete smazat tohoto zaměstnance?",
     "deleteUserNote": "Tím odstraníte uživatele i jeho přiřazení.",
-    "deleteEmployeeNote": "Tím odstraníte zaměstnance i jeho přiřazení.",
     "editUser": "Upravit uživatele",
-    "editEmployee": "Upravit zaměstnance",
     "newUser": "Přidat nového uživatele",
-    "newEmployee": "Přidat nového zaměstnance",
     "createUser": "Vytvořit uživatele",
-    "createEmployee": "Vytvořit zaměstnance",
     "fullNamePlaceholder": "Zadejte celé jméno",
     "emailLogin": "E-mail / přihlašovací jméno",
     "emailPlaceholder": "Zadejte e-mail",
@@ -303,7 +294,8 @@
     "deletePositionLabel": "Smazat pozici {name}",
     "deletePosition": "Smazat pozici",
     "deletePositionMessage": "Smazat tuto pozici?",
-    "deletePositionNote": "Pozici, kterou stále vyžaduje nějaká směna, nelze smazat."
+    "deletePositionNote": "Pozici, kterou stále vyžaduje nějaká směna, nelze smazat.",
+    "permanentPosition": "Trvalá — nelze smazat"
   },
   "profile": {
     "editProfile": "Upravit profil",
@@ -316,12 +308,11 @@
     "noFriends": "Zatím žádní přátelé."
   },
   "friends": {
-    "addByEmail": "Přidat přítele podle e-mailu",
-    "emailPlaceholder": "kolega@example.com",
-    "send": "Poslat žádost",
+    "colleagues": "Všichni kolegové",
+    "noColleagues": "Zatím žádní kolegové.",
     "friends": "Přátelé",
     "online": "{online} z {total} online",
-    "noFriends": "Zatím žádní přátelé. Přidejte kolegu podle jeho e-mailové adresy výše.",
+    "noFriends": "Zatím žádní přátelé. Přidejte si jednoho ze seznamu kolegů níže.",
     "requests": "Žádosti o přátelství",
     "noRequests": "Žádné žádosti k vyřízení.",
     "sentRequests": "Odeslané žádosti",

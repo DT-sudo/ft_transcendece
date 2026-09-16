@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from apps.accounts.models import User
+from apps.accounts.models import User, UserRole
 from apps.notifications.services import notify
 from apps.realtime.events import push_to_user
 
@@ -40,9 +40,25 @@ def friends_of(user: User):
     return User.objects.filter(pk__in=friend_ids(user.pk), is_active=True).select_related("position").order_by("first_name", "last_name")
 
 
+def colleagues_of(user: User):
+    """Everyone but yourself and admins: the directory on the Colleagues page.
+
+    Admins aren't colleagues - they don't get that page, so nobody could ever answer a
+    request sent to one.
+    """
+    return (
+        User.objects.filter(is_active=True)
+        .exclude(pk=user.pk)
+        .exclude(role=UserRole.ADMIN)
+        .select_related("position")
+        .order_by("first_name", "last_name")
+    )
+
+
 def can_view(viewer: User, person: User) -> bool:
-    """Yourself, the accounts you manage, and anyone you share a friendship or a pending request with."""
-    return viewer.pk == person.pk or viewer.manages(person) or between(viewer, person) is not None
+    """Yourself, the accounts you manage, and anyone who isn't an admin - colleagues can
+    always see each other's profile, friend status or not."""
+    return viewer.pk == person.pk or viewer.manages(person) or not person.is_admin
 
 
 def friendship_relation(friendship: Friendship, viewer: User) -> dict:

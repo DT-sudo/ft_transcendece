@@ -8,12 +8,6 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-class Position(models.Model):
-    name = models.CharField(max_length=25, unique=True)
-
-    def __str__(self) -> str:
-        return self.name
-
 class ShiftStatus(models.TextChoices):
     DRAFT = "draft", _("Draft")
     PUBLISHED = "published", _("Published")
@@ -23,7 +17,7 @@ class Shift(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField()
     position = models.ForeignKey(
-        Position, 
+        "accounts.Position",
         on_delete=models.PROTECT,
         related_name="shifts"
     )

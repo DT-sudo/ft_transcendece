@@ -8,10 +8,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import translation
 
-from apps.accounts.models import User, UserRole
+from apps.accounts.models import Position, User, UserRole
 from apps.notifications.models import Notification
 from apps.notifications.services import notify, recent_notifications
-from apps.scheduling.models import Position
 
 PASSWORD = "correct-horse-42"
 COOKIE = settings.LANGUAGE_COOKIE_NAME
@@ -37,6 +36,7 @@ class I18nTestCase(TestCase):
 
         cls.manager = make("maya", UserRole.MANAGER, "en")
         cls.employee = make("sam", UserRole.EMPLOYEE, "cs")
+        cls.admin = make("adam", UserRole.ADMIN, "en")
 
     def tearDown(self) -> None:
         # Views activate languages on the test thread; don't let one leak into the next test.
@@ -120,9 +120,9 @@ class ServerTextTests(I18nTestCase):
         response = self.client.post(reverse("login"), {"username": self.manager.email, "password": "wrong-password-1"})
         self.assertEqual(self.bootstrap(response)["data"]["error"], "Nesprávný e-mail nebo heslo.")
 
-        # Signed in, the account's saved language decides, so this manager reads Czech.
-        User.objects.filter(pk=self.manager.pk).update(language="cs")
-        self.client.force_login(self.manager)
+        # Signed in, the account's saved language decides, so this admin reads Czech.
+        User.objects.filter(pk=self.admin.pk).update(language="cs")
+        self.client.force_login(self.admin)
         response = self.client.post(reverse("position_create"), {"name": ""}, follow=True)
         self.assertIn("Zadejte název pozice.", [message["text"] for message in self.bootstrap(response)["messages"]])
 
@@ -174,11 +174,16 @@ class RecipientLanguageTests(I18nTestCase):
         self.assertEqual(payload["title"], "Pozice vytvořena")
 
     def test_emails_go_out_in_the_recipients_language(self):
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
         self.client.post(reverse("employee_delete", args=[self.employee.pk]))
         self.assertEqual(mail.outbox[0].subject, "Váš účet PlanShift byl smazán")
 
     def test_navigation_is_named_by_id_for_the_browser_to_translate(self):
         self.client.force_login(self.manager)
         nav = self.bootstrap(self.client.get(reverse("manager_shifts")))["nav"]
-        self.assertEqual([link["id"] for link in nav], ["shifts", "search", "analytics", "team", "friends"])
+        self.assertEqual([link["id"] for link in nav], ["shifts", "search", "analytics", "friends"])
+
+    def test_the_admin_navigation_is_only_the_users_page(self):
+        self.client.force_login(self.admin)
+        nav = self.bootstrap(self.client.get(reverse("manager_employees")))["nav"]
+        self.assertEqual([link["id"] for link in nav], ["users"])

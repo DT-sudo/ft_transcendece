@@ -10,10 +10,9 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import User, UserRole
+from apps.accounts.models import Position, User, UserRole
 from apps.notifications.models import Notification
 from apps.scheduling.management.commands.seed_demo import DEMO_MANAGER_EMAIL
-from apps.scheduling.models import Position
 
 from . import services, totp
 from .models import RecoveryCode, TOTPDevice
@@ -318,36 +317,38 @@ class ManageTests(TwoFactorTestCase):
         self.assertEqual(services.verify(self.employee, new_codes[0]), services.Result.RECOVERY_CODE)
 
 
-class ResetByManagerTests(TwoFactorTestCase):
-    def test_team_page_shows_who_uses_2fa(self):
+class ResetByAdminTests(TwoFactorTestCase):
+    def test_users_page_shows_who_uses_2fa(self):
         self.turn_on(self.employee)
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
         employees = self.client.get(reverse("manager_employees")).context["bootstrap"]["data"]["employees"]
-        self.assertEqual({e["id"]: e["twoFactor"] for e in employees}, {self.employee.pk: True})
+        self.assertEqual({e["id"]: e["twoFactor"] for e in employees}[self.employee.pk], True)
 
-    def test_a_manager_can_reset_an_employee_and_the_employee_is_told(self):
+    def test_an_admin_can_reset_an_employee_and_the_employee_is_told(self):
         self.turn_on(self.employee)
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
         self.client.post(reverse("reset_employee_two_factor", args=[self.employee.pk]))
 
         self.assertFalse(TOTPDevice.objects.filter(user=self.employee).exists())
         notice = Notification.objects.get(recipient=self.employee, title="Two-factor authentication reset")
-        self.assertEqual(notice.actor, self.manager)
+        self.assertEqual(notice.actor, self.admin)
         self.assertEqual(mail.outbox[0].to, [self.employee.email])
 
-    def test_a_manager_cannot_reset_an_admin(self):
+    def test_an_admin_cannot_reset_their_own(self):
         self.turn_on(self.admin)
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
         response = self.client.post(reverse("reset_employee_two_factor", args=[self.admin.pk]))
 
         self.assertEqual(response.status_code, 404)
         self.assertTrue(TOTPDevice.objects.filter(user=self.admin).exists())
 
-    def test_an_employee_cannot_reset_anyone(self):
-        self.turn_on(self.manager)
-        self.client.force_login(self.employee)
-        self.client.post(reverse("reset_employee_two_factor", args=[self.manager.pk]))
-        self.assertTrue(TOTPDevice.objects.filter(user=self.manager).exists())
+    def test_managers_and_employees_cannot_reset_anyone(self):
+        self.turn_on(self.employee)
+        for actor in (self.manager, self.employee):
+            with self.subTest(actor=actor.role):
+                self.client.force_login(actor)
+                self.client.post(reverse("reset_employee_two_factor", args=[self.employee.pk]))
+                self.assertTrue(TOTPDevice.objects.filter(user=self.employee).exists())
 
 
 class ExportTests(TwoFactorTestCase):

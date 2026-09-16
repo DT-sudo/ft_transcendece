@@ -25,14 +25,26 @@ class UserRole(models.TextChoices):
     EMPLOYEE = "employee", _("Employee")
 
 
-# Admins run the schedule like managers, and also manage every account and its role.
+# Manager-level accounts. Managers run the schedule; admins provision the accounts and positions.
 MANAGER_ROLES = (UserRole.ADMIN, UserRole.MANAGER)
+
+# A permanent, undeletable Position: giving it to an employee promotes the account to
+# Manager instead of assigning a job title (see `UserForm.save`).
+MANAGER_POSITION_NAME = "Manager"
+
+class Position(models.Model):
+    """A job title the admin keeps, e.g. "Barista". Shifts (apps.scheduling) reference it read-only."""
+
+    name = models.CharField(max_length=25, unique=True)
+
+    def __str__(self) -> str:
+        return self.name
 
 class User(AbstractUser):
     role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.EMPLOYEE)
     employee_id = models.CharField(max_length=20, unique=True, default=generate_employee_id, editable=False)
     position = models.ForeignKey(
-        "scheduling.Position",
+        Position,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -65,21 +77,21 @@ class User(AbstractUser):
         return self.role == UserRole.ADMIN
     @property
     def is_manager(self) -> bool:
-        """Runs the schedule: managers and admins."""
+        """Manager level: managers, who run the schedule, and admins, who manage the accounts."""
         return self.role in MANAGER_ROLES
     @property
     def is_employee(self) -> bool:
         return self.role == UserRole.EMPLOYEE
     def managed_users(self) -> models.QuerySet[User]:
-        """The accounts on this user's Team page: every other account for an admin, employees for a manager.
+        """The accounts on the admin's Users page: every account but their own.
 
-        Nobody manages their own account there, so an admin can't demote or delete themselves
+        Provisioning accounts is the admin's job alone; managers run the schedule. Nobody
+        manages their own account here, so an admin can't demote or delete themselves
         (their own data is under "Privacy & my data").
         """
-        if not self.is_manager:
+        if not self.is_admin:
             return User.objects.none()
-        accounts = User.objects.all() if self.is_admin else User.objects.filter(role=UserRole.EMPLOYEE)
-        return accounts.exclude(pk=self.pk)
+        return User.objects.exclude(pk=self.pk)
     def manages(self, other: User) -> bool:
         return self.managed_users().filter(pk=other.pk).exists()
     @staticmethod

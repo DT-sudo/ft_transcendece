@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -19,15 +18,14 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.views import employee_required, manager_required
 from apps.accounts.models import User, UserRole
+from apps.accounts.services import position_options
 from apps.notifications.messages import shift_params
 from apps.notifications.services import managers, notify
-from apps.shell import first_form_error, flash_redirect, render_app
+from apps.shell import flash_redirect, render_app
 from apps.realtime.events import notify_managers, push_to_user
 
-from .forms import PositionForm
-from .models import Assignment, EmployeeUnavailability, Position, Shift, ShiftStatus
+from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
 from .services import (
-    position_options,
     publish_shift,
     publish_shifts_in_period,
     save_shift,
@@ -161,7 +159,7 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
             "start": start.isoformat(),
             "end": end.isoformat(),
             "today": today.isoformat(),
-            "positions": position_options(),
+            "positions": position_options(exclude_reserved=True),
             "employees": [
                 {
                     "id": e.id,
@@ -278,34 +276,6 @@ def publish_all_shifts(request: HttpRequest) -> HttpResponse:
     return flash_redirect(request, messages.INFO, _("No draft shifts to publish."), "manager_shifts")
 
 
-# ── Positions ───────────────────────────────────────────────────────────────
-
-
-@manager_required
-@require_POST
-def position_create(request: HttpRequest) -> HttpResponse:
-    form = PositionForm(request.POST)
-    if not form.is_valid():
-        return flash_redirect(request, messages.ERROR, first_form_error(form, _("Could not create position.")), "manager_employees")
-    position = form.save()
-    notify(managers(), "position.created", actor=request.user, name=position.name)
-    return flash_redirect(request, messages.SUCCESS, _("Position created: %(name)s.") % {"name": position.name}, "manager_employees")
-
-
-@manager_required
-@require_POST
-def position_delete(request: HttpRequest, position_id: int) -> HttpResponse:
-    position = get_object_or_404(Position, pk=position_id)
-    try:
-        position.delete()
-    except ProtectedError:
-        return flash_redirect(
-            request, messages.ERROR, _("Cannot delete position: it is referenced by existing data."), "manager_employees"
-        )
-    notify(managers(), "position.deleted", actor=request.user, level="warning", name=position.name)
-    return flash_redirect(request, messages.SUCCESS, _("Position deleted: %(name)s.") % {"name": position.name}, "manager_employees")
-
-
 # ── Search and analytics ────────────────────────────────────────────────────
 
 FILTER_PARAMS = ("q", "position", "worker", "status", "date_from", "date_to")
@@ -334,7 +304,7 @@ def _shift_filters(request: HttpRequest) -> dict:
 def _filter_bar(request: HttpRequest, **values: str) -> dict:
     """Options for the filter bar, and its current values echoed from the query string."""
     return {
-        "positions": position_options(),
+        "positions": position_options(exclude_reserved=True),
         "workers": [{"id": w.id, "name": w.display_name} for w in _active_employees()],
         "filters": {**{param: request.GET.get(param, "") for param in FILTER_PARAMS}, **values},
     }
@@ -385,7 +355,7 @@ def manager_analytics(request: HttpRequest) -> HttpResponse:
         nav_active="manager_analytics",
         data={
             **_filter_bar(request, date_from=filters["start"].isoformat(), date_to=filters["end"].isoformat()),
-            "analytics": shift_analytics(rows, worker_id=filters["worker_id"]),
+            "analytics": shift_analytics(rows, start=filters["start"], end=filters["end"], worker_id=filters["worker_id"]),
             "urls": {"exportCsv": reverse("manager_analytics_export_csv")},
         },
     )

@@ -19,11 +19,10 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
-from apps.accounts.models import User, UserRole
+from apps.accounts.models import Position, User, UserRole
 from apps.notifications.models import Notification
 from apps.realtime.events import user_group
 from apps.realtime.tests import IN_MEMORY_LAYER, _as_user, next_event
-from apps.scheduling.models import Position
 
 from . import presence
 from .models import Friendship, FriendshipStatus
@@ -55,6 +54,7 @@ class ProfilesTestCase(TestCase):
 
         cls.alice, cls.bob, cls.carol = make("alice"), make("bob"), make("carol")
         cls.manager = make("maya", UserRole.MANAGER)
+        cls.admin = make("adam", UserRole.ADMIN)
 
     def befriend(self, sender, receiver, accepted=True) -> Friendship:
         status = FriendshipStatus.ACCEPTED if accepted else FriendshipStatus.PENDING
@@ -74,8 +74,18 @@ class ProfilePageTests(ProfilesTestCase):
         self.assertEqual(data["person"]["role"], "Barista")
         self.assertIsNotNone(data["person"]["status"])
 
-    def test_strangers_get_404(self):
-        self.assertEqual(self.profile_data(self.alice, self.bob).status_code, 404)
+    def test_strangers_can_view_the_profile_without_private_details(self):
+        response = self.profile_data(self.alice, self.bob)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["relation"], {"state": "none"})
+        self.assertIsNone(data["person"]["email"])
+        self.assertIsNone(data["person"]["status"])
+        self.assertIsNone(data["friends"])
+
+    def test_admins_are_not_visible_to_colleagues(self):
+        self.assertEqual(self.profile_data(self.alice, self.admin).status_code, 404)
+        self.assertEqual(self.profile_data(self.manager, self.admin).status_code, 404)
 
     def test_friends_see_email_status_and_friend_list(self):
         self.befriend(self.alice, self.bob)
@@ -97,12 +107,20 @@ class ProfilePageTests(ProfilesTestCase):
         self.assertIsNone(data["person"]["status"])
         self.assertIsNone(data["friends"])
 
-    def test_managers_see_their_employees_but_not_the_other_way_round(self):
-        data = self.profile_data(self.manager, self.alice).json()
-        self.assertEqual(data["person"]["email"], "alice@example.com")
-        self.assertIsNone(data["person"]["status"])  # online status is for friends
+    def test_colleagues_see_each_other_without_private_details_either_way(self):
+        """A manager isn't privileged here: email and online status are for friends (and the admin)."""
+        for viewer, person in ((self.manager, self.alice), (self.alice, self.manager)):
+            with self.subTest(viewer=viewer.first_name):
+                response = self.profile_data(viewer, person)
+                self.assertEqual(response.status_code, 200)
+                self.assertIsNone(response.json()["person"]["email"])
+                self.assertIsNone(response.json()["person"]["status"])
 
-        self.assertEqual(self.profile_data(self.alice, self.manager).status_code, 404)
+    def test_the_admin_sees_the_email_of_every_account_they_manage(self):
+        data = self.profile_data(self.admin, self.alice).json()
+
+        self.assertEqual(data["person"]["email"], "alice@example.com")
+        self.assertIsNone(data["person"]["status"])  # online status is still friends only
 
     def test_a_deactivated_account_has_no_profile(self):
         User.objects.filter(pk=self.alice.pk).update(is_active=False)
@@ -256,10 +274,15 @@ class AvatarTests(ProfilesTestCase):
         response = self.client.get(url)
         self.assertEqual((response.status_code, response["Content-Type"]), (200, "image/webp"))
 
+        # Any colleague can see it, friends or not.
         self.client.force_login(self.bob)
-        self.assertEqual(self.client.get(url).status_code, 404)
-        self.befriend(self.bob, self.alice)
         self.assertEqual(self.client.get(url).status_code, 200)
+
+        # An admin isn't a colleague, so their own picture stays private.
+        self.upload(self.admin, picture())
+        admin_url = reverse("avatar", args=[self.admin.id])
+        self.client.force_login(self.bob)
+        self.assertEqual(self.client.get(admin_url).status_code, 404)
 
 
 class FriendshipTests(ProfilesTestCase):
@@ -270,8 +293,8 @@ class FriendshipTests(ProfilesTestCase):
     def flash(self, response) -> str:
         return [str(message) for message in response.wsgi_request._messages][-1]
 
-    def test_a_request_by_email_notifies_the_other_person(self):
-        response = self.ask(self.alice, email="BOB@example.com")
+    def test_a_request_by_id_notifies_the_other_person(self):
+        response = self.ask(self.alice, user_id=self.bob.id)
 
         self.assertRedirects(response, reverse("friends"))
         friendship = Friendship.objects.get()
@@ -280,24 +303,36 @@ class FriendshipTests(ProfilesTestCase):
 
     def test_refused_requests(self):
         cases = {
-            "nobody@example.com": "No account uses that email address.",
-            "alice@example.com": "You can't add yourself as a friend.",
+            "999999": "That person was not found.",
+            str(self.alice.id): "You can't add yourself as a friend.",
         }
-        for email, message in cases.items():
-            with self.subTest(email=email):
-                self.assertEqual(self.flash(self.ask(self.alice, email=email)), message)
+        for user_id, message in cases.items():
+            with self.subTest(user_id=user_id):
+                self.assertEqual(self.flash(self.ask(self.alice, user_id=user_id)), message)
         self.assertFalse(Friendship.objects.exists())
 
-        self.ask(self.alice, email="bob@example.com")
-        self.assertEqual(self.flash(self.ask(self.alice, email="bob@example.com")), "You already sent Bob Test a friend request.")
+        self.ask(self.alice, user_id=self.bob.id)
+        self.assertEqual(self.flash(self.ask(self.alice, user_id=self.bob.id)), "You already sent Bob Test a friend request.")
         self.assertEqual(Friendship.objects.count(), 1)
+
+    def test_a_request_needs_a_real_colleague(self):
+        """An admin isn't a colleague, so asking one is refused like asking a nonexistent id."""
+        response = self.ask(self.carol, user_id=self.admin.id)
+        self.assertEqual(self.flash(response), "That person was not found.")
+        self.assertFalse(Friendship.objects.exists())
 
     def test_asking_back_accepts(self):
         self.befriend(self.bob, self.alice, accepted=False)
 
-        self.ask(self.alice, email="bob@example.com")
+        self.ask(self.alice, user_id=self.bob.id)
 
         self.assertTrue(Friendship.objects.get().accepted)
+
+    def test_admins_have_no_colleagues_feature(self):
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.get(reverse("friends")), reverse("manager_employees"))
+        self.assertRedirects(self.ask(self.admin, user_id=self.alice.id), reverse("manager_employees"))
+        self.assertFalse(Friendship.objects.exists())
 
     def test_only_the_receiver_can_accept(self):
         friendship = self.befriend(self.alice, self.bob, accepted=False)
@@ -328,16 +363,8 @@ class FriendshipTests(ProfilesTestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             self.befriend(self.bob, self.alice, accepted=False)
 
-    def test_a_request_by_id_needs_a_profile_you_can_see(self):
-        response = self.ask(self.carol, user_id=self.bob.id)
-        self.assertEqual(self.flash(response), "That person was not found.")
-        self.assertFalse(Friendship.objects.exists())
-
-        self.ask(self.manager, user_id=self.alice.id, next=reverse("profile", args=[self.alice.id]))
-        self.assertTrue(Friendship.objects.filter(from_user=self.manager, to_user=self.alice).exists())
-
     def test_redirects_stay_on_this_site(self):
-        response = self.ask(self.alice, email="bob@example.com", next="https://evil.example/")
+        response = self.ask(self.alice, user_id=self.bob.id, next="https://evil.example/")
         self.assertRedirects(response, reverse("friends"))
 
     def test_the_friends_page_sorts_people_into_lists(self):
@@ -352,6 +379,13 @@ class FriendshipTests(ProfilesTestCase):
         self.assertEqual([request["id"] for request in data["incoming"]], [self.carol.id])
         self.assertEqual([request["id"] for request in data["outgoing"]], [self.manager.id])
 
+    def test_the_friends_page_lists_every_colleague_but_yourself_and_admins(self):
+        self.client.force_login(self.alice)
+
+        data = self.client.get(reverse("friends"), {"format": "json"}).json()
+
+        self.assertEqual({person["id"] for person in data["colleagues"]}, {self.bob.id, self.carol.id, self.manager.id})
+
     @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
     def test_the_other_side_hears_about_it_live(self):
         layer = get_channel_layer()
@@ -359,7 +393,7 @@ class FriendshipTests(ProfilesTestCase):
         async_to_sync(layer.group_add)(user_group(self.bob.id), channel)
 
         with self.captureOnCommitCallbacks(execute=True):
-            self.ask(self.alice, email="bob@example.com")
+            self.ask(self.alice, user_id=self.bob.id)
 
         self.assertEqual(next_event(layer, channel)["type"], "notification")
         self.assertEqual(next_event(layer, channel), {"type": "friends.changed"})

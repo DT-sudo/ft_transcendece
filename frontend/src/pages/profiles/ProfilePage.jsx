@@ -18,7 +18,7 @@ const withPersonStatus = (data, event) =>
  * list; the page follows that status and the friendship live.
  */
 export function ProfilePage() {
-  const { urls: pageUrls } = getBootstrap();
+  const { urls: pageUrls, user: viewer } = getBootstrap();
   const { person, relation, friends, urls } = useLivePageData(getBootstrap().data, FRIEND_EVENTS, withPersonStatus);
   const isSelf = relation.state === 'self';
 
@@ -42,7 +42,7 @@ export function ProfilePage() {
                     <Settings size={16} />
                     {t('profile.editProfile')}
                   </a>
-                ) : (
+                ) : viewer.isAdmin ? null : (
                   <FriendActions person={person} relation={relation} urls={urls} />
                 )}
               </div>

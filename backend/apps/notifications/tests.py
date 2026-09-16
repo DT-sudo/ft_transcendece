@@ -8,10 +8,10 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import User, UserRole
+from apps.accounts.models import Position, User, UserRole
 from apps.realtime.events import user_group
 from apps.realtime.tests import IN_MEMORY_LAYER, next_event
-from apps.scheduling.models import Assignment, Position, Shift, ShiftStatus
+from apps.scheduling.models import Assignment, Shift, ShiftStatus
 
 from .models import Notification
 
@@ -25,6 +25,10 @@ class NotificationTestCase(TestCase):
         )
         cls.other_manager = User.objects.create_user(
             username="other@example.com", password="x", role=UserRole.MANAGER
+        )
+        # Accounts and positions are the admin's to write.
+        cls.admin = User.objects.create_user(
+            username="admin@example.com", password="x", role=UserRole.ADMIN, first_name="Ada", last_name="Ray"
         )
         cls.alice, cls.bob, cls.carol = (
             User.objects.create_user(
@@ -118,39 +122,56 @@ class RecipientTests(NotificationTestCase):
 
         self.assertEqual(self._received(), {self.alice: ["Shift cancelled"]})
 
-    def test_position_changes_notify_the_other_managers(self):
-        self._post(self.manager, "position_create", data={"name": "Cook"})
-        self._post(self.manager, "position_delete", Position.objects.get(name="Cook").id)
-
-        self.assertEqual(self._received(), {self.other_manager: ["Position created", "Position deleted"]})
-
-    def test_employee_changes_notify_the_other_managers_and_the_employee(self):
-        self._post(
-            self.manager,
-            "employee_update",
-            self.alice.id,
-            data={"full_name": "Alice Novak", "email": "alice@example.com", "position": self.barista.id},
-        )
-        self._post(self.manager, "reset_employee_password", self.alice.id)
+    def test_position_changes_notify_the_managers(self):
+        self._post(self.admin, "position_create", data={"name": "Cook"})
+        self._post(self.admin, "position_delete", Position.objects.get(name="Cook").id)
 
         self.assertEqual(
             self._received(),
             {
+                self.manager: ["Position created", "Position deleted"],
+                self.other_manager: ["Position created", "Position deleted"],
+            },
+        )
+
+    def test_employee_changes_notify_the_managers_and_the_employee(self):
+        self._post(
+            self.admin,
+            "employee_update",
+            self.alice.id,
+            data={
+                "full_name": "Alice Novak",
+                "email": "alice@example.com",
+                "role": UserRole.EMPLOYEE,
+                "position": self.barista.id,
+            },
+        )
+        self._post(self.admin, "reset_employee_password", self.alice.id)
+
+        self.assertEqual(
+            self._received(),
+            {
+                self.manager: ["Employee updated"],
                 self.other_manager: ["Employee updated"],
                 self.alice: ["Your details were updated", "Your password was reset"],
             },
         )
 
-    def test_deleting_an_employee_notifies_the_other_managers(self):
-        self._post(self.manager, "employee_delete", self.bob.id)
+    def test_deleting_an_employee_notifies_the_managers(self):
+        self._post(self.admin, "employee_delete", self.bob.id)
 
-        self.assertEqual(self._received(), {self.other_manager: ["Employee deleted"]})
+        self.assertEqual(self._received(), {self.manager: ["Employee deleted"], self.other_manager: ["Employee deleted"]})
 
     def test_unavailability_notifies_every_manager(self):
         self._post(self.alice, "employee_unavailability_toggle", data={"date": self.day.isoformat()})
 
         self.assertEqual(
-            self._received(), {self.manager: ["Availability updated"], self.other_manager: ["Availability updated"]}
+            self._received(),
+            {
+                self.manager: ["Availability updated"],
+                self.other_manager: ["Availability updated"],
+                self.admin: ["Availability updated"],
+            },
         )
 
     def test_notification_is_pushed_to_the_recipients_open_pages(self):

@@ -5,7 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm, BaseUserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import User, UserRole
+from .models import MANAGER_POSITION_NAME, Position, User, UserRole
 
 
 def _split_full_name(full_name: str) -> tuple[str, str]:
@@ -93,34 +93,38 @@ class AccountForm(forms.ModelForm):
         return user
 
 
-class EmployeeForm(AccountForm):
-    """Manager-side create/edit of an employee (the model's default role); the view sets the password."""
+class PositionForm(forms.ModelForm):
+    class Meta:
+        model = Position
+        fields = ["name"]
+        error_messages = {
+            "name": {
+                "required": _("Enter a position name."),
+                "unique": _("A position with this name already exists."),
+            }
+        }
+
+
+class UserForm(AccountForm):
+    """The admin's create/edit of any account: a role is picked, and only employees have a position.
+
+    Giving an employee the permanent "Manager" position promotes them instead of assigning a job
+    title: `save()` swaps it for `role=MANAGER` and clears the position, since managers don't work
+    shifts.
+    """
 
     class Meta:
         model = User
-        fields = ["email", "position"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["position"].required = True
-
-
-class UserForm(EmployeeForm):
-    """Admin-side create/edit of any account: the role is picked too, and only employees have a position."""
-
-    class Meta(EmployeeForm.Meta):
         fields = ["email", "role", "position"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["position"].required = False
 
     def clean(self) -> dict:
         cleaned = super().clean()
-        role = cleaned.get("role")
+        role, position = cleaned.get("role"), cleaned.get("position")
         if role == UserRole.EMPLOYEE:
-            if not cleaned.get("position"):
+            if not position:
                 self.add_error("position", _("Employees need a position."))
+            elif position.name == MANAGER_POSITION_NAME and self.instance.pk and self.instance.assignments.exists():
+                self.add_error("position", _("Reassign or remove this employee's shifts before making them a manager."))
         elif role:
             cleaned["position"] = None
 
@@ -130,3 +134,14 @@ class UserForm(EmployeeForm):
         if switches_side and (self.instance.created_shifts.exists() or self.instance.assignments.exists()):
             raise ValidationError(_("Reassign or remove this user's shifts before switching between employee and manager roles."))
         return cleaned
+
+    def save(self, commit=True) -> User:
+        user = super().save(commit=False)
+        position = self.cleaned_data.get("position")
+        self.promoted = bool(position and position.name == MANAGER_POSITION_NAME)
+        if self.promoted:
+            user.role = UserRole.MANAGER
+            user.position = None
+        if commit:
+            user.save()
+        return user

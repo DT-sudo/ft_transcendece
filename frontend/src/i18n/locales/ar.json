@@ -25,9 +25,8 @@
     "search": "البحث",
     "analytics": "التحليلات",
     "users": "المستخدمون",
-    "team": "الفريق",
     "myShifts": "مناوباتي",
-    "friends": "الأصدقاء"
+    "friends": "الزملاء"
   },
   "header": {
     "userMenu": "قائمة المستخدم",
@@ -243,9 +242,10 @@
     "reportFilters": "{from} – {to} · المنصب: {position} · العامل: {worker} · الحالة: {status}",
     "generated": "أُنشئ في {time}",
     "overTime": "المناوبات عبر الزمن",
-    "byPosition": "المناوبات حسب المنصب",
-    "shiftStatus": "حالة المناوبات",
     "hoursPerWorker": "الساعات لكل عامل",
+    "legalMax": "الحد الأقصى القانوني",
+    "withinLimit": "ضمن الحد",
+    "overtime": "ساعات إضافية",
     "topWorkers": "أكثر العاملين ساعات",
     "topPositions": "أكثر المناصب مناوبات",
     "shiftCount": {
@@ -256,15 +256,12 @@
       "many": "{count} مناوبة",
       "other": "{count} مناوبة"
     },
-    "noData": "لا توجد بيانات لهذه الفلاتر.",
-    "total": "الإجمالي"
+    "noData": "لا توجد بيانات لهذه الفلاتر."
   },
   "team": {
     "addUser": "إضافة مستخدم",
-    "addEmployee": "إضافة موظف",
     "managePositions": "إدارة المناصب",
     "userList": "قائمة المستخدمين",
-    "employeeList": "قائمة الموظفين",
     "avatar": "الصورة",
     "employeeId": "رقم الموظف",
     "fullName": "الاسم الكامل",
@@ -282,17 +279,11 @@
     "resetTwoFactorNote": "افعل ذلك فقط لمن فقد هاتفه ورموز الاسترداد معًا. سيُبلَّغ بالبريد الإلكتروني ويمكنه تفعيله مجددًا.",
     "yesReset": "نعم، أعد التعيين",
     "deleteUser": "حذف المستخدم",
-    "deleteEmployee": "حذف الموظف",
     "deleteUserMessage": "هل تريد بالتأكيد حذف هذا المستخدم؟",
-    "deleteEmployeeMessage": "هل تريد بالتأكيد حذف هذا الموظف؟",
     "deleteUserNote": "سيؤدي ذلك إلى إزالة المستخدم وتعييناته.",
-    "deleteEmployeeNote": "سيؤدي ذلك إلى إزالة الموظف وتعييناته.",
     "editUser": "تعديل المستخدم",
-    "editEmployee": "تعديل الموظف",
     "newUser": "إضافة مستخدم جديد",
-    "newEmployee": "إضافة موظف جديد",
     "createUser": "إنشاء مستخدم",
-    "createEmployee": "إنشاء موظف",
     "fullNamePlaceholder": "أدخل الاسم الكامل",
     "emailLogin": "البريد الإلكتروني / اسم الدخول",
     "emailPlaceholder": "أدخل البريد الإلكتروني",
@@ -311,7 +302,8 @@
     "deletePositionLabel": "حذف المنصب {name}",
     "deletePosition": "حذف المنصب",
     "deletePositionMessage": "حذف هذا المنصب؟",
-    "deletePositionNote": "لا يمكن حذف منصب لا تزال مناوبة ما تحتاجه."
+    "deletePositionNote": "لا يمكن حذف منصب لا تزال مناوبة ما تحتاجه.",
+    "permanentPosition": "دائم — لا يمكن حذفه"
   },
   "profile": {
     "editProfile": "تعديل الملف الشخصي",
@@ -324,12 +316,11 @@
     "noFriends": "لا يوجد أصدقاء بعد."
   },
   "friends": {
-    "addByEmail": "أضف صديقًا عبر البريد الإلكتروني",
-    "emailPlaceholder": "colleague@example.com",
-    "send": "إرسال الطلب",
+    "colleagues": "كل الزملاء",
+    "noColleagues": "لا يوجد زملاء بعد.",
     "friends": "الأصدقاء",
     "online": "{online} من {total} متصلون",
-    "noFriends": "لا يوجد أصدقاء بعد. أضف زميلًا عبر بريده الإلكتروني أعلاه.",
+    "noFriends": "لا يوجد أصدقاء بعد. أضف صديقًا من قائمة الزملاء أدناه.",
     "requests": "طلبات الصداقة",
     "noRequests": "لا توجد طلبات بانتظار ردك.",
     "sentRequests": "الطلبات المرسلة",

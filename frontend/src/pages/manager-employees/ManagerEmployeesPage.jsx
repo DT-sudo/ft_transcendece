@@ -11,7 +11,7 @@ import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeM
 /** "EMP-123456 (maya@example.com)": names the account in a confirmation. */
 const accountLabel = (employee) => `${employee.employeeId} (${employee.email})`;
 
-function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onResetTwoFactor, onDelete }) {
+function EmployeeRow({ employee, onEdit, onResetPassword, onResetTwoFactor, onDelete }) {
   return (
     <tr>
       <td>
@@ -28,11 +28,9 @@ function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onResetTwoFa
           </span>
         ) : null}
       </td>
-      {showRole ? (
-        <td>
-          <span className="badge badge-outline">{employee.roleLabel}</span>
-        </td>
-      ) : null}
+      <td>
+        <span className="badge badge-outline">{employee.roleLabel}</span>
+      </td>
       <td>{employee.position ? <span className="badge badge-default">{employee.position}</span> : null}</td>
       <td className="text-sm" dir="ltr">
         {employee.email}
@@ -57,11 +55,10 @@ function EmployeeRow({ employee, showRole, onEdit, onResetPassword, onResetTwoFa
   );
 }
 
-/** The Team page. Admins get every other account plus a role column and picker (`roles`); managers get employees. */
+/** The admin's Users page: every other account, its role and position, and the positions themselves. */
 export function ManagerEmployeesPage() {
   const { data } = getBootstrap();
   const { employees, roles, positions, credentials, urls } = data;
-  const isUsers = Boolean(roles);
 
   const [employeeForm, setEmployeeForm] = useState(null);
   const [showPositions, setShowPositions] = useState(false);
@@ -81,7 +78,7 @@ export function ManagerEmployeesPage() {
               onClick={() => setEmployeeForm({ employee: {}, action: urls.create })}
             >
               <Plus size={16} />
-              {isUsers ? t('team.addUser') : t('team.addEmployee')}
+              {t('team.addUser')}
             </button>
             <button className="btn btn-outline" type="button" onClick={() => setShowPositions(true)}>
               {t('team.managePositions')}
@@ -90,13 +87,13 @@ export function ManagerEmployeesPage() {
         </div>
 
         <div className="card mt-3">
-          <table className="table" aria-label={isUsers ? t('team.userList') : t('team.employeeList')}>
+          <table className="table" aria-label={t('team.userList')}>
             <thead>
               <tr>
                 <th>{t('team.avatar')}</th>
                 <th>{t('team.employeeId')}</th>
                 <th>{t('team.fullName')}</th>
-                {roles ? <th>{t('team.role')}</th> : null}
+                <th>{t('team.role')}</th>
                 <th>{t('team.position')}</th>
                 <th>{t('team.email')}</th>
                 <th>{t('team.actions')}</th>
@@ -105,7 +102,7 @@ export function ManagerEmployeesPage() {
             <tbody>
               {employees.length === 0 ? (
                 <tr>
-                  <td colSpan={roles ? 7 : 6} className="p-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                     {t('team.empty')}
                   </td>
                 </tr>
@@ -114,7 +111,6 @@ export function ManagerEmployeesPage() {
                   <EmployeeRow
                     key={employee.id}
                     employee={employee}
-                    showRole={isUsers}
                     onEdit={(target) => setEmployeeForm({ employee: target, action: urlFromTemplate(urls.update, target.id) })}
                     onResetPassword={setPendingReset}
                     onResetTwoFactor={setPendingTwoFactorReset}
@@ -170,10 +166,10 @@ export function ManagerEmployeesPage() {
 
       {pendingDelete ? (
         <ConfirmModal
-          title={isUsers ? t('team.deleteUser') : t('team.deleteEmployee')}
-          message={isUsers ? t('team.deleteUserMessage') : t('team.deleteEmployeeMessage')}
+          title={t('team.deleteUser')}
+          message={t('team.deleteUserMessage')}
           detail={accountLabel(pendingDelete)}
-          footnote={isUsers ? t('team.deleteUserNote') : t('team.deleteEmployeeNote')}
+          footnote={t('team.deleteUserNote')}
           confirmText={t('common.yesDelete')}
           destructive
           onCancel={() => setPendingDelete(null)}

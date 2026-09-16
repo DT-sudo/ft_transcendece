@@ -15,4 +15,6 @@ urlpatterns = [
     path("manager/employees/<int:user_id>/reset-password/", views.reset_employee_password, name="reset_employee_password"),
     path("manager/employees/<int:user_id>/reset-2fa/", views.reset_employee_two_factor, name="reset_employee_two_factor"),
     path("manager/employees/<int:user_id>/delete/", views.employee_delete, name="employee_delete"),
+    path("manager/positions/create/", views.position_create, name="position_create"),
+    path("manager/positions/<int:position_id>/delete/", views.position_delete, name="position_delete"),
 ]

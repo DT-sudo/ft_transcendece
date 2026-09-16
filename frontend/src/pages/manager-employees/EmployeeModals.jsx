@@ -7,22 +7,17 @@ import { ConfirmModal, Modal } from '../../components/Modal.jsx';
 import { t, tx } from '../../i18n/index.js';
 
 /**
- * Create or edit an account, given a row from the Team payload (an empty object when creating).
- * Admins also pick the role (`roles`); only employees have a position.
+ * Create or edit an account, given a row from the Users payload (an empty object when creating).
+ * Only employees have a position, and giving one the "Manager" position promotes them.
  * Native form: the browser checks required/type, Django validates.
  */
 export function EmployeeFormModal({ employee, action, roles, positions, onClose }) {
   const isEdit = Boolean(employee.id);
-  const isUser = Boolean(roles);
   const [role, setRole] = useState(employee.role ?? 'employee');
-
-  let title;
-  if (isEdit) title = isUser ? t('team.editUser') : t('team.editEmployee');
-  else title = isUser ? t('team.newUser') : t('team.newEmployee');
 
   return (
     <Modal
-      title={title}
+      title={isEdit ? t('team.editUser') : t('team.newUser')}
       onClose={onClose}
       footer={
         <>
@@ -30,7 +25,7 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
             {t('common.cancel')}
           </button>
           <button className="btn btn-primary" type="submit" form="employeeForm">
-            {isEdit ? t('common.save') : isUser ? t('team.createUser') : t('team.createEmployee')}
+            {isEdit ? t('common.save') : t('team.createUser')}
           </button>
         </>
       }
@@ -40,18 +35,16 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
 
         <Field id="employeeFullName" name="full_name" label={t('team.fullName')} placeholder={t('team.fullNamePlaceholder')} required defaultValue={employee.fullName} />
         <Field id="employeeEmail" name="email" type="email" dir="ltr" label={t('team.emailLogin')} placeholder={t('team.emailPlaceholder')} required defaultValue={employee.email} />
-        {roles ? (
-          <SelectField
-            id="employeeRole"
-            name="role"
-            label={t('team.role')}
-            placeholder={t('team.selectRole')}
-            required
-            options={roles}
-            value={role}
-            onChange={(event) => setRole(event.target.value)}
-          />
-        ) : null}
+        <SelectField
+          id="employeeRole"
+          name="role"
+          label={t('team.role')}
+          placeholder={t('team.selectRole')}
+          required
+          options={roles}
+          value={role}
+          onChange={(event) => setRole(event.target.value)}
+        />
         {role === 'employee' ? (
           <SelectField
             id="employeePosition"
@@ -144,15 +137,19 @@ export function PositionsModal({ positions, urls, onClose }) {
                   <tr key={position.id}>
                     <td>{position.name}</td>
                     <td className="text-end">
-                      <button
-                        className="btn btn-ghost btn-icon btn-icon-destructive"
-                        type="button"
-                        aria-label={t('team.deletePositionLabel', { name: position.name })}
-                        title={t('common.delete')}
-                        onClick={() => setPendingDelete(position)}
-                      >
-                        <Trash />
-                      </button>
+                      {position.name === 'Manager' ? (
+                        <span className="text-xs text-muted-foreground">{t('team.permanentPosition')}</span>
+                      ) : (
+                        <button
+                          className="btn btn-ghost btn-icon btn-icon-destructive"
+                          type="button"
+                          aria-label={t('team.deletePositionLabel', { name: position.name })}
+                          title={t('common.delete')}
+                          onClick={() => setPendingDelete(position)}
+                        >
+                          <Trash />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

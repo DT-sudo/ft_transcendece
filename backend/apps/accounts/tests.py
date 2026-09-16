@@ -10,10 +10,10 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
-from apps.scheduling.models import Position, Shift
+from apps.scheduling.models import Shift
 
 from .forms import SignUpForm
-from .models import UserRole
+from .models import MANAGER_POSITION_NAME, Position, UserRole
 
 User = get_user_model()
 
@@ -192,26 +192,27 @@ class DemoLoginTests(TestCase):
         self.assertFalse(response.wsgi_request.user.is_authenticated)
 
 
-class EmployeeFormValidationTests(TestCase):
-    """The manager-side employee form validates on the server, not only in the browser."""
+class AccountFormValidationTests(TestCase):
+    """The admin's account form validates on the server, not only in the browser."""
 
     @classmethod
     def setUpTestData(cls) -> None:
         cls.position = Position.objects.create(name="Barista")
-        cls.manager = User.objects.create_user(
+        cls.admin = User.objects.create_user(
             username="boss@example.com",
             email="boss@example.com",
             password="correct-horse-42",
-            role=UserRole.MANAGER,
+            role=UserRole.ADMIN,
         )
 
     def setUp(self) -> None:
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
 
     def _create(self, **overrides):
         payload = {
             "full_name": "Pat Smith",
             "email": "pat@example.com",
+            "role": UserRole.EMPLOYEE,
             "position": self.position.id,
         }
         payload.update(overrides)
@@ -241,18 +242,18 @@ class EmployeeFormValidationTests(TestCase):
 
 
 class EmployeeDeleteGdprTests(TestCase):
-    """Manager-initiated erasure is the other door to the same GDPR right that
+    """Admin-initiated erasure is the other door to the same GDPR right that
     apps.privacy's self-service delete exercises, and must close the same way:
     a confirmation email to the person whose data was erased."""
 
     @classmethod
     def setUpTestData(cls) -> None:
         cls.position = Position.objects.create(name="Barista")
-        cls.manager = User.objects.create_user(
+        cls.admin = User.objects.create_user(
             username="boss@example.com",
             email="boss@example.com",
             password="correct-horse-42",
-            role=UserRole.MANAGER,
+            role=UserRole.ADMIN,
         )
         cls.employee = User.objects.create_user(
             username="pat@example.com",
@@ -264,13 +265,13 @@ class EmployeeDeleteGdprTests(TestCase):
         )
 
     def setUp(self) -> None:
-        self.client.force_login(self.manager)
+        self.client.force_login(self.admin)
 
     def test_delete_removes_the_employee(self):
         self.client.post(reverse("employee_delete", args=[self.employee.id]), follow=True)
         self.assertFalse(User.objects.filter(email="pat@example.com").exists())
 
-    def test_delete_sends_a_confirmation_email_to_the_employee_not_the_manager(self):
+    def test_delete_sends_a_confirmation_email_to_the_employee_not_the_admin(self):
         self.client.post(reverse("employee_delete", args=[self.employee.id]), follow=True)
 
         self.assertEqual(len(mail.outbox), 1)
@@ -290,7 +291,7 @@ class EmployeeDeleteGdprTests(TestCase):
 
 
 class RolePermissionTests(TestCase):
-    """Admins manage every other account and its role; managers manage employees only."""
+    """Admins provision every account, its role and the positions; managers only run the schedule."""
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -307,7 +308,13 @@ class RolePermissionTests(TestCase):
 
     def _update(self, user, target, **fields):
         self.client.force_login(user)
-        data = {"full_name": "Some Name", "email": target.email, "position": target.position_id or "", **fields}
+        data = {
+            "full_name": "Some Name",
+            "email": target.email,
+            "role": target.role,
+            "position": target.position_id or "",
+            **fields,
+        }
         return self.client.post(reverse("employee_update", args=[target.id]), data)
 
     def _shift_by(self, manager) -> None:
@@ -321,11 +328,26 @@ class RolePermissionTests(TestCase):
         self.assertEqual({row["email"] for row in data["employees"]}, {"boss@example.com", "pat@example.com"})
         self.assertEqual([role["id"] for role in data["roles"]], ["admin", "manager", "employee"])
 
-    def test_manager_sees_only_employees_and_no_roles(self):
-        data = self._team(self.manager)
-
-        self.assertEqual([row["email"] for row in data["employees"]], ["pat@example.com"])
-        self.assertIsNone(data["roles"])
+    def test_managers_have_no_account_management_at_all(self):
+        """Provisioning accounts and positions is the admin's job; a manager is sent back to the schedule."""
+        self.client.force_login(self.manager)
+        pages = (
+            ("manager_employees", ()),
+            ("manager_employees_create", ()),
+            ("employee_update", (self.employee.id,)),
+            ("employee_delete", (self.employee.id,)),
+            ("reset_employee_password", (self.employee.id,)),
+            ("reset_employee_two_factor", (self.employee.id,)),
+            ("position_create", ()),
+            ("position_delete", (self.position.id,)),
+        )
+        for name, args in pages:
+            with self.subTest(name=name):
+                url = reverse(name, args=args)
+                response = self.client.get(url) if not args and name == "manager_employees" else self.client.post(url)
+                self.assertRedirects(response, reverse("manager_shifts"))
+        self.assertTrue(User.objects.filter(pk=self.employee.pk).exists())
+        self.assertTrue(Position.objects.filter(pk=self.position.pk).exists())
 
     def test_admin_changes_a_role(self):
         self._update(self.admin, self.employee, role=UserRole.MANAGER)
@@ -342,13 +364,9 @@ class RolePermissionTests(TestCase):
         self.assertEqual(User.objects.get(email="new@example.com").role, UserRole.MANAGER)
         self.assertFalse(User.objects.filter(email="nopost@example.com").exists())
 
-    def test_manager_cannot_manage_other_managers_or_assign_roles(self):
-        self.assertEqual(self._update(self.manager, self.admin).status_code, 404)
-
-        # A manager's form has no role field, so a posted role is ignored.
-        self._update(self.manager, self.employee, role=UserRole.ADMIN)
-        self.employee.refresh_from_db()
-        self.assertEqual(self.employee.role, UserRole.EMPLOYEE)
+    def test_employees_have_no_account_management_either(self):
+        self.client.force_login(self.employee)
+        self.assertRedirects(self.client.get(reverse("manager_employees")), reverse("employee_shifts"))
 
     def test_admin_cannot_manage_their_own_account(self):
         self.assertEqual(self._update(self.admin, self.admin, role=UserRole.EMPLOYEE).status_code, 404)
@@ -369,9 +387,39 @@ class RolePermissionTests(TestCase):
 
         self.assertTrue(User.objects.filter(pk=self.manager.pk).exists())
 
-    def test_admin_runs_the_schedule_like_a_manager(self):
+    def test_admin_does_not_run_the_schedule(self):
+        """Admins only manage accounts: shifts, search and analytics are a manager's job."""
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.get(reverse("manager_shifts")).status_code, 200)
+        for name in ("manager_shifts", "manager_shift_search", "manager_analytics"):
+            with self.subTest(name=name):
+                self.assertRedirects(self.client.get(reverse(name)), reverse("manager_employees"))
+
+    def test_picking_the_manager_position_promotes_the_employee(self):
+        manager_position = Position.objects.get(name=MANAGER_POSITION_NAME)
+
+        self._update(self.admin, self.employee, position=manager_position.id)
+
+        self.employee.refresh_from_db()
+        self.assertEqual((self.employee.role, self.employee.position), (UserRole.MANAGER, None))
+
+    def test_promoting_an_employee_with_shifts_is_refused(self):
+        manager_position = Position.objects.get(name=MANAGER_POSITION_NAME)
+        Shift.objects.create(
+            date=date(2030, 6, 3), start_time=time(9, 0), end_time=time(17, 0), position=self.position, created_by=self.manager
+        ).assignments.create(employee=self.employee)
+
+        self._update(self.admin, self.employee, position=manager_position.id)
+
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.role, UserRole.EMPLOYEE)
+
+    def test_the_manager_position_cannot_be_deleted(self):
+        manager_position = Position.objects.get(name=MANAGER_POSITION_NAME)
+        self.client.force_login(self.admin)
+
+        self.client.post(reverse("position_delete", args=[manager_position.id]))
+
+        self.assertTrue(Position.objects.filter(pk=manager_position.pk).exists())
 
     def test_make_admin_command_promotes_an_account(self):
         call_command("make_admin", "BOSS@example.com", stdout=StringIO())

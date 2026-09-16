@@ -25,9 +25,8 @@
     "search": "Search",
     "analytics": "Analytics",
     "users": "Users",
-    "team": "Team",
     "myShifts": "My Shifts",
-    "friends": "Friends"
+    "friends": "Colleagues"
   },
   "header": {
     "userMenu": "User menu",
@@ -231,24 +230,22 @@
     "reportFilters": "{from} – {to} · Position: {position} · Worker: {worker} · Status: {status}",
     "generated": "Generated {time}",
     "overTime": "Shifts over time",
-    "byPosition": "Shifts by position",
-    "shiftStatus": "Shift status",
     "hoursPerWorker": "Hours per worker",
+    "legalMax": "Legal maximum",
+    "withinLimit": "Within limit",
+    "overtime": "Overtime",
     "topWorkers": "Top workers",
     "topPositions": "Top positions",
     "shiftCount": {
       "one": "{count} shift",
       "other": "{count} shifts"
     },
-    "noData": "No data for these filters.",
-    "total": "total"
+    "noData": "No data for these filters."
   },
   "team": {
     "addUser": "Add user",
-    "addEmployee": "Add employee",
     "managePositions": "Manage positions",
     "userList": "User list",
-    "employeeList": "Employee list",
     "avatar": "Avatar",
     "employeeId": "Employee ID",
     "fullName": "Full name",
@@ -266,17 +263,11 @@
     "resetTwoFactorNote": "Only do this for someone who lost both their phone and their recovery codes. They will be told by email and can turn it on again.",
     "yesReset": "Yes, reset",
     "deleteUser": "Delete user",
-    "deleteEmployee": "Delete employee",
     "deleteUserMessage": "Are you sure you want to delete this user?",
-    "deleteEmployeeMessage": "Are you sure you want to delete this employee?",
     "deleteUserNote": "This will remove the user and their assignments.",
-    "deleteEmployeeNote": "This will remove the employee and their assignments.",
     "editUser": "Edit user",
-    "editEmployee": "Edit employee",
     "newUser": "Add new user",
-    "newEmployee": "Add new employee",
     "createUser": "Create user",
-    "createEmployee": "Create employee",
     "fullNamePlaceholder": "Enter full name",
     "emailLogin": "Email / Login",
     "emailPlaceholder": "Enter email",
@@ -295,7 +286,8 @@
     "deletePositionLabel": "Delete position {name}",
     "deletePosition": "Delete position",
     "deletePositionMessage": "Delete this position?",
-    "deletePositionNote": "A position still required by a shift cannot be deleted."
+    "deletePositionNote": "A position still required by a shift cannot be deleted.",
+    "permanentPosition": "Permanent — can't be deleted"
   },
   "profile": {
     "editProfile": "Edit profile",
@@ -308,12 +300,11 @@
     "noFriends": "No friends yet."
   },
   "friends": {
-    "addByEmail": "Add a friend by email",
-    "emailPlaceholder": "colleague@example.com",
-    "send": "Send request",
+    "colleagues": "All colleagues",
+    "noColleagues": "No colleagues yet.",
     "friends": "Friends",
     "online": "{online} of {total} online",
-    "noFriends": "No friends yet. Add a colleague by their email address above.",
+    "noFriends": "No friends yet. Add one from the colleagues list below.",
     "requests": "Friend requests",
     "noRequests": "No requests to answer.",
     "sentRequests": "Sent requests",

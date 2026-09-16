@@ -63,24 +63,28 @@ def _bundle() -> dict[str, Any]:
 
 
 def _nav_links(user, active: str) -> list[dict[str, Any]]:
-    """Each link names its label by `id`; the browser translates it, so it switches language with the page."""
+    """Each link names its label by `id`; the browser translates it, so it switches language with the page.
+
+    One nav per job: admins provision accounts, managers run the schedule, employees work it.
+    """
     if not user.is_authenticated:
         return []
-    if user.is_manager:
+    if user.is_admin:
+        items = [("manager_employees", "users")]
+    elif user.is_manager:
         items = [
             ("manager_shifts", "shifts"),
             ("manager_shift_search", "search"),
             ("manager_analytics", "analytics"),
-            ("manager_employees", "users" if user.is_admin else "team"),
+            ("friends", "friends"),
         ]
     else:
-        items = [("employee_shifts", "myShifts")]
-    items.append(("friends", "friends"))
+        items = [("employee_shifts", "myShifts"), ("friends", "friends")]
     return [{"href": reverse(name), "id": label_id, "active": name == active} for name, label_id in items]
 
 
 def _user_context(user) -> dict[str, Any] | None:
-    return card(user) if user.is_authenticated else None
+    return {**card(user), "isAdmin": user.is_admin} if user.is_authenticated else None
 
 
 def _notifications(user) -> dict[str, Any] | None:

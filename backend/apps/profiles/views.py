@@ -1,4 +1,4 @@
-"""Profiles, account settings, profile pictures and friends (the "Major: Standard user management" module)."""
+"""Profiles, account settings, profile pictures and colleagues (the "Major: Standard user management" module)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.accounts.models import User
+from apps.accounts.views import non_admin_required
 from apps.shell import field_errors, flash_redirect, render_app
 from apps.twofactor import views as two_factor
 
@@ -36,7 +37,7 @@ def _visible_person_or_404(request: HttpRequest, user_id: int) -> User:
 def profile(request: HttpRequest, user_id: int) -> HttpResponse:
     person = _visible_person_or_404(request, user_id)
     relation = services.relation(request.user, person)
-    # Friends (and you) see the email, online status and friend list; a manager sees the email too.
+    # Friends (and you) see the email, online status and friend list; the admin sees the email too.
     close = relation["state"] in ("self", "friends")
     friends = services.friends_of(person)
 
@@ -129,13 +130,13 @@ def account_settings(request: HttpRequest) -> HttpResponse:
     )
 
 
-# ── Friends ─────────────────────────────────────────────────────────────────
+# ── Colleagues (friends) ────────────────────────────────────────────────────
 
 
-@login_required
+@non_admin_required
 @require_GET
 def friends(request: HttpRequest) -> HttpResponse:
-    """Everyone the user has a friendship with, sorted by its state: friends, requests to answer, requests sent."""
+    """Every colleague (for the directory), plus friends, requests to answer and requests sent."""
     user = request.user
     lists = {"friends": [], "incoming": [], "outgoing": []}
     rows = services.involving(user).select_related("from_user__position", "to_user__position").order_by("-created_at")
@@ -148,37 +149,33 @@ def friends(request: HttpRequest) -> HttpResponse:
         lists[relation["state"]].append({**services.card(other), "relation": relation, **extra})
     lists["friends"].sort(key=lambda friend: (not friend["status"]["online"], friend["fullName"].lower()))
 
+    colleagues = [{**services.card(person), "relation": services.relation(user, person)} for person in services.colleagues_of(user)]
+
     return render_app(
         request,
         page="friends",
-        title=_("Friends"),
+        title=_("Colleagues"),
         nav_active="friends",
-        data={**lists, "urls": services.friend_urls()},
+        data={**lists, "colleagues": colleagues, "urls": services.friend_urls()},
     )
 
 
 def _back(request: HttpRequest, level: int, text: str) -> HttpResponse:
-    """Back to the page the action came from (a profile or the Friends page)."""
+    """Back to the page the action came from (a profile or the Colleagues page)."""
     target = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         target = "friends"
     return flash_redirect(request, level, text, target)
 
 
-@login_required
+@non_admin_required
 @require_POST
 def friend_request(request: HttpRequest) -> HttpResponse:
-    """Ask by email (the Friends page) or by id (the button on a profile you can already see)."""
+    """Ask by id: the button on a profile or in the colleagues directory."""
     user_id = request.POST.get("user_id", "")
-    if user_id:
-        receiver = User.objects.filter(pk=user_id, is_active=True).first() if user_id.isdigit() else None
-        if receiver is None or not services.can_view(request.user, receiver):
-            return _back(request, messages.ERROR, _("That person was not found."))
-    else:
-        email = (request.POST.get("email") or "").strip().lower()
-        receiver = User.objects.filter(username=email, is_active=True).first() if email else None
-        if receiver is None:
-            return _back(request, messages.ERROR, _("No account uses that email address."))
+    receiver = User.objects.filter(pk=user_id, is_active=True).first() if user_id.isdigit() else None
+    if receiver is None or not services.can_view(request.user, receiver):
+        return _back(request, messages.ERROR, _("That person was not found."))
 
     try:
         friendship = services.send_request(request.user, receiver)
@@ -189,7 +186,7 @@ def friend_request(request: HttpRequest) -> HttpResponse:
     return _back(request, messages.SUCCESS, _("Friend request sent to %(name)s.") % {"name": receiver.display_name})
 
 
-@login_required
+@non_admin_required
 @require_POST
 def friend_accept(request: HttpRequest, friendship_id: int) -> HttpResponse:
     friendship = get_object_or_404(
@@ -202,7 +199,7 @@ def friend_accept(request: HttpRequest, friendship_id: int) -> HttpResponse:
     return _back(request, messages.SUCCESS, _("You and %(name)s are now friends.") % {"name": friendship.from_user.display_name})
 
 
-@login_required
+@non_admin_required
 @require_POST
 def friend_end(request: HttpRequest, friendship_id: int) -> HttpResponse:
     """Decline an incoming request, cancel your own, or unfriend."""

@@ -15,12 +15,7 @@ from apps.accounts.models import User, UserRole
 from apps.shell import first_form_error
 
 from .forms import ShiftForm
-from .models import Assignment, EmployeeUnavailability, Position, Shift, ShiftStatus
-
-
-def position_options() -> list[dict]:
-    """Every position as `{id, name}`, for the React selects."""
-    return [{"id": p.id, "name": p.name} for p in Position.objects.order_by("name")]
+from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
 
 
 def shift_fields(shift: Shift) -> dict:
@@ -209,7 +204,18 @@ def shift_rows(*, manager_id: int, query: str = "", worker_id: int | None = None
     return rows
 
 
-def shift_analytics(rows: list[dict], *, worker_id: int | None = None) -> dict:
+# Czech Labour Code §93a: average working time, overtime included, must not exceed
+# 48 hours a week over the reference period. Scaled to the filtered date range, this
+# is the ceiling the "hours per worker" chart draws each worker's bar against.
+CZ_MAX_WEEKLY_HOURS = 48
+
+
+def max_legal_hours(start: date, end: date) -> float:
+    days = (end - start).days + 1
+    return round(CZ_MAX_WEEKLY_HOURS * days / 7, 1)
+
+
+def shift_analytics(rows: list[dict], *, start: date, end: date, worker_id: int | None = None) -> dict:
     """KPIs and chart series over `shift_rows()` output.
 
     Shift counts describe whole shifts. Hours and workers count only the filtered
@@ -217,7 +223,6 @@ def shift_analytics(rows: list[dict], *, worker_id: int | None = None) -> dict:
     """
     by_date: Counter[str] = Counter()
     by_position: Counter[str] = Counter()
-    by_status = Counter(dict.fromkeys(ShiftStatus.values, 0))
     hours: Counter[int] = Counter()
     shift_count: Counter[int] = Counter()
     names: dict[int, str] = {}
@@ -226,7 +231,6 @@ def shift_analytics(rows: list[dict], *, worker_id: int | None = None) -> dict:
     for row in rows:
         by_date[row["date"]] += 1
         by_position[row["position"]] += 1
-        by_status[row["status"]] += 1
         open_shifts += len(row["workers"]) < row["capacity"]
         for worker in row["workers"]:
             if worker_id and worker["id"] != worker_id:
@@ -245,7 +249,7 @@ def shift_analytics(rows: list[dict], *, worker_id: int | None = None) -> dict:
         },
         "by_date": [{"date": day, "count": count} for day, count in sorted(by_date.items())],
         "by_position": [{"position": name, "count": count} for name, count in sorted(by_position.items())],
-        "by_status": [{"status": status, "count": count} for status, count in by_status.items()],
+        "max_hours": max_legal_hours(start, end),
         "top_workers": [
             {"worker": names[wid], "hours": round(hours[wid], 1), "shifts": shift_count[wid]} for wid in ranked[:10]
         ],

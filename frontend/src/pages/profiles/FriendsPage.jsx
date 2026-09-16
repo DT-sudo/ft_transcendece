@@ -3,8 +3,6 @@ import { timeAgo } from '../../app/dates.js';
 import { useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { presenceLabel } from '../../components/Avatar.jsx';
-import { CsrfInput } from '../../components/Field.jsx';
-import { UserPlus } from '../../components/Icons.jsx';
 import { t } from '../../i18n/index.js';
 import { FRIEND_EVENTS, FriendActions, PeopleCard, PersonRow } from './People.jsx';
 
@@ -22,36 +20,29 @@ function FriendRow({ person, detail, urls }) {
   );
 }
 
-/** Friends with their live online status, requests to answer, and requests waiting on others. */
+/** Everyone but yourself and admins. No online status here: that stays for friends only. */
+function ColleagueRow({ person, urls }) {
+  return (
+    <PersonRow person={person} detail={person.role}>
+      <FriendActions person={person} relation={person.relation} urls={urls} small />
+    </PersonRow>
+  );
+}
+
+/** The colleague directory (send a request from here), friends with their live online status,
+ * requests to answer, and requests waiting on others. */
 export function FriendsPage() {
-  const { friends, incoming, outgoing, urls } = useLivePageData(getBootstrap().data, FRIEND_EVENTS, withFriendStatus);
+  const { friends, incoming, outgoing, colleagues, urls } = useLivePageData(getBootstrap().data, FRIEND_EVENTS, withFriendStatus);
   const online = friends.filter((friend) => friend.status.online).length;
 
   return (
     <AppShell>
       <main className="p-4 pt-0">
-        <div className="card page-toolbar-card">
-          <form className="flex flex-wrap items-center gap-2" method="post" action={urls.request}>
-            <CsrfInput />
-            <label className="form-label mb-0" htmlFor="friendEmail">
-              {t('friends.addByEmail')}
-            </label>
-            <input
-              id="friendEmail"
-              name="email"
-              type="email"
-              dir="ltr"
-              className="form-input w-72 max-w-full"
-              placeholder={t('friends.emailPlaceholder')}
-              autoComplete="off"
-              required
-            />
-            <button className="btn btn-primary" type="submit">
-              <UserPlus size={16} />
-              {t('friends.send')}
-            </button>
-          </form>
-        </div>
+        <PeopleCard id="colleaguesList" title={t('friends.colleagues')} count={colleagues.length ? String(colleagues.length) : ''} empty={t('friends.noColleagues')}>
+          {colleagues.map((person) => (
+            <ColleagueRow key={person.id} person={person} urls={urls} />
+          ))}
+        </PeopleCard>
 
         <div className="side-panel-layout mt-3">
           <PeopleCard
