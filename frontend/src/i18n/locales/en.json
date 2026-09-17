@@ -36,7 +36,7 @@
     "logout": "Logout"
   },
   "footer": {
-    "tagline": "© {year} PlanShift — shift scheduling for hourly teams.",
+    "tagline": "© {year} PlanShift",
     "legal": "Legal",
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service"
@@ -324,7 +324,7 @@
     "viewProfile": "View my profile",
     "privacyLink": "To download or delete your data, see {link}.",
     "avatarTitle": "Profile picture",
-    "avatarHint": "JPEG, PNG, WebP or GIF, up to {size} MB. It is cropped to a square; without one, your initials are shown.",
+    "avatarHint": "JPEG, PNG, WebP or GIF, up to {size} MB. It is cropped to a square.",
     "avatarTooBig": "The picture must be {size} MB or smaller.",
     "avatarFile": "New profile picture",
     "upload": "Upload",
@@ -340,8 +340,6 @@
     "newPassword": "New password",
     "confirmNewPassword": "Confirm new password",
     "changePassword": "Change password",
-    "languageTitle": "Language",
-    "languageHint": "PlanShift, the emails it sends you and your notifications use this language.",
     "twoFactorTitle": "Two-factor authentication",
     "on": "On",
     "off": "Off",

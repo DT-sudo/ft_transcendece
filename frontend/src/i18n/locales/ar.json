@@ -36,7 +36,7 @@
     "logout": "تسجيل الخروج"
   },
   "footer": {
-    "tagline": "© {year} PlanShift — جدولة المناوبات لفرق العمل بالساعة.",
+    "tagline": "© {year} PlanShift",
     "legal": "معلومات قانونية",
     "privacyPolicy": "سياسة الخصوصية",
     "terms": "شروط الخدمة"
@@ -340,7 +340,7 @@
     "viewProfile": "عرض ملفي الشخصي",
     "privacyLink": "لتنزيل بياناتك أو حذفها، راجع صفحة {link}.",
     "avatarTitle": "الصورة الشخصية",
-    "avatarHint": "JPEG أو PNG أو WebP أو GIF، حتى {size} ميغابايت. تُقص إلى مربع؛ وإن لم توجد صورة تظهر الأحرف الأولى من اسمك.",
+    "avatarHint": "JPEG أو PNG أو WebP أو GIF، حتى {size} ميغابايت. تُقص إلى مربع.",
     "avatarTooBig": "يجب ألا يتجاوز حجم الصورة {size} ميغابايت.",
     "avatarFile": "صورة شخصية جديدة",
     "upload": "رفع",
@@ -356,8 +356,6 @@
     "newPassword": "كلمة المرور الجديدة",
     "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
     "changePassword": "تغيير كلمة المرور",
-    "languageTitle": "اللغة",
-    "languageHint": "يستخدم PlanShift هذه اللغة، وكذلك الرسائل التي يرسلها إليك وإشعاراتك.",
     "twoFactorTitle": "التحقق بخطوتين",
     "on": "مفعّل",
     "off": "متوقف",

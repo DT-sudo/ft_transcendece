@@ -36,7 +36,7 @@
     "logout": "Odhlásit se"
   },
   "footer": {
-    "tagline": "© {year} PlanShift — plánování směn pro týmy placené po hodinách.",
+    "tagline": "© {year} PlanShift",
     "legal": "Právní informace",
     "privacyPolicy": "Zásady ochrany osobních údajů",
     "terms": "Podmínky používání"
@@ -332,7 +332,7 @@
     "viewProfile": "Zobrazit můj profil",
     "privacyLink": "Chcete-li stáhnout nebo smazat své údaje, přejděte na stránku {link}.",
     "avatarTitle": "Profilová fotografie",
-    "avatarHint": "JPEG, PNG, WebP nebo GIF do {size} MB. Ořízne se na čtverec; bez fotografie se zobrazí vaše iniciály.",
+    "avatarHint": "JPEG, PNG, WebP nebo GIF do {size} MB. Ořízne se na čtverec.",
     "avatarTooBig": "Obrázek může mít nejvýše {size} MB.",
     "avatarFile": "Nová profilová fotografie",
     "upload": "Nahrát",
@@ -348,8 +348,6 @@
     "newPassword": "Nové heslo",
     "confirmNewPassword": "Potvrzení nového hesla",
     "changePassword": "Změnit heslo",
-    "languageTitle": "Jazyk",
-    "languageHint": "V tomto jazyce se vám zobrazuje PlanShift, e-maily, které vám posílá, i vaše oznámení.",
     "twoFactorTitle": "Dvoufázové ověření",
     "on": "Zapnuto",
     "off": "Vypnuto",

@@ -15,15 +15,23 @@ export const FRIEND_EVENTS = ['friends.changed'];
 // Friend actions redirect back to the page they were taken on.
 const back = () => ({ next: window.location.pathname });
 
-/** A titled card listing people, or `empty` when there are none. */
-export function PeopleCard({ id, title, count, empty, children }) {
+/**
+ * A titled card listing people, or `empty` when there are none. The list scrolls inside the
+ * card, so a long one never pushes the sections beside it off the screen; `short` halves the
+ * height for the two cards that share a column.
+ */
+export function PeopleCard({ id, title, count, empty, short = false, children }) {
   return (
     <section className="card" aria-labelledby={id}>
       <h2 id={id} className="card-header card-title">
         {title}
         {count ? <span className="text-sm font-normal text-muted-foreground">{count}</span> : null}
       </h2>
-      {children.length ? <ul>{children}</ul> : <p className="p-4 text-sm text-muted-foreground">{empty}</p>}
+      {children.length ? (
+        <ul className={`people-list ${short ? 'people-list-short' : ''}`}>{children}</ul>
+      ) : (
+        <p className="p-4 text-sm text-muted-foreground">{empty}</p>
+      )}
     </section>
   );
 }

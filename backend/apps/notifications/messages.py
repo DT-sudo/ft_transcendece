@@ -46,7 +46,7 @@ def _day(iso: str) -> str:
     return date_format(date.fromisoformat(iso), "D j M")
 
 
-def shift_label(params: dict) -> str:
+def _shift_label(params: dict) -> str:
     return _("%(position)s, %(day)s, %(start)s–%(end)s") % {**params, "day": _day(params["date"])}
 
 
@@ -100,7 +100,7 @@ def _shifts_published(p):
         title = _("New shift published")
     else:
         title = ngettext("%(count)d new shift published", "%(count)d new shifts published", count) % {"count": count}
-    description = "; ".join(shift_label(shift) for shift in shifts[:MAX_LISTED_SHIFTS])
+    description = "; ".join(_shift_label(shift) for shift in shifts[:MAX_LISTED_SHIFTS])
     extra = count - MAX_LISTED_SHIFTS
     if extra > 0:
         description += "; " + ngettext("and %(count)d more", "and %(count)d more", extra) % {"count": extra}
@@ -109,25 +109,25 @@ def _shifts_published(p):
 
 @_renders("shift.assigned")
 def _shift_assigned(p):
-    return _("New shift assigned"), shift_label(p["shift"])
+    return _("New shift assigned"), _shift_label(p["shift"])
 
 
 @_renders("shift.removed")
 def _shift_removed(p):
-    return _("Removed from a shift"), shift_label(p["shift"])
+    return _("Removed from a shift"), _shift_label(p["shift"])
 
 
 @_renders("shift.changed")
 def _shift_changed(p):
     return _("Shift changed"), _("%(before)s is now %(after)s") % {
-        "before": shift_label(p["before"]),
-        "after": shift_label(p["after"]),
+        "before": _shift_label(p["before"]),
+        "after": _shift_label(p["after"]),
     }
 
 
 @_renders("shift.cancelled")
 def _shift_cancelled(p):
-    return _("Shift cancelled"), shift_label(p["shift"])
+    return _("Shift cancelled"), _shift_label(p["shift"])
 
 
 @_renders("position.created")

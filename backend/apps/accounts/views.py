@@ -29,7 +29,7 @@ from .services import position_options
 # ── Role decorators ─────────────────────────────────────────────────────────
 
 
-def home_page(user) -> str:
+def _home_page(user) -> str:
     """The page that holds this account's own work: accounts, the schedule, or your shifts."""
     if user.is_admin:
         return "manager_employees"
@@ -45,7 +45,7 @@ def _requires(allowed):
             if not request.user.is_authenticated:
                 return redirect("login")
             if not allowed(request.user):
-                return redirect(home_page(request.user))
+                return redirect(_home_page(request.user))
             return view(request, *args, **kwargs)
 
         return wrapped
@@ -138,7 +138,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def home(request: HttpRequest) -> HttpResponse:
     """Send each role to its own landing page."""
-    return redirect(home_page(request.user))
+    return redirect(_home_page(request.user))
 
 
 # ── Demo accounts (ENABLE_DEMO_LOGIN) ───────────────────────────────────────

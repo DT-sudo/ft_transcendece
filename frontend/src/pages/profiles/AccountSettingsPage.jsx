@@ -6,7 +6,6 @@ import { AppShell } from '../../components/AppShell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { CsrfInput, Field } from '../../components/Field.jsx';
 import { Settings, Trash, UserIcon } from '../../components/Icons.jsx';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher.jsx';
 import { Modal } from '../../components/Modal.jsx';
 import { t, tx } from '../../i18n/index.js';
 
@@ -37,12 +36,14 @@ function AvatarCard({ person, limits, error, action }) {
 
   return (
     <section className="card p-4" aria-labelledby="avatarTitle">
-      <h2 id="avatarTitle" className="card-title">
-        {t('settings.avatarTitle')}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{t('settings.avatarHint', { size: maxMegabytes })}</p>
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <Avatar name={person.fullName} src={preview || person.avatarUrl} size="lg" primary />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Avatar name={person.fullName} src={preview || person.avatarUrl} size="md" primary />
+        <div className="min-w-0 flex-1">
+          <h2 id="avatarTitle" className="card-title">
+            {t('settings.avatarTitle')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('settings.avatarHint', { size: maxMegabytes })}</p>
+        </div>
         <form className="flex flex-wrap items-center gap-2" method="post" action={action} encType="multipart/form-data">
           <CsrfInput />
           <Section name="avatar" />
@@ -60,13 +61,13 @@ function AvatarCard({ person, limits, error, action }) {
             required
             onChange={pick}
           />
-          <button className="btn btn-primary" type="submit" disabled={!preview}>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={!preview}>
             {t('settings.upload')}
           </button>
         </form>
         {person.avatarUrl ? (
           <button
-            className="btn btn-ghost btn-icon-destructive"
+            className="btn btn-ghost btn-sm btn-icon-destructive"
             type="button"
             onClick={() => submitPost(action, { section: 'remove_avatar' })}
           >
@@ -187,21 +188,6 @@ function PasswordCard({ errors, action }) {
           {t('settings.changePassword')}
         </button>
       </form>
-    </section>
-  );
-}
-
-/** The same switcher as the footer's; the choice is saved on the account. */
-function LanguageCard() {
-  return (
-    <section className="card p-4" aria-labelledby="languageTitle">
-      <h2 id="languageTitle" className="card-title">
-        {t('settings.languageTitle')}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{t('settings.languageHint')}</p>
-      <div className="mt-3">
-        <LanguageSwitcher id="settingsLanguage" showLabel />
-      </div>
     </section>
   );
 }
@@ -408,7 +394,9 @@ function RecoveryCodesModal({ codes, onClose }) {
   );
 }
 
-/** Your own profile, picture, password, language and two-factor authentication; each card is a native form that posts to this page. */
+/** Your own profile, picture, password and two-factor authentication; each card is a native form that posts to this page.
+ *
+ * The language is not here: the footer switcher on every page is the one place to change it. */
 export function AccountSettingsPage() {
   const { urls, data } = getBootstrap();
   const { values, errors, person, avatar, twoFactor } = data;
@@ -432,7 +420,6 @@ export function AccountSettingsPage() {
           <AvatarCard person={person} limits={avatar} error={errors.avatar} action={urls.settings} />
           <ProfileCard values={values} errors={errors.profile} action={urls.settings} />
           <PasswordCard errors={errors.password} action={urls.settings} />
-          <LanguageCard />
           <TwoFactorCard state={twoFactor} action={urls.settings} />
           <p className="text-sm text-muted-foreground">
             {tx('settings.privacyLink', {

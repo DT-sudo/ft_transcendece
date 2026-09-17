@@ -5,8 +5,9 @@ import { changeLanguage, t, useLanguage } from '../i18n/index.js';
 import { Globe } from './Icons.jsx';
 import { useToast } from './Notifications.jsx';
 
-/** Picks the language; the page switches in place, direction included. Each language is named in itself. */
-export function LanguageSwitcher({ id = 'languageSwitcher', showLabel = false }) {
+/** The footer's language picker - the one place the language is changed. The page switches in
+ * place, direction included, and each language is named in itself. */
+export function LanguageSwitcher({ id = 'languageSwitcher' }) {
   const { languages } = getBootstrap();
   const current = useLanguage();
   const showToast = useToast();
@@ -26,7 +27,7 @@ export function LanguageSwitcher({ id = 'languageSwitcher', showLabel = false })
   return (
     <div className="flex items-center gap-1.5">
       <Globe size={14} className="text-muted-foreground" />
-      <label className={showLabel ? 'form-label mb-0' : 'sr-only'} htmlFor={id}>
+      <label className="sr-only" htmlFor={id}>
         {t('language.label')}
       </label>
       <select id={id} className="form-select form-select-sm w-auto" value={current} onChange={change} disabled={busy}>

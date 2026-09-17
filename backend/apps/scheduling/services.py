@@ -210,11 +210,6 @@ def shift_rows(*, manager_id: int, query: str = "", worker_id: int | None = None
 CZ_MAX_WEEKLY_HOURS = 48
 
 
-def max_legal_hours(start: date, end: date) -> float:
-    days = (end - start).days + 1
-    return round(CZ_MAX_WEEKLY_HOURS * days / 7, 1)
-
-
 def shift_analytics(rows: list[dict], *, start: date, end: date, worker_id: int | None = None) -> dict:
     """KPIs and chart series over `shift_rows()` output.
 
@@ -249,7 +244,7 @@ def shift_analytics(rows: list[dict], *, start: date, end: date, worker_id: int 
         },
         "by_date": [{"date": day, "count": count} for day, count in sorted(by_date.items())],
         "by_position": [{"position": name, "count": count} for name, count in sorted(by_position.items())],
-        "max_hours": max_legal_hours(start, end),
+        "max_hours": round(CZ_MAX_WEEKLY_HOURS * ((end - start).days + 1) / 7, 1),
         "top_workers": [
             {"worker": names[wid], "hours": round(hours[wid], 1), "shifts": shift_count[wid]} for wid in ranked[:10]
         ],
