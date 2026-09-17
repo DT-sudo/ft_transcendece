@@ -1,0 +1,97 @@
+flowchart TD
+
+subgraph group_edge["Edge runtime"]
+  node_nginx{{"nginx TLS proxy<br/>reverse proxy"}}
+  node_docker["Docker deployment<br/>container topology<br/>[docker-compose.yml]"]
+  node_entrypoint["Application entrypoint<br/>startup script<br/>[entrypoint.sh]"]
+end
+
+subgraph group_server["Django application"]
+  node_django["Django and Channels<br/>application runtime<br/>[asgi.py]"]
+  node_routes["Django routes<br/>URL routing<br/>[urls.py]"]
+  node_shell["React HTML shell<br/>render boundary<br/>[shell.py]"]
+  node_accounts["Accounts and roles<br/>identity domain<br/>[models.py]"]
+  node_account_views["Account flows<br/>Django views<br/>[views.py]"]
+  node_twofactor["TOTP 2FA<br/>security service<br/>[services.py]"]
+  node_scheduling_models["Scheduling domain<br/>ORM models<br/>[models.py]"]
+  node_scheduling_service["Scheduling rule engine<br/>transactional service<br/>[services.py]"]
+  node_scheduling_views["Schedule form views<br/>Django views<br/>[views.py]"]
+  node_privacy_legal["Privacy and legal<br/>server content flows<br/>[views.py]"]
+end
+
+subgraph group_client["React client"]
+  node_react_main["React page selector<br/>SPA entry point<br/>[main.jsx]"]
+  node_http_forms["CSRF form client<br/>HTTP integration<br/>[http.js]"]
+  node_manager_calendar["Manager calendar<br/>React page"]
+  node_employee_calendar["Employee shifts<br/>React page"]
+  node_search_analytics["Search and analytics<br/>React pages"]
+  node_localization["Localization<br/>locale coordination<br/>[index.js]"]
+  node_live_client["Live updates and notifications<br/>browser realtime state<br/>[live.js]"]
+end
+
+subgraph group_state["Data and realtime"]
+  node_database[("ORM database<br/>persistent storage")]
+  node_events["Schedule events<br/>commit event dispatcher<br/>[events.py]"]
+  node_channels["Manager WebSocket consumer<br/>Channels consumer<br/>[consumers.py]"]
+  node_redis["Redis channel layer<br/>message backend"]
+end
+
+node_docker -->|"starts"| node_entrypoint
+node_entrypoint -->|"runs"| node_django
+node_nginx -->|"proxies HTTP/WebSockets"| node_django
+node_django -->|"resolves requests"| node_routes
+node_routes -->|"renders page shell"| node_shell
+node_shell -->|"serves payload and UI shell"| node_react_main
+node_react_main -->|"mounts manager page"| node_manager_calendar
+node_react_main -->|"mounts employee page"| node_employee_calendar
+node_react_main -->|"mounts reporting pages"| node_search_analytics
+node_react_main -->|"loads client catalogs"| node_localization
+node_http_forms -->|"CSRF form POSTs"| node_scheduling_views
+node_scheduling_views -->|"delegates mutations"| node_scheduling_service
+node_scheduling_service -->|"applies domain rules"| node_scheduling_models
+node_scheduling_models -->|"persists through ORM"| node_database
+node_scheduling_service -->|"dispatches after commit"| node_events
+node_events -->|"publishes schedule changes"| node_channels
+node_channels -.->|"uses configured channel layer"| node_redis
+node_channels -->|"pushes manager updates"| node_live_client
+node_live_client -->|"patches availability"| node_manager_calendar
+node_live_client -->|"refreshes analytics"| node_search_analytics
+node_account_views -->|"manages accounts"| node_accounts
+node_account_views -->|"uses optional verification"| node_twofactor
+node_accounts -->|"stores users and language"| node_database
+node_privacy_legal -->|"exports or deletes account data"| node_accounts
+
+click node_nginx "https://github.com/dt-sudo/ft_transcendece/blob/main/docker/nginx/nginx.conf.template"
+click node_docker "https://github.com/dt-sudo/ft_transcendece/blob/main/docker-compose.yml"
+click node_entrypoint "https://github.com/dt-sudo/ft_transcendece/blob/main/docker/entrypoint.sh"
+click node_django "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/config/asgi.py"
+click node_routes "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/config/urls.py"
+click node_shell "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/shell.py"
+click node_accounts "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/accounts/models.py"
+click node_account_views "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/accounts/views.py"
+click node_twofactor "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/twofactor/services.py"
+click node_scheduling_models "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/scheduling/models.py"
+click node_scheduling_service "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/scheduling/services.py"
+click node_scheduling_views "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/scheduling/views.py"
+click node_privacy_legal "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/privacy/views.py"
+click node_react_main "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/main.jsx"
+click node_http_forms "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/app/http.js"
+click node_manager_calendar "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/pages/manager-shifts/ManagerShiftsPage.jsx"
+click node_employee_calendar "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/pages/employee-shifts/EmployeeShiftsPage.jsx"
+click node_search_analytics "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/pages/manager-analytics/ManagerAnalyticsPage.jsx"
+click node_localization "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/i18n/index.js"
+click node_live_client "https://github.com/dt-sudo/ft_transcendece/blob/main/frontend/src/app/live.js"
+click node_events "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/realtime/events.py"
+click node_channels "https://github.com/dt-sudo/ft_transcendece/blob/main/backend/apps/realtime/consumers.py"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_nginx,node_docker,node_entrypoint toneBlue
+class node_django,node_routes,node_shell,node_accounts,node_account_views,node_twofactor,node_scheduling_models,node_scheduling_service,node_scheduling_views,node_privacy_legal toneAmber
+class node_react_main,node_http_forms,node_manager_calendar,node_employee_calendar,node_search_analytics,node_localization,node_live_client toneMint
+class node_database,node_events,node_channels,node_redis toneRose
