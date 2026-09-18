@@ -85,7 +85,7 @@ export function computeLaneLayout(shifts) {
   return { laneById, laneCount: Math.max(1, laneEnds.length) };
 }
 
-const LANE_GAP_PX = 4;
+const LANE_GAP = '0.25rem';
 
 /** Where a week-view chip goes: top and height from its times, inline start and width from its lane (mirrored in RTL). */
 export function timedChipStyle(shift, lane, laneCount, hourHeightPx) {
@@ -93,7 +93,7 @@ export function timedChipStyle(shift, lane, laneCount, hourHeightPx) {
   return {
     top: `${(minutesOf(shift.start_time) / 60) * hourHeightPx}px`,
     height: `${Math.max(18, (shiftDurationMinutes(shift) / 60) * hourHeightPx)}px`,
-    insetInlineStart: `calc(${lane * width}% + ${LANE_GAP_PX}px)`,
-    width: `calc(${width}% - ${LANE_GAP_PX * 2}px)`,
+    insetInlineStart: `calc(${lane * width}% + ${LANE_GAP})`,
+    width: `calc(${width}% - 2 * ${LANE_GAP})`,
   };
 }

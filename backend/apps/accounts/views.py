@@ -252,7 +252,7 @@ def manager_employees_create(request: HttpRequest) -> HttpResponse:
 def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
     account = _managed_user_or_404(request, user_id)
     # Read before validating: the posted values are written onto the instance by the form.
-    was_role, was_position_id = account.role, account.position_id
+    was_role, was_position = account.role, account.position
 
     form = UserForm(request.POST, instance=account)
     if not form.is_valid():
@@ -262,25 +262,44 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
     role_changed = account.role != was_role
     # A promotion clears the position, which `role_changed` already covers; this is the
     # plain case of an employee given a different job title.
-    position_changed = account.position_id != was_position_id
+    position_changed = account.position_id != (was_position.pk if was_position else None)
+    position = account.position.name if account.position else None
 
     if role_changed or position_changed:
         # The shifts ahead were booked against the role and position the account no longer has.
         release_from_upcoming(account, actor=request.user)
+        # The pages open on the old role or position must stop answering for this account at
+        # once - including the copy its browser might hand back on the Back button. Signing in
+        # again, it finds the notification saying what changed.
+        end_sessions(account, reason="role_changed" if role_changed else "position_changed", request=request)
     if role_changed:
-        # The pages of the old role must stop answering for this account at once - including
-        # the copy its browser might hand back on the Back button.
-        end_sessions(account, reason="role_changed", request=request)
         log_security("account.role_changed", request, target=account, was=was_role, now=account.role)
 
     if form.has_changed():
         actor = request.user
-        notify(managers(), "account.updated", actor=actor, role=account.role, name=account.display_name)
+        # The account itself (a manager now, perhaps) is told in its own words below.
+        others = set(managers()) - {account.pk}
+        notify(others, "account.updated", actor=actor, role=account.role, name=account.display_name)
         if role_changed:
-            notify([account], "account.role_changed", actor=actor, by=actor.display_name, role=account.role)
-        elif position_changed and account.position:
             notify(
-                [account], "account.position_changed", actor=actor, by=actor.display_name, position=account.position.name
+                [account],
+                "account.role_changed",
+                actor=actor,
+                level="warning",
+                by=actor.display_name,
+                was=was_role,
+                role=account.role,
+                position=position,
+            )
+        elif position_changed and position:
+            notify(
+                [account],
+                "account.position_changed",
+                actor=actor,
+                level="warning",
+                by=actor.display_name,
+                was=was_position.name if was_position else None,
+                position=position,
             )
         else:
             notify([account], "account.details_updated", actor=actor, by=actor.display_name)

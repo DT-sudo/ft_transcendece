@@ -81,12 +81,25 @@ def _account_deleted(p):
 
 @_renders("account.role_changed")
 def _role_changed(p):
-    return _("Your role was changed"), _("%(by)s made you %(role)s.") % {"by": p["by"], "role": _role(p)}
+    title = _("Your role was changed")
+    values = {"by": p["by"], "role": _role(p)}
+    if not p.get("was"):  # written before the old role was recorded
+        return title, _("%(by)s made you %(role)s.") % values
+    values["was"] = _role({"role": p["was"]})
+    if p.get("position"):
+        return title, _("%(by)s changed your role from %(was)s to %(role)s, position “%(position)s”.") % {
+            **values,
+            "position": p["position"],
+        }
+    return title, _("%(by)s changed your role from %(was)s to %(role)s.") % values
 
 
 @_renders("account.position_changed")
 def _position_changed(p):
-    return _("Your position was changed"), _("%(by)s changed your position to “%(position)s”.") % p
+    title = _("Your position was changed")
+    if not p.get("was"):  # it had none: the old one was deleted, or written before it was recorded
+        return title, _("%(by)s changed your position to “%(position)s”.") % p
+    return title, _("%(by)s changed your position from “%(was)s” to “%(position)s”.") % p
 
 
 @_renders("account.position_removed")

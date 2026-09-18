@@ -68,7 +68,7 @@
 
   /* Manager chips: one compact row that sheds detail as the cell narrows */
   .month-shift-chip {
-    height: 30px;
+    height: 1.875rem;
     padding: 0.1rem 0.25rem;
     display: flex;
     flex-direction: column;
@@ -77,14 +77,14 @@
     container-type: inline-size;
   }
 
-  @container (max-width: 150px) {
+  @container (max-width: 9.375rem) {
     .month-shift-sep,
     .month-shift-time {
       display: none;
     }
   }
 
-  @container (max-width: 110px) {
+  @container (max-width: 6.875rem) {
     .month-shift-qty {
       display: none;
     }
@@ -95,7 +95,7 @@
   .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    grid-template-rows: 32px repeat(6, minmax(140px, 1fr));
+    grid-template-rows: 2rem repeat(6, minmax(8.75rem, 1fr));
     /* Fills its .calendar-fill card; rows that don't fit scroll inside the grid. */
     flex: 1 1 auto;
     min-height: 0;
@@ -106,7 +106,7 @@
 
   /* Rows share the height evenly, so the whole month is on screen without scrolling. */
   .calendar-fit .calendar-grid {
-    grid-template-rows: 32px repeat(6, minmax(0, 1fr));
+    grid-template-rows: 2rem repeat(6, minmax(0, 1fr));
   }
 
   .calendar-header-cell {
@@ -126,12 +126,33 @@
     border-inline-end: 1px solid var(--color-border);
   }
 
+  /* A day with more shifts than fit scrolls, but its scrollbar only shows while it is being
+     scrolled (Calendar.jsx adds -scrolling); the rest of the time it is transparent. */
   .calendar-cell {
     overflow: auto;
     scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
     border-inline-end: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-card);
+  }
+
+  .calendar-cell-scrolling {
+    scrollbar-color: var(--color-shift-past) transparent;
+  }
+
+  /* Browsers without scrollbar-color (older Safari) */
+  .calendar-cell::-webkit-scrollbar {
+    width: 0.375rem;
+  }
+
+  .calendar-cell::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: transparent;
+  }
+
+  .calendar-cell-scrolling::-webkit-scrollbar-thumb {
+    background-color: var(--color-shift-past);
   }
 
   /* The weekday row counts as the first 7 siblings, so every 7th element ends a row. */
@@ -171,7 +192,7 @@
     font-weight: 600;
     color: var(--color-foreground);
     text-align: center;
-    max-width: clamp(160px, 32vw, 520px);
+    max-width: clamp(10rem, 32vw, 32.5rem);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -188,9 +209,9 @@
      Logical properties throughout, so right to left the hour column and borders mirror. */
 
   .calendar-grid-week {
-    --week-hour-label-width: 72px;
-    --week-day-col-width: 140px;
-    --week-hour-height: 56px;
+    --week-hour-label-width: 4.5rem;
+    --week-day-col-width: 8.75rem;
+    --week-hour-height: 3.5rem;
     grid-template-rows: auto repeat(24, var(--week-hour-height));
   }
 

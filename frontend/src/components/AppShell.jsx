@@ -111,7 +111,7 @@ export function AppShell({ children, footer }) {
 
   return (
     <ToastProvider initialMessages={messages} notifications={notifications}>
-      <div className="page-with-footer">
+      <div className="page-with-footer app-page">
         <Header user={user} nav={nav} urls={urls} />
         <div className="flex-1">{children}</div>
         <Footer>{footer}</Footer>

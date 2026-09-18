@@ -24,7 +24,7 @@ function useModalLayer(onClose) {
   return { zIndex: BASE_Z_INDEX + layer.depth, isTop: layer.isTop };
 }
 
-export function Modal({ title, onClose, children, footer, maxWidth = '500px', titleExtra = null }) {
+export function Modal({ title, onClose, children, footer, maxWidth = '31.25rem', titleExtra = null }) {
   const { zIndex, isTop } = useModalLayer(onClose);
 
   return (

@@ -93,7 +93,7 @@ export function PositionsModal({ positions, urls, onClose }) {
       <Modal
         title={t('team.positionsTitle')}
         onClose={onClose}
-        maxWidth="720px"
+        maxWidth="45rem"
         footer={
           <button className="btn btn-outline" type="button" onClick={onClose}>
             {t('common.done')}

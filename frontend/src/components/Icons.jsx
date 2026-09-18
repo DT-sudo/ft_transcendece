@@ -9,9 +9,11 @@ const base = {
   'aria-hidden': true,
 };
 
+/** `size` is in px at the browser's default text size; drawn in rem, it scales with the app. */
 function Icon({ size = 16, children, ...props }) {
+  const length = `${size / 16}rem`;
   return (
-    <svg {...base} width={size} height={size} {...props}>
+    <svg {...base} width={length} height={length} {...props}>
       {children}
     </svg>
   );

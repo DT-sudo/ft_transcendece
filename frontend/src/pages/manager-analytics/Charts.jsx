@@ -15,13 +15,17 @@ export function EmptyChart() {
   return <p className="chart-empty">{t('analytics.noData')}</p>;
 }
 
-/** The element's rendered width, so the viewBox matches its box and text never stretches. */
+/**
+ * The element's width in chart units, so the viewBox has its box's proportions and text never
+ * stretches. A unit is a px at the browser's default text size: the chart scales with the app's rem.
+ */
 function useWidth() {
   const ref = useRef(null);
   const [width, setWidth] = useState(640);
 
   useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(120, Math.round(entry.contentRect.width))));
+    const unit = parseFloat(getComputedStyle(document.documentElement).fontSize) / 16;
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(120, Math.round(entry.contentRect.width / unit))));
     observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);

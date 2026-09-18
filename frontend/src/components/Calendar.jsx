@@ -48,6 +48,17 @@ export function CalendarToolbar({ period, start = null, end = null }) {
   );
 }
 
+// A day's scrollbar shows while it scrolls, and fades this long after it stops.
+const SCROLLBAR_MS = 800;
+const scrollbarTimers = new WeakMap();
+
+function showScrollbarWhileScrolling(event) {
+  const cell = event.currentTarget;
+  cell.classList.add('calendar-cell-scrolling');
+  clearTimeout(scrollbarTimers.get(cell));
+  scrollbarTimers.set(cell, setTimeout(() => cell.classList.remove('calendar-cell-scrolling'), SCROLLBAR_MS));
+}
+
 /** Six-week month grid shared by the manager and employee calendars. */
 export function MonthCalendar({ anchorISO, todayISO, ariaLabel, dayClassName, renderDay, onDayClick }) {
   const days = useMemo(() => monthMatrix(anchorISO, todayISO), [anchorISO, todayISO]);
@@ -65,6 +76,7 @@ export function MonthCalendar({ anchorISO, todayISO, ariaLabel, dayClassName, re
           key={day.iso}
           className={`calendar-cell ${day.isToday ? 'calendar-cell-today' : ''} ${day.inMonth ? '' : 'calendar-cell-other-month'} ${dayClassName?.(day) || ''}`}
           onClick={() => onDayClick(day)}
+          onScroll={showScrollbarWhileScrolling}
         >
           <div className="calendar-date">{day.dayNumber}</div>
           {renderDay(day)}

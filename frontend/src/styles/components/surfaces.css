@@ -93,7 +93,7 @@
     top: 100%;
     inset-inline-end: 0;
     z-index: 2000;
-    min-width: 160px;
+    min-width: 10rem;
     margin-top: 0.25rem;
     background-color: var(--color-card);
     border: 1px solid var(--color-border);
@@ -169,7 +169,7 @@
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-modal);
     width: 100%;
-    max-width: 500px;
+    max-width: 31.25rem;
     max-height: 90vh;
     overflow: hidden;
     display: flex;
@@ -221,8 +221,8 @@
   /* ── Toasts ── */
 
   .toast {
-    min-width: 260px;
-    max-width: 420px;
+    min-width: 16.25rem;
+    max-width: 26.25rem;
     padding: 0.75rem 0.875rem;
     border-radius: var(--radius-card);
     border: 1px solid var(--color-border);

@@ -18,7 +18,7 @@ function EmployeeRow({ employee, onEdit, onResetPassword, onResetTwoFactor, onDe
       <td>
         <Avatar name={employee.fullName} src={employee.avatarUrl} />
       </td>
-      <td className="text-sm">{employee.employeeId}</td>
+      <td className="text-sm whitespace-nowrap">{employee.employeeId}</td>
       <td>
         <a className="person-name" href={employee.profileUrl}>
           {employee.fullName}

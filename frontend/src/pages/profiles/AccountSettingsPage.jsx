@@ -174,9 +174,7 @@ function TwoFactorSetup({ setup, errors, action }) {
           <img
             src={setup.qr}
             alt={t('settings.qrAlt')}
-            width="180"
-            height="180"
-            className="rounded-md border border-border bg-white"
+            className="size-45 rounded-md border border-border bg-white"
           />
           <div className="min-w-0 flex-1">
             <p className="text-muted-foreground">{t('settings.manualKey')}</p>

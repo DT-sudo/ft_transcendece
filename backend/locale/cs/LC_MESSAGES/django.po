@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 18:24+0200\n"
+"POT-Creation-Date: 2026-09-18 20:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1 && n % 1 == 0) ? 0 : (n >= 2 && n "
 "<= 4 && n % 1 == 0) ? 1: (n % 1 != 0 ) ? 2 : 3;\n"
+
+msgid "Full name"
+msgstr "Celé jméno"
 
 msgid "Enter your full name."
 msgstr "Zadejte své celé jméno."
@@ -30,9 +33,6 @@ msgstr "E-mail"
 
 msgid "Incorrect email or password."
 msgstr "Nesprávný e-mail nebo heslo."
-
-msgid "Full name"
-msgstr "Celé jméno"
 
 msgid "Enter a position name."
 msgstr "Zadejte název pozice."
@@ -151,12 +151,26 @@ msgstr "Vaše role byla změněna"
 msgid "%(by)s made you %(role)s."
 msgstr "%(by)s vám nastavil(a) roli: %(role)s."
 
+#, python-format
+msgid ""
+"%(by)s changed your role from %(was)s to %(role)s, position “%(position)s”."
+msgstr ""
+"%(by)s vám změnil(a) roli z %(was)s na %(role)s, pozice „%(position)s“."
+
+#, python-format
+msgid "%(by)s changed your role from %(was)s to %(role)s."
+msgstr "%(by)s vám změnil(a) roli z %(was)s na %(role)s."
+
 msgid "Your position was changed"
 msgstr "Vaše pozice byla změněna"
 
 #, python-format
 msgid "%(by)s changed your position to “%(position)s”."
 msgstr "%(by)s vám změnil(a) pozici na „%(position)s“."
+
+#, python-format
+msgid "%(by)s changed your position from “%(was)s” to “%(position)s”."
+msgstr "%(by)s vám změnil(a) pozici z „%(was)s“ na „%(position)s“."
 
 msgid "Your position was removed"
 msgstr "Vaše pozice byla zrušena"

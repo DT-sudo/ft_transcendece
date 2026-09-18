@@ -4,7 +4,7 @@ from datetime import time, timedelta
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -179,17 +179,38 @@ class RecipientTests(NotificationTestCase):
         came_off = ["Bob came off 1 upcoming shift"]
         self.assertEqual(self._received(), {self.manager: came_off, self.other_manager: came_off, self.admin: came_off})
 
-    def test_a_new_position_is_named_to_the_employee(self):
-        cook = Position.objects.create(name="Cook")
+    def _signed_in(self, user) -> Client:
+        client = Client()
+        client.force_login(user)
+        return client
+
+    def _update_alice(self, **fields):
         self._post(
             self.admin,
             "employee_update",
             self.alice.id,
-            data={"full_name": "Alice", "email": "alice@example.com", "role": UserRole.EMPLOYEE, "position": cook.id},
+            data={"full_name": "Alice", "email": "alice@example.com", "role": UserRole.EMPLOYEE, **fields},
         )
-        notification = Notification.objects.get(recipient=self.alice)
+        return Notification.objects.get(recipient=self.alice)
+
+    def test_a_new_position_names_the_old_and_new_one_and_signs_the_employee_out(self):
+        cook = Position.objects.create(name="Cook")
+        alices_browser = self._signed_in(self.alice)
+
+        notification = self._update_alice(position=cook.id)
+
         self.assertEqual(notification.title, "Your position was changed")
-        self.assertEqual(notification.description, "Ada Ray changed your position to \u201cCook\u201d.")
+        self.assertEqual(notification.description, "Ada Ray changed your position from \u201cBarista\u201d to \u201cCook\u201d.")
+        self.assertRedirects(alices_browser.get(reverse("employee_shifts")), reverse("login"), fetch_redirect_response=False)
+
+    def test_a_new_role_names_the_old_and_new_one_and_signs_the_account_out(self):
+        alices_browser = self._signed_in(self.alice)
+
+        notification = self._update_alice(role=UserRole.MANAGER, position="")
+
+        self.assertEqual(notification.title, "Your role was changed")
+        self.assertEqual(notification.description, "Ada Ray changed your role from Employee to Manager.")
+        self.assertRedirects(alices_browser.get(reverse("employee_shifts")), reverse("login"), fetch_redirect_response=False)
 
     def test_unavailability_notifies_every_manager(self):
         self._post(self.alice, "employee_unavailability_toggle", data={"date": self.day.isoformat()})

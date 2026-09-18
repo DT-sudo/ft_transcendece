@@ -36,7 +36,7 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
     <Modal
       title={isEdit ? t('shifts.editTitle') : t('shifts.createTitle')}
       onClose={onClose}
-      maxWidth="720px"
+      maxWidth="45rem"
       footer={<FormFooter form="shiftForm" submitLabel={isEdit ? t('common.save') : t('shifts.create')} onCancel={onClose} />}
     >
       <PostForm id="shiftForm" className="modal-body" action={action} fields={isEdit ? { version: shift.version } : {}}>

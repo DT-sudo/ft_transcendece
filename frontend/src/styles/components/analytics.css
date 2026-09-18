@@ -32,7 +32,7 @@
 
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     gap: 0.75rem;
   }
 
@@ -67,12 +67,6 @@
     gap: 0.75rem;
   }
 
-  @media (max-width: 900px) {
-    .analytics-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
   .chart-card {
     padding: 1rem 1.125rem;
   }
@@ -93,7 +87,7 @@
 
   .chart-wrap {
     position: relative;
-    height: 200px;
+    height: 12.5rem;
   }
 
   .chart-svg {
@@ -107,6 +101,7 @@
     stroke: var(--color-border);
   }
 
+  /* In chart units (see `useWidth`), which the viewBox already scales with the app. */
   .chart-axis-label {
     font-size: 9px;
     fill: var(--color-muted-foreground);
