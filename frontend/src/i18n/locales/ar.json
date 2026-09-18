@@ -26,7 +26,7 @@
     "analytics": "التحليلات",
     "users": "المستخدمون",
     "myShifts": "مناوباتي",
-    "friends": "الزملاء"
+    "friends": "الأصدقاء"
   },
   "header": {
     "userMenu": "قائمة المستخدم",
@@ -164,7 +164,6 @@
   "shifts": {
     "employees": "الموظفون",
     "highlightShifts": "إبراز مناوبات {name}",
-    "unavailableDays": "غير متاح: {days}",
     "legend": "ألوان المناصب",
     "monthSchedule": "جدول الشهر",
     "weekSchedule": "جدول الأسبوع",

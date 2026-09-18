@@ -117,7 +117,7 @@ export function ManagerShiftsPage() {
 }
 
 function ManagerShiftsContent({ data }) {
-  const { view, anchor, start, end, today, shifts, employees, positions, urls } = data;
+  const { view, anchor, start, today, shifts, employees, positions, urls } = data;
 
   const [detailsShiftId, setDetailsShiftId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -129,12 +129,6 @@ function ManagerShiftsContent({ data }) {
     [shifts, highlightedEmployeeId],
   );
 
-  // A page restored from the back/forward cache would show stale shifts.
-  useEffect(() => {
-    const onPageShow = (event) => event.persisted && window.location.reload();
-    window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, []);
   const { availability, flashedEmployeeId } = useLiveAvailability(data.unavailability);
 
   const editingId = shiftForm?.shift.id ?? null;
@@ -166,9 +160,6 @@ function ManagerShiftsContent({ data }) {
         <div className="manager-calendar-layout">
           <EmployeeSidebar
             employees={employees}
-            availability={availability}
-            periodStart={start}
-            periodEnd={end}
             flashedEmployeeId={flashedEmployeeId}
             highlightedEmployeeId={highlightedEmployeeId}
             onToggleEmployee={(id) => setHighlightedEmployeeId((current) => (current === id ? null : id))}

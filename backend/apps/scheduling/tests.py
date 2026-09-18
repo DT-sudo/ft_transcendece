@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Position, User, UserRole
 
-from .models import Assignment, EmployeeUnavailability, Shift
+from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
 from .services import STALE_SHIFT, assign_employees_to_shift, shifts_for_employee
 
 
@@ -271,3 +271,68 @@ class CalendarViewTests(TestCase):
 
         self.assertEqual(len(self._data(view="month")["shifts"]), 2)
         self.assertEqual(self._data()["view"], "month")
+
+
+class DraftUnavailabilityTests(TestCase):
+    """An employee may mark a day off while a draft holds them, and comes off the draft with it."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.position = Position.objects.create(name="Barista")
+        cls.manager = User.objects.create_user(username="manager@example.com", password="x", role=UserRole.MANAGER)
+        cls.alice = User.objects.create_user(
+            username="alice@example.com", password="x", role=UserRole.EMPLOYEE, position=cls.position
+        )
+
+    def setUp(self) -> None:
+        self.day = timezone.localdate() + timedelta(days=7)
+        self.client.force_login(self.alice)
+
+    def _shift(self, status: str) -> Shift:
+        shift = Shift.objects.create(
+            date=self.day, start_time=time(9, 0), end_time=time(17, 0), position=self.position,
+            created_by=self.manager, status=status,
+        )
+        shift.assignments.create(employee=self.alice)
+        return shift
+
+    def _toggle(self):
+        return self.client.post(reverse("employee_unavailability_toggle"), {"date": self.day.isoformat()})
+
+    def test_a_day_held_only_by_a_draft_can_be_marked_off(self):
+        draft = self._shift(ShiftStatus.DRAFT)
+
+        response = self._toggle()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["unavailable"])
+        self.assertFalse(draft.assignments.exists())
+        self.assertTrue(EmployeeUnavailability.objects.filter(employee=self.alice, date=self.day).exists())
+
+    def test_a_published_shift_still_blocks_the_day(self):
+        published = self._shift(ShiftStatus.PUBLISHED)
+
+        response = self._toggle()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(published.assignments.exists())
+        self.assertFalse(EmployeeUnavailability.objects.filter(employee=self.alice, date=self.day).exists())
+
+    def test_a_published_shift_blocks_the_day_even_beside_a_draft(self):
+        self._shift(ShiftStatus.DRAFT)
+        Shift.objects.create(
+            date=self.day, start_time=time(18, 0), end_time=time(22, 0), position=self.position,
+            created_by=self.manager, status=ShiftStatus.PUBLISHED,
+        ).assignments.create(employee=self.alice)
+
+        self.assertEqual(self._toggle().status_code, 400)
+        self.assertEqual(Assignment.objects.filter(employee=self.alice).count(), 2)
+
+    def test_becoming_available_again_does_not_put_them_back_on_the_draft(self):
+        draft = self._shift(ShiftStatus.DRAFT)
+        self._toggle()
+
+        self._toggle()
+
+        self.assertFalse(EmployeeUnavailability.objects.filter(employee=self.alice, date=self.day).exists())
+        self.assertFalse(draft.assignments.exists())

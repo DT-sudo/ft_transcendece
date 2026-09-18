@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
+import { DIRECTORY_CHANGED, useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Plus } from '../../components/Icons.jsx';
@@ -35,7 +36,7 @@ function EmployeeRow({ employee, onEdit, onResetPassword, onResetTwoFactor, onDe
       <td className="text-sm" dir="ltr">
         {employee.email}
       </td>
-      <td className="text-end whitespace-nowrap">
+      <td className="cell-actions">
         <button className="btn btn-ghost btn-sm" type="button" onClick={() => onEdit(employee)}>
           {t('common.edit')}
         </button>
@@ -55,10 +56,16 @@ function EmployeeRow({ employee, onEdit, onResetPassword, onResetTwoFactor, onDe
   );
 }
 
-/** The admin's Users page: every other account, its role and position, and the positions themselves. */
+/**
+ * The admin's Users page: every other account, its role and position, and the positions
+ * themselves. Any write to that directory - by this admin or another one - re-reads the
+ * page over the socket, so the table never shows an account that is already gone.
+ */
 export function ManagerEmployeesPage() {
-  const { data } = getBootstrap();
-  const { employees, roles, positions, credentials, urls } = data;
+  // The generated password is handed over once, with the page that created the account;
+  // it is held here so a live re-read cannot take it off the screen before it is copied.
+  const [credentials] = useState(() => getBootstrap().data.credentials);
+  const { employees, roles, positions, urls } = useLivePageData(getBootstrap().data, [DIRECTORY_CHANGED]);
 
   const [employeeForm, setEmployeeForm] = useState(null);
   const [showPositions, setShowPositions] = useState(false);
@@ -96,7 +103,7 @@ export function ManagerEmployeesPage() {
                 <th>{t('team.role')}</th>
                 <th>{t('team.position')}</th>
                 <th>{t('team.email')}</th>
-                <th>{t('team.actions')}</th>
+                <th className="cell-actions">{t('team.actions')}</th>
               </tr>
             </thead>
             <tbody>

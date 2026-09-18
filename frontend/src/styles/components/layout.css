@@ -76,13 +76,6 @@
     box-shadow: 0 0 0 3px hsl(38 92% 50% / 0.12);
   }
 
-  .employee-sidebar-unavailable {
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-destructive-hover);
-  }
-
   /* A live change from an employee briefly outlines their row. */
   .employee-sidebar-item-updated {
     border-color: var(--color-primary);

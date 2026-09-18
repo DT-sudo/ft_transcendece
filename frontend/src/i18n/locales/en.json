@@ -26,7 +26,7 @@
     "analytics": "Analytics",
     "users": "Users",
     "myShifts": "My Shifts",
-    "friends": "Colleagues"
+    "friends": "Friends"
   },
   "header": {
     "userMenu": "User menu",
@@ -160,7 +160,6 @@
   "shifts": {
     "employees": "Employees",
     "highlightShifts": "Highlight shifts for {name}",
-    "unavailableDays": "Unavailable: {days}",
     "legend": "Position colours",
     "monthSchedule": "Month schedule",
     "weekSchedule": "Week schedule",

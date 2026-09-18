@@ -62,6 +62,20 @@
     color: var(--color-foreground);
   }
 
+  /* The Actions column. Its buttons are ghost buttons, so what the eye lines up on is
+     their text - and that sits inside the button's own padding. Trimming the cell's
+     padding by exactly that much puts the last button's text under the header's, instead
+     of a button-padding short of it. */
+  .table .cell-actions {
+    text-align: end;
+    white-space: nowrap;
+    padding-inline-end: calc(1rem - 0.75rem);
+  }
+
+  .table th.cell-actions {
+    padding-inline-end: 1rem;
+  }
+
   .table tr:hover td {
     background-color: var(--color-hover);
   }

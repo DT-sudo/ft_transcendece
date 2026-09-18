@@ -5,8 +5,9 @@ from io import StringIO
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.contrib.sessions.models import Session
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from apps.scheduling.management.commands.seed_demo import DEMO_EMPLOYEE_EMAIL, DEMO_MANAGER_EMAIL
@@ -317,9 +318,12 @@ class RolePermissionTests(TestCase):
         }
         return self.client.post(reverse("employee_update", args=[target.id]), data)
 
-    def _shift_by(self, manager) -> None:
-        Shift.objects.create(
-            date=date(2030, 6, 3), start_time=time(9, 0), end_time=time(17, 0), position=self.position, created_by=manager
+    def _shift_by(self, manager) -> Shift:
+        return self._shift_on(date(2030, 6, 3), manager=manager)
+
+    def _shift_on(self, day: date, manager=None) -> Shift:
+        return Shift.objects.create(
+            date=day, start_time=time(9, 0), end_time=time(17, 0), position=self.position, created_by=manager or self.manager
         )
 
     def test_admin_sees_every_other_account_and_the_roles(self):
@@ -402,16 +406,40 @@ class RolePermissionTests(TestCase):
         self.employee.refresh_from_db()
         self.assertEqual((self.employee.role, self.employee.position), (UserRole.MANAGER, None))
 
-    def test_promoting_an_employee_with_shifts_is_refused(self):
+    def test_promoting_an_employee_takes_them_off_upcoming_shifts_only(self):
+        """A role change cancels the bookings ahead; a shift already worked keeps its record of who was there."""
         manager_position = Position.objects.get(name=MANAGER_POSITION_NAME)
-        Shift.objects.create(
-            date=date(2030, 6, 3), start_time=time(9, 0), end_time=time(17, 0), position=self.position, created_by=self.manager
-        ).assignments.create(employee=self.employee)
+        upcoming, worked = self._shift_on(date(2030, 6, 3)), self._shift_on(date(2020, 6, 3))
+        upcoming.assignments.create(employee=self.employee)
+        worked.assignments.create(employee=self.employee)
 
         self._update(self.admin, self.employee, position=manager_position.id)
 
         self.employee.refresh_from_db()
-        self.assertEqual(self.employee.role, UserRole.EMPLOYEE)
+        self.assertEqual(self.employee.role, UserRole.MANAGER)
+        self.assertFalse(upcoming.assignments.exists())
+        self.assertTrue(worked.assignments.filter(employee=self.employee).exists())
+
+    def test_changing_an_employees_position_takes_them_off_upcoming_shifts_only(self):
+        other = Position.objects.create(name="Cook")
+        upcoming, worked = self._shift_on(date(2030, 6, 3)), self._shift_on(date(2020, 6, 3))
+        upcoming.assignments.create(employee=self.employee)
+        worked.assignments.create(employee=self.employee)
+
+        self._update(self.admin, self.employee, position=other.id)
+
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.position, other)
+        self.assertFalse(upcoming.assignments.exists())
+        self.assertTrue(worked.assignments.filter(employee=self.employee).exists())
+
+    def test_an_unchanged_role_leaves_upcoming_shifts_alone(self):
+        upcoming = self._shift_on(date(2030, 6, 3))
+        upcoming.assignments.create(employee=self.employee)
+
+        self._update(self.admin, self.employee, full_name="Pat Renamed")
+
+        self.assertTrue(upcoming.assignments.filter(employee=self.employee).exists())
 
     def test_the_manager_position_cannot_be_deleted(self):
         manager_position = Position.objects.get(name=MANAGER_POSITION_NAME)
@@ -453,3 +481,56 @@ class LegalPageTests(TestCase):
 
         self.assertEqual(urls["privacy"], reverse("privacy_policy"))
         self.assertEqual(urls["terms"], reverse("terms_of_service"))
+
+
+class SessionSecurityTests(TestCase):
+    """A signed-in page must not outlive the session it was granted to - Back button included."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.position = Position.objects.create(name="Barista")
+        cls.admin = User.objects.create_user(username="admin@example.com", email="admin@example.com", role=UserRole.ADMIN)
+        cls.employee = User.objects.create_user(
+            username="pat@example.com", email="pat@example.com", role=UserRole.EMPLOYEE, position=cls.position
+        )
+
+    def test_signed_in_pages_are_never_stored_by_a_cache(self):
+        """`no-store` is what takes a page out of the back/forward cache, so Back re-asks the server."""
+        self.client.force_login(self.employee)
+
+        response = self.client.get(reverse("employee_shifts"))
+
+        self.assertIn("no-store", response["Cache-Control"])
+
+    def test_the_page_a_signed_out_session_asks_for_again_is_the_sign_in_page(self):
+        self.client.force_login(self.employee)
+        self.client.post(reverse("logout"))
+
+        self.assertRedirects(self.client.get(reverse("employee_shifts")), reverse("login"), target_status_code=200)
+
+    def test_a_role_change_ends_the_accounts_sessions(self):
+        """The admin's edit signs them out everywhere, so no tab keeps a page of the old role."""
+        self.client.force_login(self.employee)
+        signed_in_key = self.client.session.session_key
+        admin_client = Client()
+        admin_client.force_login(self.admin)
+
+        admin_client.post(
+            reverse("employee_update", args=[self.employee.id]),
+            {"full_name": "Pat Doe", "email": self.employee.email, "role": UserRole.MANAGER, "position": ""},
+        )
+
+        # The session is gone from the server, not merely refused on the next request.
+        self.assertFalse(Session.objects.filter(session_key=signed_in_key).exists())
+        self.assertRedirects(self.client.get(reverse("employee_shifts")), reverse("login"), target_status_code=200)
+
+    def test_a_session_whose_role_changed_under_it_is_signed_out(self):
+        """The guard that does not depend on finding the session row: the role is stamped on the session."""
+        self.client.force_login(self.employee)
+        self.client.get(reverse("employee_shifts"))  # stamps the session with the role it signed in as
+        User.objects.filter(pk=self.employee.pk).update(role=UserRole.MANAGER, position=None)
+
+        response = self.client.get(reverse("employee_shifts"))
+
+        self.assertRedirects(response, reverse("login"), target_status_code=200)
+        self.assertNotIn("_auth_user_id", self.client.session)

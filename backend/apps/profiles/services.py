@@ -40,16 +40,27 @@ def friends_of(user: User):
     return User.objects.filter(pk__in=friend_ids(user.pk), is_active=True).select_related("position").order_by("first_name", "last_name")
 
 
-def colleagues_of(user: User):
-    """Everyone but yourself and admins: the directory on the Colleagues page.
+def related_ids(user: User) -> set[int]:
+    """Everyone `user` already has a friendship row with, friends and open requests alike."""
+    rows = involving(user).values_list("from_user_id", "to_user_id")
+    return {sender if receiver == user.pk else receiver for sender, receiver in rows}
 
-    Admins aren't colleagues - they don't get that page, so nobody could ever answer a
+
+def colleagues_of(user: User):
+    """Everyone you could still ask: the directory on the Friends page.
+
+    It lists only people you have no friendship row with, so it never doubles as a view of
+    your requests - a colleague you have asked, or who has asked you, is shown in the
+    requests section that can actually answer it, and a friend under Friends.
+
+    Admins are left out entirely: they don't get that page, so nobody could ever answer a
     request sent to one.
     """
     return (
         User.objects.filter(is_active=True)
         .exclude(pk=user.pk)
         .exclude(role=UserRole.ADMIN)
+        .exclude(pk__in=related_ids(user))
         .select_related("position")
         .order_by("first_name", "last_name")
     )

@@ -42,6 +42,12 @@ export const Plus = (props) => (
   </Icon>
 );
 
+export const Minus = (props) => (
+  <Icon {...props}>
+    <path d="M5 12h14" />
+  </Icon>
+);
+
 export const X = ({ size = 20, ...props }) => (
   <Icon size={size} {...props}>
     <line x1="18" x2="6" y1="6" y2="18" />
@@ -85,21 +91,6 @@ export const UserIcon = ({ size = 18, ...props }) => (
   <Icon size={size} {...props}>
     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
-  </Icon>
-);
-
-export const UserPlus = ({ size = 18, ...props }) => (
-  <Icon size={size} {...props}>
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M19 8v6" />
-    <path d="M22 11h-6" />
-  </Icon>
-);
-
-export const Check = ({ size = 18, ...props }) => (
-  <Icon size={size} {...props}>
-    <path d="M20 6 9 17l-5-5" />
   </Icon>
 );
 

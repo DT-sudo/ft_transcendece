@@ -50,6 +50,15 @@ def _shift_label(params: dict) -> str:
     return _("%(position)s, %(day)s, %(start)s–%(end)s") % {**params, "day": _day(params["date"])}
 
 
+def _shift_list(shifts: list[dict]) -> str:
+    """The first few shifts as one line, with "and N more" standing in for the rest."""
+    listed = "; ".join(_shift_label(shift) for shift in shifts[:MAX_LISTED_SHIFTS])
+    extra = len(shifts) - MAX_LISTED_SHIFTS
+    if extra > 0:
+        listed += "; " + ngettext("and %(count)d more", "and %(count)d more", extra) % {"count": extra}
+    return listed
+
+
 def _role(params: dict) -> str:
     from apps.accounts.models import UserRole
 
@@ -100,11 +109,7 @@ def _shifts_published(p):
         title = _("New shift published")
     else:
         title = ngettext("%(count)d new shift published", "%(count)d new shifts published", count) % {"count": count}
-    description = "; ".join(_shift_label(shift) for shift in shifts[:MAX_LISTED_SHIFTS])
-    extra = count - MAX_LISTED_SHIFTS
-    if extra > 0:
-        description += "; " + ngettext("and %(count)d more", "and %(count)d more", extra) % {"count": extra}
-    return title, description
+    return title, _shift_list(shifts)
 
 
 @_renders("shift.assigned")
@@ -128,6 +133,26 @@ def _shift_changed(p):
 @_renders("shift.cancelled")
 def _shift_cancelled(p):
     return _("Shift cancelled"), _shift_label(p["shift"])
+
+
+@_renders("shift.released")
+def _shift_released(p):
+    """Told to the worker: upcoming shifts they are no longer on, and why."""
+    count = len(p["shifts"])
+    title = ngettext(
+        "Taken off %(count)d upcoming shift", "Taken off %(count)d upcoming shifts", count
+    ) % {"count": count}
+    return title, _shift_list(p["shifts"])
+
+
+@_renders("shift.staff_released")
+def _shift_staff_released(p):
+    """Told to the managers: an upcoming shift lost a worker, and needs restaffing."""
+    count = len(p["shifts"])
+    title = ngettext(
+        "%(name)s came off %(count)d upcoming shift", "%(name)s came off %(count)d upcoming shifts", count
+    ) % {"name": p["name"], "count": count}
+    return title, _shift_list(p["shifts"])
 
 
 @_renders("position.created")

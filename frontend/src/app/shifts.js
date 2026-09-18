@@ -40,10 +40,6 @@ export function isUnavailable(availability, employeeId, date) {
   return availability.get(String(employeeId))?.has(date) ?? false;
 }
 
-export function unavailableDaysBetween(availability, employeeId, start, end) {
-  return [...(availability.get(String(employeeId)) || [])].filter((day) => day >= start && day <= end).sort();
-}
-
 // ── Calendar layout ─────────────────────────────────────────────────────────
 
 export function groupShiftsByDate(shifts) {

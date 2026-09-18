@@ -1,4 +1,5 @@
 import { getBootstrap, submitPost } from '../app/http.js';
+import { useSessionGuard } from '../app/session.js';
 import { t } from '../i18n/index.js';
 import { Avatar } from './Avatar.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
@@ -83,6 +84,7 @@ export function Footer({ children }) {
 /** Header, flash-message toasts and footer, shared by every signed-in page; `footer` adds page content to the footer bar. */
 export function AppShell({ children, footer }) {
   const { user, nav, urls, messages, notifications } = getBootstrap();
+  useSessionGuard();
 
   return (
     <ToastProvider initialMessages={messages} notifications={notifications}>

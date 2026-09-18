@@ -121,6 +121,8 @@ def render_app(request: HttpRequest, *, page: str, title: str, data: dict[str, A
         # Terms of Service from anywhere, signed in or not.
         "urls": {
             "logout": reverse("logout"),
+            # Where a page goes when its session ends in another tab (`session.ended`).
+            "login": reverse("login"),
             "privacy": reverse("privacy_policy"),
             "terms": reverse("terms_of_service"),
             "privacyCenter": reverse("privacy_center"),

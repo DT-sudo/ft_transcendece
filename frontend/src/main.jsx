@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import './styles/index.css';
 import { getBootstrap } from './app/http.js';
+import { watchBackForwardCache } from './app/session.js';
 import { useLanguage } from './i18n/index.js';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { SignUpPage } from './pages/auth/SignUpPage.jsx';
@@ -42,6 +43,8 @@ function App() {
   useLanguage();
   return <Page />;
 }
+
+watchBackForwardCache();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

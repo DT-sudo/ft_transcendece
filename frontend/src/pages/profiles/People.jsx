@@ -1,16 +1,18 @@
 import { useState } from 'react';
 
 import { submitPost, urlFromTemplate } from '../../app/http.js';
+import { DIRECTORY_CHANGED } from '../../app/live.js';
 import { Avatar } from '../../components/Avatar.jsx';
-import { Check, UserPlus } from '../../components/Icons.jsx';
+import { Minus, Plus } from '../../components/Icons.jsx';
 import { ConfirmModal } from '../../components/Modal.jsx';
 import { t } from '../../i18n/index.js';
 
 /**
- * Live events after which the Friends and profile pages re-read their data. A friend's
+ * Live events after which the Friends and profile pages re-read their data: a friendship
+ * changed, or the directory did (a colleague joined, left, or changed job). A friend's
  * `friend.status` (online or not) is patched in place instead, with no request.
  */
-export const FRIEND_EVENTS = ['friends.changed'];
+export const FRIEND_EVENTS = ['friends.changed', DIRECTORY_CHANGED];
 
 // Friend actions redirect back to the page they were taken on.
 const back = () => ({ next: window.location.pathname });
@@ -55,6 +57,10 @@ export function PersonRow({ person, detail, online, children }) {
 /**
  * The buttons one relation allows: add, cancel a sent request, accept or decline a
  * received one, or unfriend (after a confirmation).
+ *
+ * Two icons carry the whole set, so the direction of a button is readable before its
+ * label is: a plus gains a friend, a minus gives one up. Removing a friend is the one
+ * action that cannot be undone from the same list, so it is the one in destructive red.
  */
 export function FriendActions({ person, relation, urls, small = false }) {
   const [confirming, setConfirming] = useState(false);
@@ -65,13 +71,14 @@ export function FriendActions({ person, relation, urls, small = false }) {
     case 'none':
       return (
         <button className={`btn btn-primary ${size}`} type="button" onClick={() => submitPost(urls.request, { user_id: person.id, ...back() })}>
-          <UserPlus size={16} />
+          <Plus size={16} />
           {t('friends.add')}
         </button>
       );
     case 'outgoing':
       return (
         <button className={`btn btn-outline ${size}`} type="button" onClick={end}>
+          <Minus size={16} />
           {t('friends.cancelRequest')}
         </button>
       );
@@ -83,10 +90,11 @@ export function FriendActions({ person, relation, urls, small = false }) {
             type="button"
             onClick={() => submitPost(urlFromTemplate(urls.accept, relation.friendshipId), back())}
           >
-            <Check size={16} />
+            <Plus size={16} />
             {t('friends.accept')}
           </button>
           <button className={`btn btn-outline ${size}`} type="button" onClick={end}>
+            <Minus size={16} />
             {t('friends.decline')}
           </button>
         </>
@@ -94,7 +102,8 @@ export function FriendActions({ person, relation, urls, small = false }) {
     case 'friends':
       return (
         <>
-          <button className={`btn btn-ghost btn-icon-destructive ${size}`} type="button" onClick={() => setConfirming(true)}>
+          <button className={`btn btn-destructive ${size}`} type="button" onClick={() => setConfirming(true)}>
+            <Minus size={16} />
             {t('friends.remove')}
           </button>
           {confirming ? (

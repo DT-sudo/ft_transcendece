@@ -22,7 +22,7 @@ from apps.accounts.services import position_options
 from apps.notifications.messages import shift_params
 from apps.notifications.services import managers, notify
 from apps.shell import flash_redirect, render_app
-from apps.realtime.events import notify_managers, push_to_user
+from apps.realtime.events import SHIFTS_CHANGED, notify_managers, push_to_user
 
 from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
 from .services import (
@@ -35,9 +35,6 @@ from .services import (
     shifts_for_employee,
     shifts_for_manager,
 )
-
-# Open calendars and analytics dashboards re-fetch their data when a shift is written.
-SHIFTS_CHANGED = {"type": "shifts.changed"}
 
 # ── Query parameters and periods ────────────────────────────────────────────
 
@@ -432,15 +429,37 @@ def employee_unavailability_toggle(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {"ok": False, "error": _("Only dates from tomorrow onwards can be marked as unavailable.")}, status=400
         )
-    if Assignment.objects.filter(employee_id=request.user.id, shift__date=day).exists():
+    assignments = Assignment.objects.filter(employee_id=request.user.id, shift__date=day).select_related(
+        "shift__position"
+    )
+    # A published shift is a commitment that was already made and announced; only the manager
+    # can undo it. A draft was never shown to the employee, so marking the day off simply
+    # takes them back out of it before anyone was told.
+    drafts = [assignment for assignment in assignments if assignment.shift.status == ShiftStatus.DRAFT]
+    if len(drafts) != len(assignments):
         return JsonResponse({"ok": False, "error": _("You have a shift assigned on this day.")}, status=400)
 
     existing = EmployeeUnavailability.objects.filter(employee_id=request.user.id, date=day)
     unavailable = not existing.exists()
+    released = []
     if unavailable:
         EmployeeUnavailability.objects.create(employee_id=request.user.id, date=day)
+        released = [assignment.shift for assignment in drafts]
+        Assignment.objects.filter(pk__in=[assignment.pk for assignment in drafts]).delete()
     else:
         existing.delete()
+
+    if released:
+        # The draft lost a worker: every manager calendar shows it understaffed again.
+        notify_managers(SHIFTS_CHANGED)
+        notify(
+            managers(),
+            "shift.staff_released",
+            actor=request.user,
+            level="warning",
+            name=request.user.display_name,
+            shifts=[shift_params(shift) for shift in released],
+        )
 
     # Open manager calendars update immediately instead of on their next reload.
     notify_managers(

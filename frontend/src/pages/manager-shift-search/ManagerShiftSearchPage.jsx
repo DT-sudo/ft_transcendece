@@ -1,5 +1,6 @@
 import { formatDate, navigateWith } from '../../app/dates.js';
 import { getBootstrap } from '../../app/http.js';
+import { useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
 import { ChevronLeft, ChevronRight } from '../../components/Icons.jsx';
@@ -94,9 +95,13 @@ function Pagination({ page, totalPages, total }) {
   );
 }
 
-/** Every shift of the manager as a searchable, sortable, paginated table. */
+/**
+ * Every shift of the manager as a searchable, sortable, paginated table. The query,
+ * sort and page live in the URL and the server applies them; the results are re-read
+ * when a shift or the staff directory behind them changes.
+ */
 export function ManagerShiftSearchPage() {
-  const { data } = getBootstrap();
+  const data = useLivePageData(getBootstrap().data);
   const { results, filters, urls } = data;
 
   return (

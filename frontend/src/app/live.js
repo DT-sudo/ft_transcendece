@@ -86,11 +86,21 @@ export function useLiveEvents(onEvent, { onReconnect, onOpen, enabled = true } =
   }, [enabled]);
 }
 
+// Server events after which a page holding a copy of that data is out of date.
+// `directory.changed` covers every write to the shared accounts, roles and positions
+// directory, which almost every page carries a slice of: staff lists, the team sidebar,
+// position filters, the colleague list.
+export const SHIFTS_CHANGED = 'shifts.changed';
+export const DIRECTORY_CHANGED = 'directory.changed';
+
+/** What a page showing the schedule has to follow: the shifts, and the people and positions in them. */
+export const SCHEDULE_EVENTS = [SHIFTS_CHANGED, DIRECTORY_CHANGED];
+
 /**
  * The page's `data`, re-read from the server when one of `eventTypes` arrives or a lost
  * connection comes back, and after a language switch. `patch(data, event)` applies any other event in place.
  */
-export function useLivePageData(initial, eventTypes = ['shifts.changed'], patch = null) {
+export function useLivePageData(initial, eventTypes = SCHEDULE_EVENTS, patch = null) {
   const [data, setData] = useState(initial);
   const refresh = () => getPageData().then(setData).catch(() => {});
   // Switching language re-reads the page data (`changeLanguage`); take the translated copy.

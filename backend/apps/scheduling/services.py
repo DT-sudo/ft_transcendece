@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -111,6 +112,42 @@ def save_shift(shift: Shift, post_data) -> Shift:
         saved = form.save()
         assign_employees_to_shift(saved, employee_ids)
     return saved
+
+
+# ── Past and future ─────────────────────────────────────────────────────────
+# A shift is "past" once it has ended, which `Shift.is_past` works out from its date and
+# end time. There is deliberately no stored past/future flag: it would be wrong from the
+# minute a shift ends until something wrote to the row, so every query would have to
+# distrust it anyway. The same rule as a queryset filter is below.
+
+
+def not_ended_q(prefix: str = "") -> models.Q:
+    """Shifts that have not ended yet, as a filter over `Shift` (or over a relation, e.g. `"shift__"`).
+
+    The queryset half of `Shift.is_past`: later days, plus today's shifts whose end time is
+    still ahead.
+    """
+    now = timezone.localtime()
+    return models.Q(**{f"{prefix}date__gt": now.date()}) | models.Q(
+        **{f"{prefix}date": now.date(), f"{prefix}end_time__gt": now.time()}
+    )
+
+
+def release_from_future_shifts(employee_id: int) -> list[Shift]:
+    """Take an employee off every shift that has not ended yet, and return those shifts.
+
+    Worked shifts are history - they say who was actually there - so assignments on shifts
+    that have already ended are left exactly as they are. Used when an account stops being
+    able to work a shift it is booked on: its role or its position changed.
+    """
+    assignments = (
+        Assignment.objects.filter(not_ended_q("shift__"), employee_id=employee_id)
+        .select_related("shift__position")
+    )
+    released = [assignment.shift for assignment in assignments]
+    if released:
+        Assignment.objects.filter(pk__in=[assignment.pk for assignment in assignments]).delete()
+    return released
 
 
 def publish_shift(shift: Shift) -> None:

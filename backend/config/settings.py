@@ -44,6 +44,8 @@ MIDDLEWARE = [
     # Then a signed-in user's saved language wins (apps.i18n).
     "apps.i18n.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # After the messages middleware: it signs stale sessions out with a flash message.
+    "apps.accounts.middleware.SessionSecurityMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -149,6 +151,22 @@ if not DEBUG:
 # One-click demo logins bypass password entry, so they must be explicitly
 # enabled and default to off outside development.
 ENABLE_DEMO_LOGIN = env_bool("ENABLE_DEMO_LOGIN", DEBUG)
+
+# ── Security log ────────────────────────────────────────────────────────────
+# Sign-ins, sign-outs, account and role writes and ended sessions are logged as
+# one line each by `apps.accounts.security`. They go to the console, which is
+# what `docker compose logs` collects; point the handler at a file to keep them.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"security": {"format": "%(asctime)s %(levelname)s security %(message)s"}},
+    "handlers": {
+        "security": {"class": "logging.StreamHandler", "formatter": "security"},
+    },
+    "loggers": {
+        "planshift.security": {"handlers": ["security"], "level": "INFO", "propagate": False},
+    },
+}
 
 # ── Email ───────────────────────────────────────────────────────────────────
 # Used by apps.privacy for GDPR confirmation emails (data export, account

@@ -122,7 +122,7 @@ export function PositionsModal({ positions, urls, onClose }) {
             <thead>
               <tr>
                 <th>{t('team.position')}</th>
-                <th className="w-45">{t('team.actions')}</th>
+                <th className="w-45 cell-actions">{t('team.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,7 +136,7 @@ export function PositionsModal({ positions, urls, onClose }) {
                 positions.map((position) => (
                   <tr key={position.id}>
                     <td>{position.name}</td>
-                    <td className="text-end">
+                    <td className="cell-actions">
                       {position.name === 'Manager' ? (
                         <span className="text-xs text-muted-foreground">{t('team.permanentPosition')}</span>
                       ) : (

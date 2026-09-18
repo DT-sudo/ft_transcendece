@@ -26,7 +26,7 @@
     "analytics": "Analýza",
     "users": "Uživatelé",
     "myShifts": "Moje směny",
-    "friends": "Kolegové"
+    "friends": "Přátelé"
   },
   "header": {
     "userMenu": "Uživatelská nabídka",
@@ -162,7 +162,6 @@
   "shifts": {
     "employees": "Zaměstnanci",
     "highlightShifts": "Zvýraznit směny: {name}",
-    "unavailableDays": "Nedostupnost: {days}",
     "legend": "Barvy pozic",
     "monthSchedule": "Měsíční rozpis",
     "weekSchedule": "Týdenní rozpis",

@@ -136,7 +136,7 @@ def account_settings(request: HttpRequest) -> HttpResponse:
 @non_admin_required
 @require_GET
 def friends(request: HttpRequest) -> HttpResponse:
-    """Every colleague (for the directory), plus friends, requests to answer and requests sent."""
+    """Friends, the requests waiting either way, and the colleagues you could still ask."""
     user = request.user
     lists = {"friends": [], "incoming": [], "outgoing": []}
     rows = services.involving(user).select_related("from_user__position", "to_user__position").order_by("-created_at")
@@ -154,14 +154,14 @@ def friends(request: HttpRequest) -> HttpResponse:
     return render_app(
         request,
         page="friends",
-        title=_("Colleagues"),
+        title=_("Friends"),
         nav_active="friends",
         data={**lists, "colleagues": colleagues, "urls": services.friend_urls()},
     )
 
 
 def _back(request: HttpRequest, level: int, text: str) -> HttpResponse:
-    """Back to the page the action came from (a profile or the Colleagues page)."""
+    """Back to the page the action came from (a profile or the Friends page)."""
     target = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         target = "friends"

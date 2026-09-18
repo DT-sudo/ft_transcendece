@@ -15,6 +15,7 @@ from django.utils.translation import ngettext
 from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.accounts.models import User
+from apps.accounts.security import log_security
 from apps.shell import field_errors, flash_redirect, render_app
 
 from . import services, totp
@@ -36,6 +37,7 @@ def begin_login(request: HttpRequest, user: User) -> HttpResponse:
     backend = getattr(user, "backend", None)
     if not services.is_enabled(user):
         login(request, user, backend=backend)
+        log_security("login", request, actor=user, role=user.role, two_factor="no")
         return redirect("home")
     request.session[PENDING_LOGIN] = {"user_id": user.pk, "backend": backend, "started": time.time()}
     return redirect("login_verify")
@@ -68,6 +70,7 @@ def login_verify(request: HttpRequest) -> HttpResponse:
             return flash_redirect(request, messages.ERROR, services.LOCKED_MESSAGE, "login")
         if result.ok:
             login(request, user, backend=request.session.pop(PENDING_LOGIN)["backend"])
+            log_security("login", request, actor=user, role=user.role, two_factor=result.name.lower())
             if result is services.Result.RECOVERY_CODE:
                 left = services.recovery_codes_left(user)
                 messages.warning(

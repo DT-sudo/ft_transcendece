@@ -15,7 +15,7 @@ from apps.accounts.models import Position, User, UserRole
 from apps.scheduling.models import EmployeeUnavailability, Shift
 
 from .consumers import ScheduleConsumer
-from .events import MANAGERS_GROUP, user_group
+from .events import EVERYONE_GROUP, MANAGERS_GROUP, user_group
 
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 PING = {"type": "schedule.event", "event": {"type": "ping"}}
@@ -205,3 +205,70 @@ class LiveAvailabilityTests(TestCase):
 
         data = response.context["bootstrap"]["data"]
         self.assertEqual(data["unavailability"], {str(self.alice.id): [self.day.isoformat()]})
+
+
+@override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
+class LiveDirectoryTests(TestCase):
+    """Account, role and position writes reach every open page, whatever role it belongs to."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.barista = Position.objects.create(name="Barista")
+        cls.admin = User.objects.create_user(username="admin@example.com", email="admin@example.com", role=UserRole.ADMIN)
+        cls.employee = User.objects.create_user(
+            username="alice@example.com", email="alice@example.com", password="x",
+            role=UserRole.EMPLOYEE, position=cls.barista,
+        )
+
+    def setUp(self) -> None:
+        self.layer = get_channel_layer()
+        self.channel = async_to_sync(self.layer.new_channel)()
+        # The group an employee's page is in too, not only a manager's.
+        async_to_sync(self.layer.group_add)(EVERYONE_GROUP, self.channel)
+        self.client.force_login(self.admin)
+
+    def _post(self, url_name, *args, **data):
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(reverse(url_name, args=args), data)
+
+    def _events(self) -> list[dict]:
+        """Everything broadcast to the group, until it goes quiet."""
+        events = []
+        while True:
+            try:
+                events.append(next_event(self.layer, self.channel))
+            except TimeoutError:
+                return events
+
+    def test_creating_an_account_reaches_every_page(self):
+        self._post("manager_employees_create", full_name="New Hire", email="new@example.com",
+                   role=UserRole.EMPLOYEE, position=self.barista.id)
+
+        self.assertIn({"type": "directory.changed"}, self._events())
+
+    def test_deleting_an_account_reaches_every_page(self):
+        self._post("employee_delete", self.employee.id)
+
+        self.assertIn({"type": "directory.changed"}, self._events())
+
+    def test_adding_and_removing_a_position_reaches_every_page(self):
+        self._post("position_create", name="Cook")
+        self.assertIn({"type": "directory.changed"}, self._events())
+
+        self._post("position_delete", Position.objects.get(name="Cook").id)
+        self.assertIn({"type": "directory.changed"}, self._events())
+
+    def test_a_role_change_tells_that_accounts_pages_to_sign_out(self):
+        theirs = async_to_sync(self.layer.new_channel)()
+        async_to_sync(self.layer.group_add)(user_group(self.employee.id), theirs)
+
+        self._post("employee_update", self.employee.id, full_name="Alice N",
+                   email=self.employee.email, role=UserRole.MANAGER, position="")
+
+        events = []
+        while True:
+            try:
+                events.append(next_event(self.layer, theirs))
+            except TimeoutError:
+                break
+        self.assertIn({"type": "session.ended"}, events)

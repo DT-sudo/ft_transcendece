@@ -123,16 +123,17 @@ class UserForm(AccountForm):
         if role == UserRole.EMPLOYEE:
             if not position:
                 self.add_error("position", _("Employees need a position."))
-            elif position.name == MANAGER_POSITION_NAME and self.instance.pk and self.instance.assignments.exists():
-                self.add_error("position", _("Reassign or remove this employee's shifts before making them a manager."))
         elif role:
             cleaned["position"] = None
 
-        # Managers own shifts and employees are assigned to them; switching sides would strand those shifts.
+        # Shifts someone is *assigned* to are no obstacle: the view takes them off the
+        # upcoming ones and leaves the worked ones alone (`release_from_future_shifts`).
+        # Shifts someone *created* are: `Shift.created_by` is PROTECT, and an employee has
+        # no calendar to keep a schedule on.
         # (`self.instance` still holds the saved role here: the posted one is copied onto it after clean().)
-        switches_side = self.instance.pk and role and (role == UserRole.EMPLOYEE) != self.instance.is_employee
-        if switches_side and (self.instance.created_shifts.exists() or self.instance.assignments.exists()):
-            raise ValidationError(_("Reassign or remove this user's shifts before switching between employee and manager roles."))
+        becomes_employee = self.instance.pk and role == UserRole.EMPLOYEE and not self.instance.is_employee
+        if becomes_employee and self.instance.created_shifts.exists():
+            raise ValidationError(_("Reassign or delete the shifts this manager created before making them an employee."))
         return cleaned
 
     def save(self, commit=True) -> User:

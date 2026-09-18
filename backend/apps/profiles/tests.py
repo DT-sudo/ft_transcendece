@@ -378,13 +378,24 @@ class FriendshipTests(ProfilesTestCase):
         self.assertEqual([friend["id"] for friend in data["friends"]], [self.bob.id])
         self.assertEqual([request["id"] for request in data["incoming"]], [self.carol.id])
         self.assertEqual([request["id"] for request in data["outgoing"]], [self.manager.id])
+        # Each of them is shown once, in the section that can act on them.
+        self.assertEqual(data["colleagues"], [])
 
-    def test_the_friends_page_lists_every_colleague_but_yourself_and_admins(self):
+    def test_the_directory_lists_every_colleague_but_yourself_and_admins(self):
         self.client.force_login(self.alice)
 
         data = self.client.get(reverse("friends"), {"format": "json"}).json()
 
         self.assertEqual({person["id"] for person in data["colleagues"]}, {self.bob.id, self.carol.id, self.manager.id})
+
+    def test_asking_someone_takes_them_out_of_the_directory(self):
+        self.ask(self.alice, user_id=self.bob.id)
+        self.client.force_login(self.alice)
+
+        data = self.client.get(reverse("friends"), {"format": "json"}).json()
+
+        self.assertNotIn(self.bob.id, {person["id"] for person in data["colleagues"]})
+        self.assertEqual([request["id"] for request in data["outgoing"]], [self.bob.id])
 
     @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
     def test_the_other_side_hears_about_it_live(self):

@@ -9,7 +9,7 @@ from django.urls import path
 
 from apps.profiles import presence
 
-from .events import MANAGERS_GROUP, user_group
+from .events import EVERYONE_GROUP, MANAGERS_GROUP, session_group, user_group
 
 
 class ScheduleConsumer(AsyncJsonWebsocketConsumer):
@@ -28,7 +28,12 @@ class ScheduleConsumer(AsyncJsonWebsocketConsumer):
         if not user.is_authenticated:
             await self.close()
             return
-        self.subscriptions = [user_group(user.id)] + ([MANAGERS_GROUP] if user.is_manager else [])
+        self.subscriptions = [user_group(user.id), EVERYONE_GROUP] + ([MANAGERS_GROUP] if user.is_manager else [])
+        # Also its own browser session, so signing out in one tab reaches that account's
+        # other tabs here without disturbing the same account signed in elsewhere.
+        session_key = getattr(self.scope.get("session"), "session_key", None)
+        if session_key:
+            self.subscriptions.append(session_group(session_key))
         for group in self.subscriptions:
             await self.channel_layer.group_add(group, self.channel_name)
         # Names this page in presence events; set apart from the user so two tabs show as two.

@@ -15,15 +15,20 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from apps.notifications.messages import shift_params
 from apps.notifications.services import managers, notify
 from apps.privacy.emails import send_account_deleted_email
+from apps.realtime.events import DIRECTORY_CHANGED, SHIFTS_CHANGED, notify_everyone, notify_managers, push_to_user
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
 from apps.scheduling.management.commands.seed_demo import DEMO_ACCOUNTS, DEMO_EMPLOYEE_EMAIL
+from apps.scheduling.models import ShiftStatus
+from apps.scheduling.services import release_from_future_shifts
 from apps.twofactor import services as two_factor
 from apps.twofactor.views import begin_login
 
 from .forms import EmailAuthenticationForm, PositionForm, SignUpForm, UserForm
 from .models import MANAGER_POSITION_NAME, Position, User, UserRole
+from .security import end_sessions, end_sessions_for, end_this_session, log_security
 from .services import position_options
 
 # ── Role decorators ─────────────────────────────────────────────────────────
@@ -70,9 +75,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
         return redirect("home")
 
     form = EmailAuthenticationForm(request, data=request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        # With two-factor authentication on, this only leads to the code step.
-        return begin_login(request, form.get_user())
+    if request.method == "POST":
+        if form.is_valid():
+            log_security("login.password_ok", request, actor=form.get_user())
+            # With two-factor authentication on, this only leads to the code step.
+            return begin_login(request, form.get_user())
+        log_security("login.failed", request, email=form["username"].value() or "-")
 
     # AuthenticationForm calls the field `username`; the UI calls it `email`.
     errors = field_errors(form)
@@ -109,6 +117,7 @@ def signup_view(request: HttpRequest) -> HttpResponse:
     if posted and form.is_valid():
         user = form.save()
         login(request, user)
+        log_security("signup", request, actor=user, role=user.role)
         messages.success(request, _("Welcome, %(name)s. Your account is ready.") % {"name": user.get_full_name()})
         return redirect("home")
 
@@ -131,6 +140,9 @@ def signup_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_POST
 def logout_view(request: HttpRequest) -> HttpResponse:
+    # Every tab of this browser session leaves with it, not just the one that pressed the button.
+    end_this_session(request)
+    log_security("logout", request)
     logout(request)
     return redirect("login")
 
@@ -154,6 +166,7 @@ def demo_login(request: HttpRequest, role: str) -> HttpResponse:
     if user is None:
         messages.error(request, _("Demo accounts are missing. Run `python manage.py seed_demo` first."))
         return redirect("login")
+    log_security("login.demo", request, actor=user, role=role)
     return begin_login(request, user)
 
 
@@ -174,6 +187,38 @@ def _set_generated_password(request: HttpRequest, employee: User) -> None:
 
 def _back(request: HttpRequest, level: int, text: str) -> HttpResponse:
     return flash_redirect(request, level, text, "manager_employees")
+
+
+def _directory_changed() -> None:
+    """Every open page re-reads itself: the accounts and positions directory is shared by all three roles."""
+    notify_everyone(DIRECTORY_CHANGED)
+
+
+def _release_from_upcoming(actor: User, account: User) -> None:
+    """Take `account` off the shifts it can no longer work, and tell everyone concerned.
+
+    Its worked shifts are left alone - they record who was actually there. Called when an
+    account's role or position changed, which is exactly when a future booking stops being valid.
+    """
+    released = release_from_future_shifts(account.pk)
+    if not released:
+        return
+    # The calendars, search and analytics of every manager, and the account's own shift list.
+    notify_managers(SHIFTS_CHANGED)
+    push_to_user(account.pk, SHIFTS_CHANGED)
+
+    # Drafts were never shown to the worker, so only published shifts are news to them.
+    published = [shift_params(shift) for shift in released if shift.status == ShiftStatus.PUBLISHED]
+    if published:
+        notify([account], "shift.released", actor=actor, level="warning", shifts=published)
+    notify(
+        managers(),
+        "shift.staff_released",
+        actor=actor,
+        level="warning",
+        name=account.display_name,
+        shifts=[shift_params(shift) for shift in released],
+    )
 
 
 @admin_required
@@ -227,6 +272,8 @@ def manager_employees_create(request: HttpRequest) -> HttpResponse:
     account = form.save(commit=False)
     _set_generated_password(request, account)
     notify(managers(), "account.added", actor=request.user, role=account.role, name=account.display_name)
+    _directory_changed()
+    log_security("account.created", request, target=account, role=account.role)
     return _back(request, messages.SUCCESS, _("%(role)s created.") % {"role": account.get_role_display()})
 
 
@@ -234,17 +281,37 @@ def manager_employees_create(request: HttpRequest) -> HttpResponse:
 @require_POST
 def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
     account = _managed_user_or_404(request, user_id)
+    # Read before validating: the posted values are written onto the instance by the form.
+    was_role, was_position_id = account.role, account.position_id
+
     form = UserForm(request.POST, instance=account)
     if not form.is_valid():
         return _back(request, messages.ERROR, first_form_error(form, _("Could not update the account.")))
     account = form.save()
+
+    role_changed = account.role != was_role
+    # A promotion clears the position, which `role_changed` already covers; this is the
+    # plain case of an employee given a different job title.
+    position_changed = account.position_id != was_position_id
+
+    if role_changed or position_changed:
+        # The shifts ahead were booked against the role and position the account no longer has.
+        _release_from_upcoming(request.user, account)
+    if role_changed:
+        # The pages of the old role must stop answering for this account at once - including
+        # the copy its browser might hand back on the Back button.
+        end_sessions(account, reason="role_changed", request=request)
+        log_security("account.role_changed", request, target=account, was=was_role, now=account.role)
+
     if form.has_changed():
         actor = request.user
         notify(managers(), "account.updated", actor=actor, role=account.role, name=account.display_name)
-        if "role" in form.changed_data or getattr(form, "promoted", False):
+        if role_changed:
             notify([account], "account.role_changed", actor=actor, by=actor.display_name, role=account.role)
         else:
             notify([account], "account.details_updated", actor=actor, by=actor.display_name)
+        _directory_changed()
+        log_security("account.updated", request, target=account, fields=",".join(form.changed_data) or "-")
     return _back(request, messages.SUCCESS, _("%(role)s updated.") % {"role": account.get_role_display()})
 
 
@@ -253,6 +320,8 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
 def reset_employee_password(request: HttpRequest, user_id: int) -> HttpResponse:
     employee = _managed_user_or_404(request, user_id)
     _set_generated_password(request, employee)
+    # A new password ends the old sessions; this is what makes their open tabs notice.
+    end_sessions(employee, reason="password_reset", request=request)
     notify([employee], "account.password_reset", actor=request.user, level="warning", by=request.user.display_name)
     return _back(request, messages.SUCCESS, _("Password reset."))
 
@@ -264,6 +333,8 @@ def reset_employee_two_factor(request: HttpRequest, user_id: int) -> HttpRespons
     account = _managed_user_or_404(request, user_id)
     if not two_factor.disable(account, actor=request.user):
         return _back(request, messages.ERROR, _("%(name)s doesn't use two-factor authentication.") % {"name": account.display_name})
+    _directory_changed()
+    log_security("account.two_factor_reset", request, target=account)
     return _back(request, messages.SUCCESS, _("Two-factor authentication reset for %(name)s.") % {"name": account.display_name})
 
 
@@ -279,15 +350,25 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     to the employee (not the manager) once the data is actually gone.
     """
     account = _managed_user_or_404(request, user_id)
+    account_id = account.pk
     label, email, role, language = account.display_name, account.email, account.role, account.language
     role_label = str(account.get_role_display())
+    # Their assignments go with them (Assignment.employee is CASCADE), so the calendars change.
+    had_assignments = account.assignments.exists()
     try:
         account.delete()
     except ProtectedError:
         # Shift.created_by is PROTECT: a manager's schedule outlives a careless delete.
         return _back(request, messages.ERROR, _("Cannot delete %(name)s: they still have shifts. Reassign or delete them first.") % {"name": label})
+    # Nothing is left to authorise their open pages; they go to the sign-in page rather
+    # than sitting on a view of an account that no longer exists.
+    end_sessions_for(account_id, reason="account_deleted", request=request)
     send_account_deleted_email(email, label, language)
     notify(managers(), "account.deleted", actor=request.user, level="warning", role=role, name=label)
+    _directory_changed()
+    if had_assignments:
+        notify_managers(SHIFTS_CHANGED)
+    log_security("account.deleted", request, account=account_id, role=role)
     return _back(request, messages.SUCCESS, _("Deleted %(role)s: %(name)s.") % {"role": role_label.lower(), "name": label})
 
 
@@ -302,6 +383,8 @@ def position_create(request: HttpRequest) -> HttpResponse:
         return _back(request, messages.ERROR, first_form_error(form, _("Could not create position.")))
     position = form.save()
     notify(managers(), "position.created", actor=request.user, name=position.name)
+    _directory_changed()
+    log_security("position.created", request, position=position.pk)
     return _back(request, messages.SUCCESS, _("Position created: %(name)s.") % {"name": position.name})
 
 
@@ -316,4 +399,6 @@ def position_delete(request: HttpRequest, position_id: int) -> HttpResponse:
     except ProtectedError:
         return _back(request, messages.ERROR, _("Cannot delete position: it is referenced by existing data."))
     notify(managers(), "position.deleted", actor=request.user, level="warning", name=position.name)
+    _directory_changed()
+    log_security("position.deleted", request, position=position_id)
     return _back(request, messages.SUCCESS, _("Position deleted: %(name)s.") % {"name": position.name})
