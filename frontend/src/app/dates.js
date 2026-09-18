@@ -53,6 +53,27 @@ export function weekdayLabels() {
   );
 }
 
+// Typed dates read day, month, year in every language, the way times read HH:MM.
+const DAY_MONTH_YEAR = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
+
+/** "2026-09-19" -> "19.09.2026"; '' stays ''. */
+export function formatDayMonthYear(iso) {
+  if (!iso) return '';
+  const [year, month, day] = iso.split('-');
+  return `${day}.${month}.${year}`;
+}
+
+/** "19.9.2026" -> "2026-09-19", or '' when the text is not a real day. */
+export function parseDayMonthYear(text) {
+  const match = DAY_MONTH_YEAR.exec(text.trim());
+  if (!match) return '';
+  const [day, month, year] = match.slice(1).map(Number);
+  const date = new Date(year, month - 1, day);
+  // 31.02 rolls over into March: a day that doesn't exist comes back different.
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return '';
+  return toISODate(date);
+}
+
 /** "09:30" -> 570. */
 export const minutesOf = (time) => {
   const [hours, minutes] = time.split(':').map(Number);

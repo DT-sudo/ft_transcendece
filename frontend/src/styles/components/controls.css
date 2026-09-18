@@ -136,6 +136,48 @@
     text-align: right;
   }
 
+  /* ── Typed date with a picker button (DateInput) ── */
+
+  .date-input {
+    position: relative;
+  }
+
+  .date-input .form-input {
+    padding-inline-end: 2.25rem;
+  }
+
+  .date-input-button {
+    position: absolute;
+    inset-inline-end: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    padding: 0.375rem;
+    border: none;
+    border-radius: var(--radius-card);
+    background: transparent;
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+  }
+
+  .date-input-button:hover {
+    color: var(--color-foreground);
+    background-color: var(--color-hover);
+  }
+
+  /* Invisible, but laid out under the button so the browser opens its picker there. */
+  .date-input-picker {
+    position: absolute;
+    inset-inline-end: 0;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .form-input::placeholder {
     color: var(--color-muted-foreground);
   }

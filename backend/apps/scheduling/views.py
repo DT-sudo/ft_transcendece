@@ -19,11 +19,11 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.accounts.views import employee_required, manager_required
 from apps.accounts.models import User, UserRole
 from apps.accounts.services import position_options
-from apps.notifications.messages import shift_params
 from apps.notifications.services import managers, notify
 from apps.shell import flash_redirect, render_app
-from apps.realtime.events import SHIFTS_CHANGED, notify_managers, push_to_user
+from apps.realtime.events import notify_managers
 
+from . import notices
 from .models import Assignment, EmployeeUnavailability, Shift, ShiftStatus
 from .services import (
     publish_shift,
@@ -83,8 +83,9 @@ def _period(view: str, anchor: date) -> tuple[date, date]:
 # ── Manager calendar ────────────────────────────────────────────────────────
 
 
-def _manager_shift_or_404(request: HttpRequest, shift_id: int) -> Shift:
-    return get_object_or_404(Shift, pk=shift_id, created_by=request.user)
+def _shift_or_404(shift_id: int) -> Shift:
+    """Any shift on the schedule: every manager runs the same one."""
+    return get_object_or_404(Shift, pk=shift_id)
 
 
 def _active_employees():
@@ -136,7 +137,6 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
     understaffed = request.GET.get("show") == "understaffed"
 
     shift_qs = shifts_for_manager(
-        manager_id=request.user.id,
         start=start,
         end=end,
         position_id=position_id,
@@ -181,56 +181,22 @@ def manager_shifts(request: HttpRequest) -> HttpResponse:
     )
 
 
-# Employees only see published shifts, so drafts never notify them.
-
-
-def _assigned_ids(shift: Shift) -> set[int]:
-    return {assignment.employee_id for assignment in shift.assignments.all()}
-
-
-def _shifts_changed(employee_ids=()) -> None:
-    """Open manager pages re-fetch, and so do the calendars of employees whose published shifts changed."""
-    notify_managers(SHIFTS_CHANGED)
-    for employee_id in employee_ids:
-        push_to_user(employee_id, SHIFTS_CHANGED)
-
-
-def _notify_published(actor: User, shifts: list[Shift]) -> None:
-    """Refresh open calendars, then one notification per assigned employee, however many of their shifts were published."""
-    published: dict[int, list[dict]] = {}
-    for shift in shifts:
-        for employee_id in _assigned_ids(shift):
-            published.setdefault(employee_id, []).append(shift_params(shift))
-    _shifts_changed(published)
-    for employee_id, theirs in published.items():
-        notify([employee_id], "shift.published", actor=actor, shifts=theirs)
-
-
-def _notify_published_shift_edited(actor: User, shift: Shift, before_ids: set[int], before: dict) -> None:
-    after_ids, after = _assigned_ids(shift), shift_params(shift)
-    _shifts_changed(before_ids | after_ids)
-    notify(after_ids - before_ids, "shift.assigned", actor=actor, shift=after)
-    notify(before_ids - after_ids, "shift.removed", actor=actor, level="warning", shift=before)
-    if after != before:
-        notify(after_ids & before_ids, "shift.changed", actor=actor, before=before, after=after)
-
-
 @manager_required
 @require_POST
 def save_shift_view(request: HttpRequest, shift_id: int | None = None) -> HttpResponse:
     is_update = shift_id is not None
-    shift = _manager_shift_or_404(request, shift_id) if is_update else Shift(created_by=request.user)
+    shift = _shift_or_404(shift_id) if is_update else Shift(created_by=request.user)
     # Read before saving: validating the form writes the posted values onto `shift`.
     was_published = shift.status == ShiftStatus.PUBLISHED
-    before_ids, before = (_assigned_ids(shift), shift_params(shift)) if was_published else (set(), None)
+    before_ids, before = (notices.assigned_ids(shift), shift_fields(shift)) if was_published else (set(), None)
     try:
         saved = save_shift(shift, request.POST)
     except ValidationError as exc:
         return flash_redirect(request, messages.ERROR, " ".join(exc.messages), "manager_shifts")
     if was_published:
-        _notify_published_shift_edited(request.user, saved, before_ids, before)
+        notices.published_shift_edited(request.user, saved, before_ids, before)
     else:
-        _shifts_changed()
+        notices.shifts_changed()
     return flash_redirect(
         request, messages.SUCCESS, _("Shift updated.") if is_update else _("Shift created."), _calendar_url(saved)
     )
@@ -239,23 +205,22 @@ def save_shift_view(request: HttpRequest, shift_id: int | None = None) -> HttpRe
 @manager_required
 @require_POST
 def delete_shift(request: HttpRequest, shift_id: int) -> HttpResponse:
-    shift = _manager_shift_or_404(request, shift_id)
-    employee_ids = _assigned_ids(shift) if shift.status == ShiftStatus.PUBLISHED else set()
-    details = shift_params(shift)
-    shift.delete()
-    _shifts_changed(employee_ids)
-    notify(employee_ids, "shift.cancelled", actor=request.user, level="warning", shift=details)
+    # Prefetched: who was on it is read after the delete has taken the assignments. A queryset
+    # delete keeps the instance's pk, which reading those prefetched assignments needs.
+    shift = get_object_or_404(Shift.objects.prefetch_related("assignments"), pk=shift_id)
+    Shift.objects.filter(pk=shift.pk).delete()
+    notices.cancelled(request.user, [shift])
     return flash_redirect(request, messages.SUCCESS, _("Shift deleted."), "manager_shifts")
 
 
 @manager_required
 @require_POST
 def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
-    shift = _manager_shift_or_404(request, shift_id)
+    shift = _shift_or_404(shift_id)
     was_draft = shift.status == ShiftStatus.DRAFT
     publish_shift(shift)
     if was_draft:
-        _notify_published(request.user, [shift])
+        notices.published(request.user, [shift])
     return flash_redirect(request, messages.SUCCESS, _("Shift published."), _calendar_url(shift))
 
 
@@ -264,9 +229,9 @@ def publish_shift_view(request: HttpRequest, shift_id: int) -> HttpResponse:
 def publish_all_shifts(request: HttpRequest) -> HttpResponse:
     """Publish all draft shifts in the visible month or week."""
     start, end = _period(_calendar_view(request), _parse_date(request.POST.get("date"), timezone.localdate()))
-    published = publish_shifts_in_period(manager_id=request.user.id, start=start, end=end)
+    published = publish_shifts_in_period(start=start, end=end)
     if published:
-        _notify_published(request.user, published)
+        notices.published(request.user, published)
         count = len(published)
         text = ngettext("Published %(count)d shift.", "Published %(count)d shifts.", count) % {"count": count}
         return flash_redirect(request, messages.SUCCESS, text, "manager_shifts")
@@ -310,7 +275,7 @@ def _filter_bar(request: HttpRequest, **values: str) -> dict:
 @manager_required
 @require_GET
 def manager_shift_search(request: HttpRequest) -> HttpResponse:
-    rows = shift_rows(manager_id=request.user.id, query=request.GET.get("q", "").strip(), **_shift_filters(request))
+    rows = shift_rows(query=request.GET.get("q", "").strip(), **_shift_filters(request))
     sort = request.GET.get("sort") if request.GET.get("sort") in SEARCH_SORTS else "date"
     direction = "desc" if request.GET.get("dir") == "desc" else "asc"
     rows.sort(key=SEARCH_SORTS[sort], reverse=direction == "desc")
@@ -338,7 +303,7 @@ def _analytics_rows(request: HttpRequest) -> tuple[dict, list[dict]]:
     end = filters["end"] or timezone.localdate()
     start = filters["start"] or end - timedelta(days=ANALYTICS_DEFAULT_DAYS - 1)
     filters["start"], filters["end"] = min(start, end), max(start, end)
-    return filters, shift_rows(manager_id=request.user.id, **filters)
+    return filters, shift_rows(**filters)
 
 
 @manager_required
@@ -429,9 +394,7 @@ def employee_unavailability_toggle(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {"ok": False, "error": _("Only dates from tomorrow onwards can be marked as unavailable.")}, status=400
         )
-    assignments = Assignment.objects.filter(employee_id=request.user.id, shift__date=day).select_related(
-        "shift__position"
-    )
+    assignments = Assignment.objects.filter(employee_id=request.user.id, shift__date=day).select_related("shift")
     # A published shift is a commitment that was already made and announced; only the manager
     # can undo it. A draft was never shown to the employee, so marking the day off simply
     # takes them back out of it before anyone was told.
@@ -451,15 +414,8 @@ def employee_unavailability_toggle(request: HttpRequest) -> JsonResponse:
 
     if released:
         # The draft lost a worker: every manager calendar shows it understaffed again.
-        notify_managers(SHIFTS_CHANGED)
-        notify(
-            managers(),
-            "shift.staff_released",
-            actor=request.user,
-            level="warning",
-            name=request.user.display_name,
-            shifts=[shift_params(shift) for shift in released],
-        )
+        notices.shifts_changed()
+        notices.staff_released(request.user, request.user.display_name, released)
 
     # Open manager calendars update immediately instead of on their next reload.
     notify_managers(

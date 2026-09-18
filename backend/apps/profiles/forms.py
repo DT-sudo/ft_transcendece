@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from apps.accounts.forms import AccountForm, clean_full_name
+from apps.accounts.forms import AccountForm
 from apps.accounts.models import User
 
 from . import avatars
@@ -18,9 +18,6 @@ class ProfileForm(AccountForm):
     class Meta:
         model = User
         fields = ["email", "bio"]
-
-    def clean_full_name(self) -> str:
-        return clean_full_name(self.cleaned_data.get("full_name"))
 
     def clean(self) -> dict:
         cleaned = super().clean()

@@ -1,6 +1,6 @@
-import { getBootstrap } from '../../app/http.js';
-import { CsrfInput, Field } from '../../components/Field.jsx';
-import { Modal } from '../../components/Modal.jsx';
+import { PrivacyPolicyLink } from '../../components/AppShell.jsx';
+import { EmailField, Field, PostForm } from '../../components/Field.jsx';
+import { FormFooter, Modal } from '../../components/Modal.jsx';
 import { t, tx } from '../../i18n/index.js';
 
 /**
@@ -9,46 +9,19 @@ import { t, tx } from '../../i18n/index.js';
  * wouldn't have: the account's own email, typed out, and its password.
  */
 export function DeleteAccountModal({ email, action, onClose }) {
-  const { urls } = getBootstrap();
-
   return (
     <Modal
       title={t('privacy.deleteTitle')}
       onClose={onClose}
-      footer={
-        <>
-          <button className="btn btn-outline" type="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button className="btn btn-destructive" type="submit" form="deleteAccountForm">
-            {t('privacy.modalConfirm')}
-          </button>
-        </>
-      }
+      footer={<FormFooter form="deleteAccountForm" submitLabel={t('privacy.modalConfirm')} onCancel={onClose} destructive />}
     >
-      <form id="deleteAccountForm" className="modal-body" method="post" action={action}>
-        <CsrfInput />
+      <PostForm id="deleteAccountForm" className="modal-body" action={action}>
 
         <p className="text-sm">
-          {tx('privacy.modalText', {
-            policy: (
-              <a className="footer-link" href={urls.privacy}>
-                {t('footer.privacyPolicy')}
-              </a>
-            ),
-          })}
+          {tx('privacy.modalText', { policy: <PrivacyPolicyLink /> })}
         </p>
 
-        <Field
-          id="deleteConfirmEmail"
-          name="confirm_email"
-          type="email"
-          dir="ltr"
-          label={t('privacy.typeEmail', { email })}
-          placeholder={email}
-          autoComplete="off"
-          required
-        />
+        <EmailField id="deleteConfirmEmail" name="confirm_email" label={t('privacy.typeEmail', { email })} placeholder={email} autoComplete="off" />
         <Field
           id="deleteConfirmPassword"
           name="confirm_password"
@@ -57,7 +30,7 @@ export function DeleteAccountModal({ email, action, onClose }) {
           autoComplete="current-password"
           required
         />
-      </form>
+      </PostForm>
     </Modal>
   );
 }

@@ -2,15 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { formatDate } from '../../app/dates.js';
 import { getBootstrap, submitPost } from '../../app/http.js';
-import { AppShell } from '../../components/AppShell.jsx';
+import { AppShell, PageHeader } from '../../components/AppShell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
-import { CsrfInput, Field } from '../../components/Field.jsx';
+import { EmailField, Field, FullNameField, PostForm } from '../../components/Field.jsx';
 import { Settings, Trash, UserIcon } from '../../components/Icons.jsx';
 import { Modal } from '../../components/Modal.jsx';
 import { t, tx } from '../../i18n/index.js';
-
-/** Names the card a native form belongs to; the server re-renders that card's errors in place. */
-const Section = ({ name }) => <input type="hidden" name="section" value={name} />;
 
 function AvatarCard({ person, limits, error, action }) {
   const [preview, setPreview] = useState(null);
@@ -44,9 +41,7 @@ function AvatarCard({ person, limits, error, action }) {
           </h2>
           <p className="text-sm text-muted-foreground">{t('settings.avatarHint', { size: maxMegabytes })}</p>
         </div>
-        <form className="flex flex-wrap items-center gap-2" method="post" action={action} encType="multipart/form-data">
-          <CsrfInput />
-          <Section name="avatar" />
+        <PostForm className="flex flex-wrap items-center gap-2" action={action} encType="multipart/form-data" fields={{ section: 'avatar' }}>
           <label className="sr-only" htmlFor="avatarFile">
             {t('settings.avatarFile')}
           </label>
@@ -64,7 +59,7 @@ function AvatarCard({ person, limits, error, action }) {
           <button className="btn btn-primary btn-sm" type="submit" disabled={!preview}>
             {t('settings.upload')}
           </button>
-        </form>
+        </PostForm>
         {person.avatarUrl ? (
           <button
             className="btn btn-ghost btn-sm btn-icon-destructive"
@@ -91,32 +86,9 @@ function ProfileCard({ values, errors, action }) {
       <h2 id="profileTitle" className="card-title">
         {t('settings.profileTitle')}
       </h2>
-      <form className="mt-4" method="post" action={action}>
-        <CsrfInput />
-        <Section name="profile" />
-        <Field
-          id="fullName"
-          name="full_name"
-          label={t('signup.fullName')}
-          autoComplete="name"
-          required
-          minLength={2}
-          maxLength={150}
-          defaultValue={values.fullName}
-          error={errors.full_name}
-        />
-        <Field
-          id="email"
-          name="email"
-          type="email"
-          dir="ltr"
-          label={t('login.email')}
-          autoComplete="email"
-          hint={t('settings.emailHint')}
-          required
-          defaultValue={values.email}
-          error={errors.email}
-        />
+      <PostForm className="mt-4" action={action} fields={{ section: 'profile' }}>
+        <FullNameField id="fullName" defaultValue={values.fullName} error={errors.full_name} />
+        <EmailField id="email" hint={t('settings.emailHint')} defaultValue={values.email} error={errors.email} />
         <Field
           as="textarea"
           id="bio"
@@ -140,7 +112,7 @@ function ProfileCard({ values, errors, action }) {
         <button className="btn btn-primary" type="submit">
           {t('settings.saveProfile')}
         </button>
-      </form>
+      </PostForm>
     </section>
   );
 }
@@ -151,9 +123,7 @@ function PasswordCard({ errors, action }) {
       <h2 id="passwordTitle" className="card-title">
         {t('settings.passwordTitle')}
       </h2>
-      <form className="mt-4" method="post" action={action}>
-        <CsrfInput />
-        <Section name="password" />
+      <PostForm className="mt-4" action={action} fields={{ section: 'password' }}>
         <Field
           id="oldPassword"
           name="old_password"
@@ -187,7 +157,7 @@ function PasswordCard({ errors, action }) {
         <button className="btn btn-primary" type="submit">
           {t('settings.changePassword')}
         </button>
-      </form>
+      </PostForm>
     </section>
   );
 }
@@ -218,9 +188,7 @@ function TwoFactorSetup({ setup, errors, action }) {
       </li>
       <li>
         <p className="font-medium">{t('settings.codeStep')}</p>
-        <form className="mt-3" method="post" action={action}>
-          <CsrfInput />
-          <Section name="2fa_confirm" />
+        <PostForm className="mt-3" action={action} fields={{ section: '2fa_confirm' }}>
           <Field
             id="setupCode"
             name="code"
@@ -242,7 +210,7 @@ function TwoFactorSetup({ setup, errors, action }) {
               {t('common.cancel')}
             </button>
           </div>
-        </form>
+        </PostForm>
       </li>
     </ol>
   );
@@ -260,8 +228,7 @@ function TwoFactorManage({ state, action }) {
         {t('settings.codesLeft', { count: recoveryCodesLeft })}
       </p>
       {/* One form, two actions: each submit button posts its own `section`. */}
-      <form className="mt-4" method="post" action={action}>
-        <CsrfInput />
+      <PostForm className="mt-4" action={action}>
         <p className="mb-3 text-sm">{t('settings.confirmItsYou')}</p>
         <Field
           id="twoFactorPassword"
@@ -292,7 +259,7 @@ function TwoFactorManage({ state, action }) {
             {t('settings.turnOff')}
           </button>
         </div>
-      </form>
+      </PostForm>
     </>
   );
 }
@@ -309,13 +276,11 @@ function TwoFactorCard({ state, action }) {
     body = (
       <>
         <p className="mt-1 text-sm text-muted-foreground">{t('settings.twoFactorIntro')}</p>
-        <form className="mt-4" method="post" action={action}>
-          <CsrfInput />
-          <Section name="2fa_start" />
+        <PostForm className="mt-4" action={action} fields={{ section: '2fa_start' }}>
           <button className="btn btn-primary" type="submit">
             {t('settings.setUpTwoFactor')}
           </button>
-        </form>
+        </PostForm>
       </>
     );
   }
@@ -394,7 +359,8 @@ function RecoveryCodesModal({ codes, onClose }) {
   );
 }
 
-/** Your own profile, picture, password and two-factor authentication; each card is a native form that posts to this page.
+/** Your own profile, picture, password and two-factor authentication; each card is a native form that posts to this page,
+ * naming itself in `section` so the server re-renders that card's errors in place.
  *
  * The language is not here: the footer switcher on every page is the one place to change it. */
 export function AccountSettingsPage() {
@@ -405,16 +371,12 @@ export function AccountSettingsPage() {
   return (
     <AppShell>
       <main className="p-4 pt-0">
-        <div className="card page-toolbar-card">
-          <div className="flex flex-wrap items-center gap-3">
-            <Settings size={20} className="text-muted-foreground" />
-            <h1 className="card-title flex-1">{t('settings.title')}</h1>
-            <a className="btn btn-outline" href={person.profileUrl}>
-              <UserIcon size={16} />
-              {t('settings.viewProfile')}
-            </a>
-          </div>
-        </div>
+        <PageHeader icon={Settings} title={t('settings.title')}>
+          <a className="btn btn-outline" href={person.profileUrl}>
+            <UserIcon size={16} />
+            {t('settings.viewProfile')}
+          </a>
+        </PageHeader>
 
         <div className="mx-auto mt-3 flex max-w-3xl flex-col gap-3">
           <AvatarCard person={person} limits={avatar} error={errors.avatar} action={urls.settings} />

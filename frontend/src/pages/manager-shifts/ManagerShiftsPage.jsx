@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { formatDate, pad2 } from '../../app/dates.js';
-import { getBootstrap, submitPost, urlFromTemplate } from '../../app/http.js';
+import { submitPost, urlFromTemplate } from '../../app/http.js';
 import { sendLive, useLiveEvents, useLivePageData } from '../../app/live.js';
-import { availabilityFromPayload, positionPalette, withAvailabilityChange } from '../../app/shifts.js';
+import { availabilityFromPayload, positionPalette, shiftTimes, withAvailabilityChange } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
-import { ConfirmModal } from '../../components/Modal.jsx';
+import { DeleteConfirmModal } from '../../components/Modal.jsx';
 import { t } from '../../i18n/index.js';
 import { EmployeeSidebar } from './EmployeeSidebar.jsx';
 import { MonthGrid, WeekGrid } from './ShiftGrids.jsx';
@@ -107,7 +107,7 @@ function PositionLegend({ positions, shifts }) {
 }
 
 export function ManagerShiftsPage() {
-  const data = useLivePageData(getBootstrap().data);
+  const data = useLivePageData();
 
   return (
     <AppShell footer={<PositionLegend positions={data.positions} shifts={data.shifts} />}>
@@ -152,6 +152,16 @@ function ManagerShiftsContent({ data }) {
     setShiftForm({ shift, action: urlFromTemplate(urls.update, shift.id) });
   };
 
+  // Both views take the same shifts and the same handlers.
+  const grid = {
+    todayISO: today,
+    shifts,
+    editors,
+    highlightedShiftIds,
+    onSelectShift: setDetailsShiftId,
+    onCreateSlot: openCreateForm,
+  };
+
   return (
     <>
       <main className="p-4 pt-0">
@@ -166,27 +176,7 @@ function ManagerShiftsContent({ data }) {
           />
 
           <div className="card calendar-fill mt-3">
-            {view === 'week' ? (
-              <WeekGrid
-                startISO={start}
-                todayISO={today}
-                shifts={shifts}
-                editors={editors}
-                highlightedShiftIds={highlightedShiftIds}
-                onSelectShift={setDetailsShiftId}
-                onCreateSlot={openCreateForm}
-              />
-            ) : (
-              <MonthGrid
-                anchorISO={anchor}
-                todayISO={today}
-                shifts={shifts}
-                editors={editors}
-                highlightedShiftIds={highlightedShiftIds}
-                onSelectShift={setDetailsShiftId}
-                onCreateSlot={openCreateForm}
-              />
-            )}
+            {view === 'week' ? <WeekGrid startISO={start} {...grid} /> : <MonthGrid anchorISO={anchor} {...grid} />}
           </div>
         </div>
       </main>
@@ -215,21 +205,19 @@ function ManagerShiftsContent({ data }) {
           onDelete={() =>
             setPendingDelete({
               id: detailsShift.id,
-              label: `${detailsShift.position} • ${detailsShift.start_time}-${detailsShift.end_time} • ${formatDate(detailsShift.date)}`,
+              label: `${detailsShift.position} • ${shiftTimes(detailsShift)} • ${formatDate(detailsShift.date)}`,
             })
           }
         />
       ) : null}
 
       {pendingDelete ? (
-        <ConfirmModal
+        <DeleteConfirmModal
           title={t('shifts.deleteTitle')}
           message={t('shifts.deleteMessage')}
           detail={pendingDelete.label}
-          confirmText={t('common.yesDelete')}
-          destructive
+          action={urlFromTemplate(urls.delete, pendingDelete.id)}
           onCancel={() => setPendingDelete(null)}
-          onConfirm={() => submitPost(urlFromTemplate(urls.delete, pendingDelete.id))}
         />
       ) : null}
     </>

@@ -19,7 +19,7 @@ const withPersonStatus = (data, event) =>
  */
 export function ProfilePage() {
   const { urls: pageUrls, user: viewer } = getBootstrap();
-  const { person, relation, friends, urls } = useLivePageData(getBootstrap().data, FRIEND_EVENTS, withPersonStatus);
+  const { person, relation, friends, urls } = useLivePageData(FRIEND_EVENTS, withPersonStatus);
   const isSelf = relation.state === 'self';
 
   return (

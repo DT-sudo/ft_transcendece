@@ -1,4 +1,3 @@
-import { getBootstrap } from '../../app/http.js';
 import { timeAgo } from '../../app/dates.js';
 import { useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
@@ -27,7 +26,7 @@ function ColleagueRow({ person, detail, urls }) {
 /** The colleague directory (send a request from here), friends with their live online status,
  * requests to answer, and requests waiting on others. */
 export function FriendsPage() {
-  const { friends, incoming, outgoing, colleagues, urls } = useLivePageData(getBootstrap().data, FRIEND_EVENTS, withFriendStatus);
+  const { friends, incoming, outgoing, colleagues, urls } = useLivePageData(FRIEND_EVENTS, withFriendStatus);
   const online = friends.filter((friend) => friend.status.online).length;
 
   return (

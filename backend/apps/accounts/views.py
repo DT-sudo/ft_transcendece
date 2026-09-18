@@ -8,28 +8,25 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import ProtectedError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from apps.notifications.messages import shift_params
 from apps.notifications.services import managers, notify
 from apps.privacy.emails import send_account_deleted_email
-from apps.realtime.events import DIRECTORY_CHANGED, SHIFTS_CHANGED, notify_everyone, notify_managers, push_to_user
+from apps.realtime.events import DIRECTORY_CHANGED, notify_everyone
 from apps.shell import field_errors, first_form_error, flash_redirect, render_app
+from apps.scheduling import notices
 from apps.scheduling.management.commands.seed_demo import DEMO_ACCOUNTS, DEMO_EMPLOYEE_EMAIL
-from apps.scheduling.models import ShiftStatus
-from apps.scheduling.services import release_from_future_shifts
 from apps.twofactor import services as two_factor
 from apps.twofactor.views import begin_login
 
 from .forms import EmailAuthenticationForm, PositionForm, SignUpForm, UserForm
 from .models import MANAGER_POSITION_NAME, Position, User, UserRole
 from .security import end_sessions, end_sessions_for, end_this_session, log_security
-from .services import position_options
+from .services import delete_position, position_options, release_from_upcoming
 
 # ── Role decorators ─────────────────────────────────────────────────────────
 
@@ -194,33 +191,6 @@ def _directory_changed() -> None:
     notify_everyone(DIRECTORY_CHANGED)
 
 
-def _release_from_upcoming(actor: User, account: User) -> None:
-    """Take `account` off the shifts it can no longer work, and tell everyone concerned.
-
-    Its worked shifts are left alone - they record who was actually there. Called when an
-    account's role or position changed, which is exactly when a future booking stops being valid.
-    """
-    released = release_from_future_shifts(account.pk)
-    if not released:
-        return
-    # The calendars, search and analytics of every manager, and the account's own shift list.
-    notify_managers(SHIFTS_CHANGED)
-    push_to_user(account.pk, SHIFTS_CHANGED)
-
-    # Drafts were never shown to the worker, so only published shifts are news to them.
-    published = [shift_params(shift) for shift in released if shift.status == ShiftStatus.PUBLISHED]
-    if published:
-        notify([account], "shift.released", actor=actor, level="warning", shifts=published)
-    notify(
-        managers(),
-        "shift.staff_released",
-        actor=actor,
-        level="warning",
-        name=account.display_name,
-        shifts=[shift_params(shift) for shift in released],
-    )
-
-
 @admin_required
 @require_GET
 def manager_employees(request: HttpRequest) -> HttpResponse:
@@ -296,7 +266,7 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
 
     if role_changed or position_changed:
         # The shifts ahead were booked against the role and position the account no longer has.
-        _release_from_upcoming(request.user, account)
+        release_from_upcoming(account, actor=request.user)
     if role_changed:
         # The pages of the old role must stop answering for this account at once - including
         # the copy its browser might hand back on the Back button.
@@ -308,6 +278,10 @@ def employee_update(request: HttpRequest, user_id: int) -> HttpResponse:
         notify(managers(), "account.updated", actor=actor, role=account.role, name=account.display_name)
         if role_changed:
             notify([account], "account.role_changed", actor=actor, by=actor.display_name, role=account.role)
+        elif position_changed and account.position:
+            notify(
+                [account], "account.position_changed", actor=actor, by=actor.display_name, position=account.position.name
+            )
         else:
             notify([account], "account.details_updated", actor=actor, by=actor.display_name)
         _directory_changed()
@@ -353,13 +327,11 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     account_id = account.pk
     label, email, role, language = account.display_name, account.email, account.role, account.language
     role_label = str(account.get_role_display())
-    # Their assignments go with them (Assignment.employee is CASCADE), so the calendars change.
+    # The upcoming shifts they leave need someone else; the managers are told which.
+    release_from_upcoming(account, actor=request.user, tell_account=False)
+    # Their worked assignments go with them (Assignment.employee is CASCADE), so the calendars change.
     had_assignments = account.assignments.exists()
-    try:
-        account.delete()
-    except ProtectedError:
-        # Shift.created_by is PROTECT: a manager's schedule outlives a careless delete.
-        return _back(request, messages.ERROR, _("Cannot delete %(name)s: they still have shifts. Reassign or delete them first.") % {"name": label})
+    account.delete()
     # Nothing is left to authorise their open pages; they go to the sign-in page rather
     # than sitting on a view of an account that no longer exists.
     end_sessions_for(account_id, reason="account_deleted", request=request)
@@ -367,7 +339,7 @@ def employee_delete(request: HttpRequest, user_id: int) -> HttpResponse:
     notify(managers(), "account.deleted", actor=request.user, level="warning", role=role, name=label)
     _directory_changed()
     if had_assignments:
-        notify_managers(SHIFTS_CHANGED)
+        notices.shifts_changed()
     log_security("account.deleted", request, account=account_id, role=role)
     return _back(request, messages.SUCCESS, _("Deleted %(role)s: %(name)s.") % {"role": role_label.lower(), "name": label})
 
@@ -394,11 +366,7 @@ def position_delete(request: HttpRequest, position_id: int) -> HttpResponse:
     position = get_object_or_404(Position, pk=position_id)
     if position.name == MANAGER_POSITION_NAME:
         return _back(request, messages.ERROR, _("The Manager position can't be deleted."))
-    try:
-        position.delete()
-    except ProtectedError:
-        return _back(request, messages.ERROR, _("Cannot delete position: it is referenced by existing data."))
-    notify(managers(), "position.deleted", actor=request.user, level="warning", name=position.name)
+    delete_position(position, actor=request.user)
     _directory_changed()
     log_security("position.deleted", request, position=position_id)
     return _back(request, messages.SUCCESS, _("Position deleted: %(name)s.") % {"name": position.name})

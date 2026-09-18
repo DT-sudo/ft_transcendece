@@ -5,9 +5,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.utils import translation
 
 from apps.accounts.models import MANAGER_ROLES, User
+from apps.i18n.languages import speaking
 from apps.realtime.events import push_to_user
 
 from .messages import render
@@ -44,9 +46,16 @@ def notify(
     )
     languages = dict(User.objects.filter(pk__in=recipient_ids).values_list("pk", "language"))
     for notification in created:
-        with translation.override(languages.get(notification.recipient_id) or settings.LANGUAGE_CODE):
+        with speaking(languages.get(notification.recipient_id)):
             payload = notification.as_dict()
         push_to_user(notification.recipient_id, {"type": "notification", "notification": payload})
+
+
+def send_email(to: str, subject: str, body: str) -> None:
+    """Best-effort: by the time someone is emailed the change has happened, and a flaky mail
+    relay must not undo it or make it look like it failed."""
+    if to:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [to], fail_silently=True)
 
 
 def managers():

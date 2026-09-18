@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { isUnavailable } from '../../app/shifts.js';
-import { CsrfInput, Field, SelectField } from '../../components/Field.jsx';
-import { Modal } from '../../components/Modal.jsx';
+import { DateField, Field, PostForm, SelectField } from '../../components/Field.jsx';
+import { FormFooter, Modal } from '../../components/Modal.jsx';
 import { t } from '../../i18n/index.js';
 
 // Typed 24-hour time with no picker widget; the browser checks the format, the server validates the value.
@@ -28,7 +28,8 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
   const isEdit = Boolean(shift.id);
   // Only the two fields that change what the form shows are tracked; the rest submit as typed.
   const [date, setDate] = useState(shift.date);
-  const [positionId, setPositionId] = useState(String(shift.position_id));
+  // A worked shift keeps no position once that position is deleted.
+  const [positionId, setPositionId] = useState(String(shift.position_id ?? ''));
   const staff = employees.filter((employee) => String(employee.position_id) === positionId);
 
   return (
@@ -36,20 +37,9 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
       title={isEdit ? t('shifts.editTitle') : t('shifts.createTitle')}
       onClose={onClose}
       maxWidth="720px"
-      footer={
-        <>
-          <button className="btn btn-outline" type="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button className="btn btn-primary" type="submit" form="shiftForm">
-            {isEdit ? t('common.save') : t('shifts.create')}
-          </button>
-        </>
-      }
+      footer={<FormFooter form="shiftForm" submitLabel={isEdit ? t('common.save') : t('shifts.create')} onCancel={onClose} />}
     >
-      <form id="shiftForm" className="modal-body" method="post" action={action}>
-        <CsrfInput />
-        {isEdit ? <input type="hidden" name="version" value={shift.version} readOnly /> : null}
+      <PostForm id="shiftForm" className="modal-body" action={action} fields={isEdit ? { version: shift.version } : {}}>
 
         {stale ? (
           <p className="mb-3 text-sm text-destructive" role="alert">
@@ -62,7 +52,7 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
         ) : null}
 
         <div className="grid grid-cols-2 gap-x-4">
-          <Field id="shiftDate" name="date" type="date" label={t('shifts.date')} required value={date} onChange={(event) => setDate(event.target.value)} />
+          <DateField id="shiftDate" name="date" label={t('shifts.date')} required defaultValue={shift.date} onChange={setDate} />
           <Field id="shiftCapacity" name="capacity" type="number" min="1" label={t('shifts.capacity')} required defaultValue={shift.capacity} />
           <Field id="shiftStart" name="start_time" label={t('shifts.startTime')} required defaultValue={shift.start_time} {...timeInput()} />
           <Field id="shiftEnd" name="end_time" label={t('shifts.endTime')} required defaultValue={shift.end_time} {...timeInput()} />
@@ -102,7 +92,7 @@ export function ShiftFormModal({ shift, action, positions, employees, availabili
             </div>
           )}
         </fieldset>
-      </form>
+      </PostForm>
     </Modal>
   );
 }

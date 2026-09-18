@@ -5,7 +5,7 @@ import { DIRECTORY_CHANGED, useLivePageData } from '../../app/live.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Plus } from '../../components/Icons.jsx';
-import { ConfirmModal } from '../../components/Modal.jsx';
+import { ConfirmModal, DeleteConfirmModal } from '../../components/Modal.jsx';
 import { t } from '../../i18n/index.js';
 import { CredentialsModal, EmployeeFormModal, PositionsModal } from './EmployeeModals.jsx';
 
@@ -65,7 +65,7 @@ export function ManagerEmployeesPage() {
   // The generated password is handed over once, with the page that created the account;
   // it is held here so a live re-read cannot take it off the screen before it is copied.
   const [credentials] = useState(() => getBootstrap().data.credentials);
-  const { employees, roles, positions, urls } = useLivePageData(getBootstrap().data, [DIRECTORY_CHANGED]);
+  const { employees, roles, positions, urls } = useLivePageData([DIRECTORY_CHANGED]);
 
   const [employeeForm, setEmployeeForm] = useState(null);
   const [showPositions, setShowPositions] = useState(false);
@@ -172,15 +172,13 @@ export function ManagerEmployeesPage() {
       ) : null}
 
       {pendingDelete ? (
-        <ConfirmModal
+        <DeleteConfirmModal
           title={t('team.deleteUser')}
           message={t('team.deleteUserMessage')}
           detail={accountLabel(pendingDelete)}
           footnote={t('team.deleteUserNote')}
-          confirmText={t('common.yesDelete')}
-          destructive
+          action={urlFromTemplate(urls.delete, pendingDelete.id)}
           onCancel={() => setPendingDelete(null)}
-          onConfirm={() => submitPost(urlFromTemplate(urls.delete, pendingDelete.id))}
         />
       ) : null}
     </AppShell>

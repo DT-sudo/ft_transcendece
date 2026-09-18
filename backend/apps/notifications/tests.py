@@ -84,7 +84,7 @@ class RecipientTests(NotificationTestCase):
 
         self._post(self.manager, "publish_shift", shift.id)
 
-        self.assertEqual(self._received(), {self.alice: ["New shift published"]})
+        self.assertEqual(self._received(), {self.alice: ["New shift assigned"]})
 
     def test_publish_all_sends_one_notification_per_employee(self):
         self._shift(status=ShiftStatus.DRAFT, employees=[self.alice, self.bob])
@@ -93,7 +93,7 @@ class RecipientTests(NotificationTestCase):
         self._post(self.manager, "publish_all_shifts", data={"date": self.day.isoformat()})
 
         self.assertEqual(
-            self._received(), {self.alice: ["2 new shifts published"], self.bob: ["New shift published"]}
+            self._received(), {self.alice: ["2 new shifts assigned"], self.bob: ["New shift assigned"]}
         )
 
     def test_editing_a_draft_notifies_nobody(self):
@@ -162,6 +162,35 @@ class RecipientTests(NotificationTestCase):
 
         self.assertEqual(self._received(), {self.manager: ["Employee deleted"], self.other_manager: ["Employee deleted"]})
 
+    def test_deleting_an_employee_with_upcoming_shifts_tells_the_managers_which(self):
+        self._shift(employees=[self.bob])
+        self._post(self.admin, "employee_delete", self.bob.id)
+        came_off = "Bob came off 1 upcoming shift"
+        self.assertEqual(
+            self._received(),
+            {self.manager: [came_off, "Employee deleted"], self.other_manager: [came_off, "Employee deleted"]},
+        )
+
+    def test_an_employee_deleting_their_account_tells_the_managers_which_shifts_they_left(self):
+        self.bob.set_password("pw")
+        self.bob.save()
+        self._shift(employees=[self.bob])
+        self._post(self.bob, "privacy_delete_account", data={"confirm_email": self.bob.email, "confirm_password": "pw"})
+        came_off = ["Bob came off 1 upcoming shift"]
+        self.assertEqual(self._received(), {self.manager: came_off, self.other_manager: came_off, self.admin: came_off})
+
+    def test_a_new_position_is_named_to_the_employee(self):
+        cook = Position.objects.create(name="Cook")
+        self._post(
+            self.admin,
+            "employee_update",
+            self.alice.id,
+            data={"full_name": "Alice", "email": "alice@example.com", "role": UserRole.EMPLOYEE, "position": cook.id},
+        )
+        notification = Notification.objects.get(recipient=self.alice)
+        self.assertEqual(notification.title, "Your position was changed")
+        self.assertEqual(notification.description, "Ada Ray changed your position to \u201cCook\u201d.")
+
     def test_unavailability_notifies_every_manager(self):
         self._post(self.alice, "employee_unavailability_toggle", data={"date": self.day.isoformat()})
 
@@ -188,6 +217,58 @@ class RecipientTests(NotificationTestCase):
         self.assertEqual(event["type"], "notification")
         self.assertEqual(event["notification"]["title"], "Shift cancelled")
         self.assertFalse(event["notification"]["read"])
+
+
+class PositionDeletionTests(NotificationTestCase):
+    """A deleted position takes its upcoming shifts with it; its worked shifts stay as history."""
+
+    def test_worked_shifts_keep_the_position_name_and_upcoming_ones_are_deleted(self):
+        worked = self._shift(employees=[self.alice])
+        worked.date = timezone.localdate() - timedelta(days=2)
+        worked.save()
+        upcoming = self._shift(employees=[self.alice])
+        # Started today (the whole day long): already history, kept like a worked one.
+        started = self._shift(employees=[self.alice], start=time(0, 0), end=time(23, 59))
+        started.date = timezone.localdate()
+        started.save()
+        self.assertTrue(started.is_past)
+
+        self._post(self.admin, "position_delete", self.barista.id)
+
+        worked.refresh_from_db()
+        self.assertEqual((worked.position, worked.position_name), (None, "Barista"))
+        self.assertTrue(worked.assignments.filter(employee=self.alice).exists())
+        self.assertFalse(Shift.objects.filter(pk=upcoming.pk).exists())
+        started.refresh_from_db()
+        self.assertEqual(started.position_name, "Barista")
+        self.alice.refresh_from_db()
+        self.assertIsNone(self.alice.position)
+        self.assertEqual(
+            self._received()[self.alice], ["Shift cancelled", "Your position was removed"]
+        )
+        self.assertEqual(
+            self._received()[self.manager], ["Position deleted", "1 upcoming shift of Barista deleted"]
+        )
+
+
+class ErrorHistoryTests(NotificationTestCase):
+    """Errors shown as toasts are kept in the caller's own history."""
+
+    def test_recorded_error_joins_only_the_callers_history(self):
+        self.client.force_login(self.manager)
+        payload = self.client.post(
+            reverse("notifications_record_error"), {"text": "End time must be after start time."}
+        ).json()["notification"]
+
+        self.assertEqual((payload["level"], payload["title"]), ("error", "Error"))
+        self.assertEqual(payload["description"], "End time must be after start time.")
+        self.assertEqual(Notification.objects.get().recipient, self.manager)
+
+    def test_an_empty_error_is_refused(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(reverse("notifications_record_error"), {"text": " "})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Notification.objects.exists())
 
 
 class HistoryTests(NotificationTestCase):

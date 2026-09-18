@@ -11,6 +11,5 @@ from .languages import is_supported
 def keep_the_language_picked_before_signing_in(sender, request, user, **kwargs) -> None:
     """Switching language on the login page carries over into the account."""
     chosen = request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME) if request is not None else None
-    if is_supported(chosen) and chosen != user.language:
-        user.language = chosen
-        user.save(update_fields=["language"])
+    if is_supported(chosen):
+        user.save_language(chosen)

@@ -1,9 +1,9 @@
 import { formatDate, navigateWith } from '../../app/dates.js';
-import { getBootstrap } from '../../app/http.js';
 import { useLivePageData } from '../../app/live.js';
+import { shiftTimes } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx';
-import { ChevronLeft, ChevronRight } from '../../components/Icons.jsx';
+import { StepButton } from '../../components/Calendar.jsx';
 import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
 import { t } from '../../i18n/index.js';
 
@@ -71,25 +71,9 @@ function Pagination({ page, totalPages, total }) {
     <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-sm text-muted-foreground">
       <span>{t('search.results', { count: total })}</span>
       <div className="flex items-center gap-2">
-        <button
-          className="btn btn-outline btn-icon"
-          type="button"
-          aria-label={t('search.previousPage')}
-          disabled={page <= 1}
-          onClick={() => navigateWith({ page: page - 1 })}
-        >
-          <ChevronLeft className="rtl:-scale-x-100" />
-        </button>
+        <StepButton step={-1} label={t('search.previousPage')} disabled={page <= 1} onClick={() => navigateWith({ page: page - 1 })} />
         <span>{t('search.page', { page, total: totalPages })}</span>
-        <button
-          className="btn btn-outline btn-icon"
-          type="button"
-          aria-label={t('search.nextPage')}
-          disabled={page >= totalPages}
-          onClick={() => navigateWith({ page: page + 1 })}
-        >
-          <ChevronRight className="rtl:-scale-x-100" />
-        </button>
+        <StepButton step={1} label={t('search.nextPage')} disabled={page >= totalPages} onClick={() => navigateWith({ page: page + 1 })} />
       </div>
     </div>
   );
@@ -101,7 +85,7 @@ function Pagination({ page, totalPages, total }) {
  * when a shift or the staff directory behind them changes.
  */
 export function ManagerShiftSearchPage() {
-  const data = useLivePageData(getBootstrap().data);
+  const data = useLivePageData();
   const { results, filters, urls } = data;
 
   return (
@@ -135,9 +119,7 @@ export function ManagerShiftSearchPage() {
                           {formatDate(shift.date)}
                         </a>
                       </td>
-                      <td>
-                        {shift.start_time}-{shift.end_time}
-                      </td>
+                      <td>{shiftTimes(shift)}</td>
                       <td>
                         <span className="badge badge-default">{shift.position}</span>
                       </td>

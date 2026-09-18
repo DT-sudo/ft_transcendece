@@ -24,6 +24,11 @@ STEP_SECONDS = 30
 WINDOW = 1
 
 
+def looks_like_code(code: str) -> bool:
+    """Six digits: what an authenticator app shows, as opposed to a recovery code."""
+    return code.isdigit() and len(code) == DIGITS
+
+
 def new_secret() -> str:
     """160 random bits (the size RFC 4226 recommends), base32 as authenticator apps expect."""
     return base64.b32encode(secrets.token_bytes(20)).decode()

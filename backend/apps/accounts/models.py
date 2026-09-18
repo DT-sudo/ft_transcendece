@@ -59,6 +59,12 @@ class User(AbstractUser):
     # One of settings.LANGUAGES; empty until the first signed-in request (apps.i18n.middleware).
     # Emails and live notifications to this user are written in it.
     language = models.CharField(max_length=8, blank=True)
+
+    def save_language(self, code: str) -> None:
+        if self.language != code:
+            self.language = code
+            self.save(update_fields=["language"])
+
     @property
     def display_name(self) -> str:
         return self.get_full_name() or self.username

@@ -97,6 +97,7 @@ def _notifications(user) -> dict[str, Any] | None:
             "list": reverse("notifications"),
             "markRead": reverse("notifications_mark_read"),
             "clear": reverse("notifications_clear"),
+            "recordError": reverse("notifications_record_error"),
         },
     }
 

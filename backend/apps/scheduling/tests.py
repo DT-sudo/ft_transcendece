@@ -131,7 +131,7 @@ class ShiftVisibilityTests(TestCase):
 
 
 class SearchAndAnalyticsTests(TestCase):
-    """Search and analytics read only the signed-in manager's own shifts."""
+    """Search and analytics read the whole schedule, whichever manager wrote each shift."""
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -148,9 +148,8 @@ class SearchAndAnalyticsTests(TestCase):
             first_name="Bob", last_name="Marek",
         )
         cls.barista_shift = cls._shift(cls.manager, cls.barista, time(9, 0), time(17, 0), 2, [cls.alice, cls.bob])
-        cls.chef_shift = cls._shift(cls.manager, cls.chef, time(10, 0), time(14, 0), 1, [])
-        # Another manager's shift with the same worker must never show up.
-        cls._shift(other_manager, cls.barista, time(9, 0), time(17, 0), 1, [cls.alice])
+        # Written by another manager: every manager runs the same schedule.
+        cls.chef_shift = cls._shift(other_manager, cls.chef, time(10, 0), time(14, 0), 1, [])
 
     @classmethod
     def _shift(cls, manager, position, start, end, capacity, employees) -> Shift:
@@ -170,6 +169,22 @@ class SearchAndAnalyticsTests(TestCase):
     def _result_ids(self, **params) -> list[int]:
         return [row["id"] for row in self._search(**params)["results"]]
 
+    def test_any_manager_can_edit_a_shift_another_manager_wrote(self):
+        response = self.client.post(
+            reverse("update_shift", args=[self.chef_shift.id]),
+            {
+                "date": self.chef_shift.date.isoformat(),
+                "start_time": "11:00",
+                "end_time": "14:00",
+                "position": self.chef.id,
+                "capacity": 1,
+                "version": self.chef_shift.version,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.chef_shift.refresh_from_db()
+        self.assertEqual(self.chef_shift.start_time, time(11, 0))
+
     def test_text_query_matches_worker_names(self):
         self.assertEqual(self._result_ids(q="novak"), [self.barista_shift.id])
 
@@ -185,7 +200,10 @@ class SearchAndAnalyticsTests(TestCase):
 
     def test_pagination(self):
         Shift.objects.bulk_create(
-            Shift(date=timezone.localdate(), start_time=time(6, 0), end_time=time(7, 0), position=self.chef, created_by=self.manager)
+            Shift(
+                date=timezone.localdate(), start_time=time(6, 0), end_time=time(7, 0),
+                position=self.chef, position_name=self.chef.name, created_by=self.manager,
+            )
             for _ in range(28)
         )
         data = self._search(page=2)

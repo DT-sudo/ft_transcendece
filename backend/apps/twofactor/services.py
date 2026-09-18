@@ -6,17 +6,16 @@ import enum
 import secrets
 from datetime import timedelta
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
-from django.utils import timezone, translation
+from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from apps.accounts.models import User
+from apps.i18n.languages import speaking
 from apps.notifications.messages import render
-from apps.notifications.services import notify
+from apps.notifications.services import notify, send_email
 
 from . import totp
 from .models import RecoveryCode, TOTPDevice
@@ -83,7 +82,7 @@ def _announce(user: User, kind: str, *, actor: User | None = None) -> None:
     """
     params = {"by": actor.display_name} if actor else {}
     notify([user], kind, actor=actor, level="warning", **params)
-    with translation.override(user.language or settings.LANGUAGE_CODE):
+    with speaking(user.language):
         title, detail = render(kind, params)
         subject = _("PlanShift: %(title)s") % {"title": title}
         body = _(
@@ -91,8 +90,7 @@ def _announce(user: User, kind: str, *, actor: User | None = None) -> None:
             "If this wasn't you or someone you asked, change your password and contact your manager straight away.\n\n"
             "— PlanShift"
         ) % {"name": user.display_name, "detail": detail}
-    # Best-effort: the change already happened, a flaky mail relay must not undo or hide it.
-    send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+    send_email(user.email, subject, body)
 
 
 @transaction.atomic
@@ -143,7 +141,7 @@ def verify(user: User, code: str) -> Result:
 
     code = normalize(code)
     result = Result.INVALID
-    if code.isdigit() and len(code) == totp.DIGITS:
+    if totp.looks_like_code(code):
         step = totp.matching_step(device.secret, code, after=device.last_used_step)
         if step is not None:
             device.last_used_step = step

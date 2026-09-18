@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 14:31+0000\n"
+"POT-Creation-Date: 2026-09-18 18:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,13 +42,6 @@ msgstr "Pozice s tímto názvem už existuje."
 
 msgid "Employees need a position."
 msgstr "Zaměstnanec musí mít pozici."
-
-msgid ""
-"Reassign or delete the shifts this manager created before making them an "
-"employee."
-msgstr ""
-"Než z manažera uděláte zaměstnance, přeřaďte nebo smažte směny, které "
-"vytvořil."
 
 msgid "Your role was changed. Please sign in again."
 msgstr "Vaše role byla změněna. Přihlaste se prosím znovu."
@@ -104,14 +97,6 @@ msgid "Two-factor authentication reset for %(name)s."
 msgstr "Dvoufázové ověření pro %(name)s bylo zrušeno."
 
 #, python-format
-msgid ""
-"Cannot delete %(name)s: they still have shifts. Reassign or delete them "
-"first."
-msgstr ""
-"%(name)s nelze smazat: stále má přiřazené směny. Nejprve je přeřaďte nebo "
-"smažte."
-
-#, python-format
 msgid "Deleted %(role)s: %(name)s."
 msgstr "Smazáno (%(role)s): %(name)s."
 
@@ -123,10 +108,7 @@ msgid "Position created: %(name)s."
 msgstr "Pozice vytvořena: %(name)s."
 
 msgid "The Manager position can't be deleted."
-msgstr ""
-
-msgid "Cannot delete position: it is referenced by existing data."
-msgstr "Pozici nelze smazat: používají ji existující data."
+msgstr "Pozici Manager nelze smazat."
 
 #, python-format
 msgid "Position deleted: %(name)s."
@@ -169,6 +151,20 @@ msgstr "Vaše role byla změněna"
 msgid "%(by)s made you %(role)s."
 msgstr "%(by)s vám nastavil(a) roli: %(role)s."
 
+msgid "Your position was changed"
+msgstr "Vaše pozice byla změněna"
+
+#, python-format
+msgid "%(by)s changed your position to “%(position)s”."
+msgstr "%(by)s vám změnil(a) pozici na „%(position)s“."
+
+msgid "Your position was removed"
+msgstr "Vaše pozice byla zrušena"
+
+#, python-format
+msgid "The position “%(position)s” no longer exists."
+msgstr "Pozice „%(position)s“ už neexistuje."
+
 msgid "Your details were updated"
 msgstr "Vaše údaje byly upraveny"
 
@@ -183,19 +179,16 @@ msgstr "Vaše heslo bylo obnoveno"
 msgid "%(by)s set a new password for your account."
 msgstr "%(by)s nastavil(a) vašemu účtu nové heslo."
 
-msgid "New shift published"
-msgstr "Zveřejněna nová směna"
-
-#, python-format
-msgid "%(count)d new shift published"
-msgid_plural "%(count)d new shifts published"
-msgstr[0] "Zveřejněna %(count)d nová směna"
-msgstr[1] "Zveřejněny %(count)d nové směny"
-msgstr[2] "Zveřejněno %(count)d nové směny"
-msgstr[3] "Zveřejněno %(count)d nových směn"
-
 msgid "New shift assigned"
 msgstr "Přiřazena nová směna"
+
+#, python-format
+msgid "%(count)d new shift assigned"
+msgid_plural "%(count)d new shifts assigned"
+msgstr[0] "Přidělena %(count)d nová směna"
+msgstr[1] "Přiděleny %(count)d nové směny"
+msgstr[2] "Přiděleno %(count)d nové směny"
+msgstr[3] "Přiděleno %(count)d nových směn"
 
 msgid "Removed from a shift"
 msgstr "Odebrání ze směny"
@@ -232,6 +225,14 @@ msgstr "Pozice vytvořena"
 msgid "Position deleted"
 msgstr "Pozice smazána"
 
+#, python-format
+msgid "%(count)d upcoming shift of %(name)s deleted"
+msgid_plural "%(count)d upcoming shifts of %(name)s deleted"
+msgstr[0] "Smazána %(count)d nadcházející směna pozice %(name)s"
+msgstr[1] "Smazány %(count)d nadcházející směny pozice %(name)s"
+msgstr[2] "Smazáno %(count)d nadcházející směny pozice %(name)s"
+msgstr[3] "Smazáno %(count)d nadcházejících směn pozice %(name)s"
+
 msgid "Availability updated"
 msgstr "Dostupnost změněna"
 
@@ -242,6 +243,9 @@ msgstr "%(name)s není %(day)s k dispozici."
 #, python-format
 msgid "%(name)s is available again on %(day)s."
 msgstr "%(name)s je %(day)s opět k dispozici."
+
+msgid "Error"
+msgstr "Chyba"
 
 msgid "New friend request"
 msgstr "Nová žádost o přátelství"
@@ -354,13 +358,6 @@ msgstr "Soukromí a moje údaje"
 
 msgid "Email or password didn't match - account not deleted."
 msgstr "E-mail nebo heslo nesouhlasí – účet nebyl smazán."
-
-msgid ""
-"Your account can't be deleted while you still have shifts on the schedule. "
-"Reassign or delete them first, then try again."
-msgstr ""
-"Účet nelze smazat, dokud máte v rozpisu směny. Nejprve je přeřaďte nebo "
-"smažte a pak to zkuste znovu."
 
 msgid "Your account and all associated data have been deleted."
 msgstr "Váš účet a všechny související údaje byly smazány."

@@ -25,9 +25,8 @@ def set_language(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": _("That language is not available.")}, status=400)
 
     user = request.user
-    if user.is_authenticated and user.language != code:
-        user.language = code
-        user.save(update_fields=["language"])
+    if user.is_authenticated:
+        user.save_language(code)
 
     translation.activate(code)
     response = JsonResponse(

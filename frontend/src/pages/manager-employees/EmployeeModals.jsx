@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-import { submitPost, urlFromTemplate } from '../../app/http.js';
-import { CsrfInput, Field, SelectField } from '../../components/Field.jsx';
+import { urlFromTemplate } from '../../app/http.js';
+import { EmailField, FullNameField, PostForm, SelectField } from '../../components/Field.jsx';
 import { Trash } from '../../components/Icons.jsx';
-import { ConfirmModal, Modal } from '../../components/Modal.jsx';
+import { DeleteConfirmModal, FormFooter, Modal } from '../../components/Modal.jsx';
 import { t, tx } from '../../i18n/index.js';
 
 /**
@@ -19,22 +19,13 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
     <Modal
       title={isEdit ? t('team.editUser') : t('team.newUser')}
       onClose={onClose}
-      footer={
-        <>
-          <button className="btn btn-outline" type="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button className="btn btn-primary" type="submit" form="employeeForm">
-            {isEdit ? t('common.save') : t('team.createUser')}
-          </button>
-        </>
-      }
+      footer={<FormFooter form="employeeForm" submitLabel={isEdit ? t('common.save') : t('team.createUser')} onCancel={onClose} />}
     >
-      <form id="employeeForm" className="modal-body" method="post" action={action}>
-        <CsrfInput />
+      <PostForm id="employeeForm" className="modal-body" action={action}>
 
-        <Field id="employeeFullName" name="full_name" label={t('team.fullName')} placeholder={t('team.fullNamePlaceholder')} required defaultValue={employee.fullName} />
-        <Field id="employeeEmail" name="email" type="email" dir="ltr" label={t('team.emailLogin')} placeholder={t('team.emailPlaceholder')} required defaultValue={employee.email} />
+        {/* Someone else's details: the browser must not offer the admin's own. */}
+        <FullNameField id="employeeFullName" label={t('team.fullName')} placeholder={t('team.fullNamePlaceholder')} autoComplete="off" defaultValue={employee.fullName} />
+        <EmailField id="employeeEmail" label={t('team.emailLogin')} placeholder={t('team.emailPlaceholder')} autoComplete="off" defaultValue={employee.email} />
         <SelectField
           id="employeeRole"
           name="role"
@@ -62,7 +53,7 @@ export function EmployeeFormModal({ employee, action, roles, positions, onClose 
             {tx('team.passwordNote', { once: <strong>{t('team.onlyOnce')}</strong> })}
           </p>
         )}
-      </form>
+      </PostForm>
     </Modal>
   );
 }
@@ -110,13 +101,12 @@ export function PositionsModal({ positions, urls, onClose }) {
         }
       >
         <div className="modal-body">
-          <form className="flex gap-2" method="post" action={urls.positionCreate}>
-            <CsrfInput />
+          <PostForm className="flex gap-2" action={urls.positionCreate}>
             <input className="form-input" name="name" placeholder={t('team.newPosition')} aria-label={t('team.newPosition')} maxLength={25} required />
             <button className="btn btn-primary btn-sm" type="submit">
               {t('team.addPosition')}
             </button>
-          </form>
+          </PostForm>
 
           <table className="table mt-4" aria-label={t('team.positionList')}>
             <thead>
@@ -138,10 +128,11 @@ export function PositionsModal({ positions, urls, onClose }) {
                     <td>{position.name}</td>
                     <td className="cell-actions">
                       {position.name === 'Manager' ? (
-                        <span className="text-xs text-muted-foreground">{t('team.permanentPosition')}</span>
+                        // Offset by the ghost-button padding the cell trims, so the text starts under "Actions".
+                        <span className="ms-3 text-xs text-muted-foreground">{t('team.permanentPosition')}</span>
                       ) : (
                         <button
-                          className="btn btn-ghost btn-icon btn-icon-destructive"
+                          className="btn btn-ghost btn-icon btn-icon-destructive ms-1"
                           type="button"
                           aria-label={t('team.deletePositionLabel', { name: position.name })}
                           title={t('common.delete')}
@@ -160,15 +151,13 @@ export function PositionsModal({ positions, urls, onClose }) {
       </Modal>
 
       {pendingDelete ? (
-        <ConfirmModal
+        <DeleteConfirmModal
           title={t('team.deletePosition')}
           message={t('team.deletePositionMessage')}
           detail={pendingDelete.name}
           footnote={t('team.deletePositionNote')}
-          confirmText={t('common.yesDelete')}
-          destructive
+          action={urlFromTemplate(urls.positionDelete, pendingDelete.id)}
           onCancel={() => setPendingDelete(null)}
-          onConfirm={() => submitPost(urlFromTemplate(urls.positionDelete, pendingDelete.id))}
         />
       ) : null}
     </>

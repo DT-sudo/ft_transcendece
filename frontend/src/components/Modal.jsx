@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { submitPost } from '../app/http.js';
 import { t } from '../i18n/index.js';
 import { X } from './Icons.jsx';
 import { isTopLayer, pushLayer } from './hooks.js';
@@ -53,6 +54,20 @@ export function Modal({ title, onClose, children, footer, maxWidth = '500px', ti
   );
 }
 
+/** Cancel, then the button that submits the form with id `form` (it sits outside the form, in the footer). */
+export function FormFooter({ form, submitLabel, onCancel, destructive = false }) {
+  return (
+    <>
+      <button className="btn btn-outline" type="button" onClick={onCancel}>
+        {t('common.cancel')}
+      </button>
+      <button className={`btn ${destructive ? 'btn-destructive' : 'btn-primary'}`} type="submit" form={form}>
+        {submitLabel}
+      </button>
+    </>
+  );
+}
+
 export function ConfirmModal({ title, message, detail, footnote, confirmText = t('common.yes'), destructive = false, onCancel, onConfirm }) {
   return (
     <Modal
@@ -76,4 +91,9 @@ export function ConfirmModal({ title, message, detail, footnote, confirmText = t
       </div>
     </Modal>
   );
+}
+
+/** "Yes, delete" confirmation that posts to `action`; the server redirects back with a flash message. */
+export function DeleteConfirmModal({ action, ...props }) {
+  return <ConfirmModal {...props} confirmText={t('common.yesDelete')} destructive onConfirm={() => submitPost(action)} />;
 }

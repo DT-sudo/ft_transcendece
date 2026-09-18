@@ -277,8 +277,8 @@ configuration.
 ```mermaid
 erDiagram
     Position ||--o{ User : "qualifies (SET_NULL)"
-    Position ||--o{ Shift : "required for (PROTECT)"
-    User ||--o{ Shift : "created by (PROTECT)"
+    Position ||--o{ Shift : "required for (SET_NULL)"
+    User ||--o{ Shift : "created by (SET_NULL)"
     User ||--o{ Assignment : "assigned (CASCADE)"
     Shift ||--o{ Assignment : "staffed by (CASCADE)"
     User ||--o{ EmployeeUnavailability : "declares (CASCADE)"
@@ -307,6 +307,7 @@ erDiagram
         int capacity
         string status
         int position_id FK
+        string position_name
         int created_by FK
     }
     Assignment {
@@ -335,11 +336,13 @@ erDiagram
 
 Deletion behaviour is chosen per relationship rather than left at the default:
 
-- Removing a **position** leaves employee accounts intact (`SET_NULL`) but is **blocked** while
-  shifts still require it (`PROTECT`) — a shift with no position would be unschedulable.
+- Removing a **position** deletes its upcoming shifts with it; shifts that have started stay, with
+  `position` set to null and the name they were worked under kept in `position_name`. Employee
+  accounts that held it are left without a position (`SET_NULL`).
 - Deleting an **employee** cascades to their assignments and unavailability, so no orphan rows
-  remain.
-- A **shift** cannot be created by a user who is later deleted (`PROTECT` on `created_by`).
+  remain; the managers are told which upcoming shifts lost a worker.
+- Deleting a **manager** keeps the shifts they wrote (`SET_NULL` on `created_by`): the schedule is
+  shared by every manager.
 
 Two unique constraints keep the schedule coherent at the database level, not just in application
 code: one employee per shift, and one unavailability record per employee per day.
@@ -503,7 +506,7 @@ Required minimum: **14 points** (Major = 2 pts, Minor = 1 pt).
 
 | Module | Chapter | Major/Minor | Points | Justification | How it was implemented | Owner |
 |---|---|---|---|---|---|---|
-| GDPR compliance features | IV.8 Data and Analytics | Minor | 1 | Users must be able to see, export and erase their own data. | Self-service `apps/privacy` module: "Privacy & my data" (account menu) lets any signed-in user download a readable JSON export of everything held about them and delete their own account (email + password confirmation, with a `ProtectedError` guard for managers who still have shifts on the schedule). Both actions send a confirmation email (console backend by default, real SMTP via `.env`). | _TBD_ |
+| GDPR compliance features | IV.8 Data and Analytics | Minor | 1 | Users must be able to see, export and erase their own data. | Self-service `apps/privacy` module: "Privacy & my data" (account menu) lets any signed-in user download a readable JSON export of everything held about them and delete their own account (email + password confirmation; shifts a manager created stay on the shared schedule). Both actions send a confirmation email (console backend by default, real SMTP via `.env`). | _TBD_ |
 | Complete 2FA (Two-Factor Authentication) system | IV.3 User Management | Minor | 1 | A stolen or guessed password alone must not open an account, and managers see everyone's schedule and personal details. | `apps/twofactor`: users turn it on in Account settings by scanning a QR code with any authenticator app (TOTP, RFC 6238, implemented with the standard library) and confirming a code; they get 10 one-time recovery codes, stored hashed. Sign-in then asks for a code after the password (`/login/verify/`, demo logins included), refuses replayed codes and locks for 5 minutes after 5 wrong ones. Turning it off or replacing the codes takes the password and a code; a manager/admin can reset it for an account they manage. Every change sends an email and a notification. | _TBD_ |
 | Support for multiple languages (at least 3) | IV.2 Accessibility and Internationalization | Minor | 1 | Hourly teams are multilingual: everyone should read their schedule, emails and notifications in their own language. | English, Czech and Arabic. Server text goes through Django gettext (`backend/locale/`), React text through JSON catalogs and a small `t()` with CLDR plural forms (`frontend/src/i18n/`). A switcher in the footer of every page and in Account settings changes the language in place, without a reload; the choice is saved on the account, so emails and live notifications reach each recipient in their own language (notifications are stored as a kind + parameters and written when read). The legal pages are translated as whole documents. `npm run i18n:check` keeps the three catalogs complete. | _TBD_ |
 | Right-to-left (RTL) language support | IV.2 Accessibility and Internationalization | Minor | 1 | Arabic reads right to left, so the whole layout has to mirror, not just the text. | Django renders `<html dir="rtl">` for Arabic; the CSS uses logical properties (the week grid included), the charts mirror their geometry, directional icons flip, and values that always read left to right (emails, times, codes) keep `dir="ltr"`. Switching between LTR and RTL happens in place. | _TBD_ |
@@ -568,7 +571,7 @@ python manage.py test apps
   capacity check.
 - **Visibility** — the draft/published split between the manager and employee views.
 - **Search and analytics** — text query over positions and worker names, combined filters,
-  sorting, pagination, scoping to the manager's own shifts, per-worker KPI isolation, and the CSV
+  sorting, pagination, one schedule shared by every manager, per-worker KPI isolation, and the CSV
   export.
 - **Sign-up** — role assignment, email normalisation and uniqueness, password hashing, rejection of
   weak and mismatched passwords.

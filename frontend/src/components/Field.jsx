@@ -1,10 +1,25 @@
+import { useRef, useState } from 'react';
+
+import { formatDayMonthYear, parseDayMonthYear } from '../app/dates.js';
 import { getBootstrap } from '../app/http.js';
 import { statusOptions } from '../app/shifts.js';
 import { t } from '../i18n/index.js';
+import { CalendarIcon } from './Icons.jsx';
 
-/** Hidden CSRF field for forms that submit natively. */
-export function CsrfInput() {
-  return <input type="hidden" name="csrfmiddlewaretoken" value={getBootstrap().csrfToken} readOnly />;
+/**
+ * A form that posts natively, with its CSRF token. `fields` are hidden values it posts too
+ * (`{ section: 'profile' }`); the server answers with a redirect or re-renders the page.
+ */
+export function PostForm({ fields = {}, children, ...formProps }) {
+  return (
+    <form method="post" {...formProps}>
+      <input type="hidden" name="csrfmiddlewaretoken" value={getBootstrap().csrfToken} readOnly />
+      {Object.entries(fields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} readOnly />
+      ))}
+      {children}
+    </form>
+  );
 }
 
 function Label({ id, label, required }) {
@@ -44,6 +59,88 @@ export function Field({ id, label, error, hint, required = false, as: Control = 
           {error}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** An account's full name, as the server takes it: two characters at least. */
+export function FullNameField(props) {
+  return <Field name="full_name" label={t('signup.fullName')} autoComplete="name" required minLength={2} maxLength={150} {...props} />;
+}
+
+/** An email address, which is also the login. */
+export function EmailField(props) {
+  return <Field name="email" type="email" dir="ltr" label={t('login.email')} autoComplete="email" required {...props} />;
+}
+
+/**
+ * A date typed as DD.MM.YYYY, whatever the browser's own locale would show, with the
+ * browser's picker behind the calendar button. The form receives `name` as YYYY-MM-DD,
+ * the only format the server reads; `onChange` gets the same ISO date ('' until the
+ * text is a real day).
+ */
+function DateInput({ id, name, defaultValue = '', onChange, required = false, className = '' }) {
+  const [iso, setIso] = useState(defaultValue);
+  const [text, setText] = useState(() => formatDayMonthYear(defaultValue));
+  const textInput = useRef(null);
+  const picker = useRef(null);
+
+  const commit = (nextText, nextIso) => {
+    setText(nextText);
+    setIso(nextIso);
+    textInput.current.setCustomValidity(nextText && !nextIso ? t('dates.format') : '');
+    onChange?.(nextIso);
+  };
+
+  const openPicker = () => {
+    try {
+      picker.current.showPicker();
+    } catch {
+      textInput.current.focus();
+    }
+  };
+
+  return (
+    <div className={`date-input ${className}`}>
+      <input
+        ref={textInput}
+        id={id}
+        className="form-input"
+        type="text"
+        dir="ltr"
+        inputMode="numeric"
+        placeholder={t('dates.placeholder')}
+        title={t('dates.format')}
+        maxLength={10}
+        autoComplete="off"
+        required={required}
+        value={text}
+        onChange={(event) => commit(event.target.value, parseDayMonthYear(event.target.value))}
+      />
+      <button className="date-input-button" type="button" aria-label={t('dates.pick')} onClick={openPicker}>
+        <CalendarIcon />
+      </button>
+      {/* Only here to open the browser's picker; the typed field above is what people read. */}
+      <input
+        ref={picker}
+        className="date-input-picker"
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        value={iso}
+        onChange={(event) => commit(formatDayMonthYear(event.target.value), event.target.value)}
+      />
+      <input type="hidden" name={name} value={iso} />
+    </div>
+  );
+}
+
+/** Labelled `DateInput`, laid out like `Field`. */
+export function DateField({ id, label, required = false, ...inputProps }) {
+  return (
+    <div className="mb-4">
+      <Label id={id} label={label} required={required} />
+      <DateInput id={id} required={required} {...inputProps} />
     </div>
   );
 }
@@ -97,11 +194,11 @@ export function DateRangeFields({ from, to }) {
       <label className="form-label mb-0" htmlFor="dateFrom">
         {t('filters.from')}
       </label>
-      <input id="dateFrom" name="date_from" type="date" className="form-input w-auto" defaultValue={from} />
+      <DateInput id="dateFrom" name="date_from" className="w-36" defaultValue={from} />
       <label className="form-label mb-0" htmlFor="dateTo">
         {t('filters.to')}
       </label>
-      <input id="dateTo" name="date_to" type="date" className="form-input w-auto" defaultValue={to} />
+      <DateInput id="dateTo" name="date_to" className="w-36" defaultValue={to} />
     </div>
   );
 }

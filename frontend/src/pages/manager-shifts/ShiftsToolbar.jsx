@@ -1,7 +1,7 @@
 import { formatDate, formatMonth, navigateWith } from '../../app/dates.js';
 import { statusOptions } from '../../app/shifts.js';
-import { CalendarNav } from '../../components/Calendar.jsx';
-import { CsrfInput, FilterSelect } from '../../components/Field.jsx';
+import { CalendarNav, CalendarToolbar } from '../../components/Calendar.jsx';
+import { FilterSelect, PostForm } from '../../components/Field.jsx';
 import { Plus } from '../../components/Icons.jsx';
 import { t } from '../../i18n/index.js';
 
@@ -16,9 +16,10 @@ export function ShiftsToolbar({ data, onCreateShift }) {
   ];
 
   return (
-    <div className="card page-toolbar-card">
-      <div className="shifts-toolbar">
-        <div className="shifts-toolbar-left flex min-w-0 flex-wrap items-center gap-3 justify-self-start">
+    <CalendarToolbar
+      period={view === 'week' ? `${formatDate(start, { year: false })} – ${formatDate(end)}` : formatMonth(anchor)}
+      start={
+        <>
           <FilterSelect id="positionFilter" label={t('filters.position')} options={positions} value={filters.position} onChange={filterBy('position')} />
           <FilterSelect id="statusFilter" label={t('filters.status')} options={statusOptions()} value={filters.status} onChange={filterBy('status')} />
           <FilterSelect
@@ -28,15 +29,10 @@ export function ShiftsToolbar({ data, onCreateShift }) {
             value={filters.understaffed ? 'understaffed' : ''}
             onChange={filterBy('show')}
           />
-        </div>
-
-        <div className="shifts-toolbar-center min-w-0 justify-self-center">
-          <div className="calendar-period">
-            {view === 'week' ? `${formatDate(start, { year: false })} – ${formatDate(end)}` : formatMonth(anchor)}
-          </div>
-        </div>
-
-        <div className="shifts-toolbar-right flex min-w-0 flex-wrap items-center justify-end gap-3 justify-self-end">
+        </>
+      }
+      end={
+        <>
           <div className="flex gap-1" role="group" aria-label={t('shifts.calendarView')}>
             {views.map((option) => (
               <button
@@ -58,16 +54,13 @@ export function ShiftsToolbar({ data, onCreateShift }) {
             {t('shifts.add')}
           </button>
 
-          <form method="post" action={urls.publishAll} className="flex">
-            <CsrfInput />
-            <input type="hidden" name="view" value={view} readOnly />
-            <input type="hidden" name="date" value={anchor} readOnly />
+          <PostForm action={urls.publishAll} className="flex" fields={{ view, date: anchor }}>
             <button className="btn btn-outline" type="submit">
               {t('shifts.publishAll')}
             </button>
-          </form>
-        </div>
-      </div>
-    </div>
+          </PostForm>
+        </>
+      }
+    />
   );
 }

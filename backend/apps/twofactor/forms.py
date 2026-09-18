@@ -29,7 +29,7 @@ class ConfirmSetupForm(forms.Form):
 
     def clean_code(self) -> str:
         code = services.normalize(self.cleaned_data["code"])
-        self.step = totp.matching_step(self.secret, code) if code.isdigit() and len(code) == totp.DIGITS else None
+        self.step = totp.matching_step(self.secret, code) if totp.looks_like_code(code) else None
         if self.step is None:
             raise ValidationError(_("That code doesn't match. Check that your phone's clock is set automatically, then try the new code."))
         return code

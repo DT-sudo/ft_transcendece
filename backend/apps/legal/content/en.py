@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 CONTACT_EMAIL = "privacy@planshift.example"
-LAST_UPDATED = "14 September 2026"
+LAST_UPDATED = "18 September 2026"
 
 PRIVACY_POLICY = {
     "title": "Privacy Policy",
@@ -29,8 +29,8 @@ PRIVACY_POLICY = {
             ],
             "bullets": [
                 "Account data — your full name, email address (which is also your login), a "
-                "system-generated employee ID, your role (manager or employee) and, for employees, "
-                "the position you are qualified for.",
+                "system-generated employee ID, your role (admin, manager or employee), for employees "
+                "the position you work, and when the account was created and last signed in.",
                 "Profile data — an optional profile picture (re-encoded to a small WebP, which "
                 "strips any camera or location metadata), an optional short bio, your friends and "
                 "friend requests, and your online status: whether you have PlanShift open, and when "
@@ -42,60 +42,79 @@ PRIVACY_POLICY = {
                 "on, and your recovery codes, of which only a keyed hash is kept. Turning two-factor "
                 "authentication off deletes all of it.",
                 "Scheduling data — the shifts you are assigned to, their dates, times, position "
-                "and capacity, and the days you have marked yourself unavailable.",
+                "and capacity, and the days you have marked yourself unavailable. For managers, "
+                "also the shifts they created.",
                 "Notifications — the in-app messages about changes other people made that concern "
-                "you, such as a shift you were assigned to. They are kept until you clear them or "
-                "your account is deleted.",
+                "you, such as a shift you were assigned to, and the error messages the application "
+                "showed you. They are kept until you clear them or your account is deleted.",
                 "Language — the language you use PlanShift in, saved on your account and in a cookie, so "
                 "the application, emails and notifications reach you in a language you read.",
-                "Session cookie — a signed identifier that keeps you logged in. It is "
-                "HttpOnly, SameSite=Lax and Secure, so it is unreadable to JavaScript and is "
-                "never sent over an unencrypted connection.",
-                "CSRF cookie — a random token used to prove that a form submission came from a "
-                "page we served. It contains no information about you.",
+                "Security log — a line for each sign-in (successful or failed), sign-out, account or "
+                "role change and ended session, with the account's number and login email and the IP "
+                "address the request came from. It is written to the server's log, not to the "
+                "database, and never contains passwords or codes.",
+                "Cookies — a session cookie that keeps you signed in, a CSRF cookie that protects "
+                "forms, a language cookie, and a messages cookie that carries a one-off confirmation "
+                "or error message to the next page. Section 7 describes them.",
             ],
         },
         {
             "heading": "2. Why we process it",
             "bullets": [
                 "To authenticate you and keep your session open between requests.",
-                "To build, validate and display work schedules — including checking that an "
-                "assignment does not clash with an existing shift or a day you marked unavailable.",
-                "To let your manager see the roster they are responsible for and the hours it "
-                "allocates to each person.",
-                "To keep the application secure, for example by rejecting cross-site requests.",
+                "To build, validate and display the work schedule — including checking that an "
+                "assignment matches the employee's position and does not clash with another shift "
+                "or a day they marked unavailable.",
+                "To let the managers see the roster they run and the hours it allocates to each "
+                "person, and to let the admin keep the accounts and positions up to date.",
+                "To tell you about changes that concern you, in the application and, for data exports, "
+                "account deletion and two-factor authentication changes, by email.",
+                "To keep the application secure: rejecting cross-site requests, locking repeated "
+                "wrong two-factor codes, and keeping the security log to investigate misuse.",
             ],
             "paragraphs": [
                 "The legal basis is the performance of your employment relationship with the "
                 "organisation running the instance, together with that organisation's legitimate "
-                "interest in operating a work schedule. We do not process your data for any purpose "
-                "beyond running the schedule.",
+                "interest in operating a work schedule and keeping it secure. We do not process your "
+                "data for any purpose beyond running the schedule.",
             ],
         },
         {
             "heading": "3. Who can see your data",
             "bullets": [
-                "You — your own profile, your published shifts and your unavailability.",
-                "Managers in your organisation — the team directory (name, email, position) and "
-                "the full schedule, including draft shifts that employees cannot yet see.",
-                "Your friends — your profile, email, friend list and online status. Someone you "
-                "have a pending friend request with sees only your name, picture, role and bio.",
-                "Administrators of the instance — technical staff with server or database access.",
+                "You — everything about your own account, and a full copy of it on the \"Privacy & "
+                "my data\" page.",
+                "Colleagues — every signed-in manager and employee sees your name, picture, role or "
+                "position and bio on your profile. Your friends also see your email, your friend list "
+                "and whether you are online.",
+                "Managers — the whole schedule, including draft shifts that employees cannot yet "
+                "see, whichever manager created each shift; every employee's name, position and "
+                "unavailable days; and the hours each person is scheduled for.",
+                "Admins — every account's name, email, employee ID, role, position and whether "
+                "two-factor authentication is on. They can change these details, reset a password "
+                "or two-factor authentication, and delete accounts.",
+                "The operator's technical staff — the people with access to the server, its "
+                "database and its logs.",
             ],
             "paragraphs": [
-                "Your data is never sold, rented, shared with advertisers, or transferred to any "
-                "third party. It is not used to train machine-learning models.",
+                "Your data is never sold, rented, shared with advertisers, or used to train "
+                "machine-learning models. Two outside services see a small part of it: Google Fonts "
+                "receives your IP address when your browser downloads the font, and the mail server "
+                "the operator configures delivers the emails described above.",
             ],
         },
         {
             "heading": "4. How long we keep it",
             "paragraphs": [
                 "Account and scheduling data are kept for as long as your account exists on the "
-                "instance. When a manager deletes an employee account, the account record, its "
-                "shift assignments and its unavailability entries are removed from the database in "
-                "the same transaction — there is no soft-delete and no archive copy.",
-                "A one-time generated password is held in the manager's server-side session only "
-                "long enough to be shown once, and is discarded as soon as that page is rendered.",
+                "instance. When your account is deleted — by you or by an admin — the account "
+                "record, profile picture, friendships, notifications, two-factor data, shift "
+                "assignments and unavailability entries are removed from the database at once. "
+                "There is no soft-delete and no archive copy. Shifts a manager created stay on the "
+                "shared schedule, no longer linked to them.",
+                "A one-time generated password is held in the admin's server-side session only "
+                "long enough to be shown once, and is discarded as soon as that page is rendered. "
+                "Security log lines are kept for as long as the operator keeps the server's logs.",
             ],
         },
         {
@@ -110,8 +129,10 @@ PRIVACY_POLICY = {
                 "to you by email.",
                 "Every write is protected by a CSRF token, and every page is served with "
                 "X-Frame-Options: DENY and X-Content-Type-Options: nosniff.",
-                "Access is role-gated on the server: an employee cannot reach a manager endpoint, "
-                "and requesting another manager's shift by guessing its ID returns 404.",
+                "Access is role-gated on the server: employees cannot reach the schedule or the "
+                "account pages, and only ever receive their own published shifts; only admins can "
+                "change accounts. When your role changes or your password is reset, your open "
+                "sessions are signed out.",
                 "Database queries go through the Django ORM, which parameterises every value, and "
                 "all rendered content is escaped by default.",
             ],
@@ -123,16 +144,21 @@ PRIVACY_POLICY = {
                 "be corrected, ask for it to be deleted, object to its processing, or ask for the "
                 "processing to be restricted. You also have the right to complain to your national "
                 "data-protection authority.",
-                f"Send any of these requests to {CONTACT_EMAIL} or to the manager of your "
-                "organisation, who can update or delete your account directly.",
+                "You can do most of this yourself. On the \"Privacy & my data\" page you can download "
+                "everything held about you as a readable JSON file and delete your account after "
+                "confirming your email and password; each is confirmed to you by email. Your name, "
+                "email, picture and bio can be corrected in Account settings. For anything else, "
+                f"write to {CONTACT_EMAIL} or ask the admin of your organisation's instance.",
             ],
         },
         {
             "heading": "7. Cookies",
             "paragraphs": [
-                "PlanShift sets three cookies, all strictly necessary for the service to work: the "
-                "session cookie that keeps you signed in, the CSRF cookie that protects forms from "
-                "cross-site submission, and the language cookie that remembers the language you picked. "
+                "PlanShift sets four cookies, all strictly necessary for the service to work: the "
+                "session cookie that keeps you signed in (for up to two weeks, or until you sign "
+                "out), the CSRF cookie that protects forms from cross-site submission, the language "
+                "cookie that remembers the language you picked, and the messages cookie that carries "
+                "a confirmation or error to the next page and is deleted as soon as it is shown. "
                 "None is used for tracking or profiling, so no consent banner is required. Blocking "
                 "them will prevent you from logging in.",
             ],
@@ -148,8 +174,8 @@ PRIVACY_POLICY = {
             "heading": "9. Contact",
             "paragraphs": [
                 f"Questions about this policy: {CONTACT_EMAIL}. For anything specific to your "
-                "schedule or your account, contact your manager first — they administer your "
-                "organisation's instance.",
+                "schedule, contact your manager; for your account, the admin of your organisation's "
+                "instance.",
             ],
         },
     ],
@@ -167,23 +193,25 @@ TERMS_OF_SERVICE = {
         {
             "heading": "1. The service",
             "paragraphs": [
-                "PlanShift lets a manager build a work schedule on a calendar and publish it to "
-                "their team, and lets employees see the shifts assigned to them and declare the days "
-                "they are unavailable. It is a planning tool. It is not a payroll system, a time "
-                "clock, or a system of record for hours actually worked.",
+                "PlanShift lets managers build one shared work schedule on a calendar and publish it "
+                "to the team, lets employees see the shifts assigned to them and declare the days "
+                "they are unavailable, and lets an admin keep the accounts and positions. Colleagues "
+                "can view each other's profiles and add each other as friends. It is a planning "
+                "tool. It is not a payroll system, a time clock, or a system of record for hours "
+                "actually worked.",
             ],
         },
         {
             "heading": "2. Accounts",
             "bullets": [
-                "Manager accounts are opened through the sign-up page. Signing up makes you "
-                "responsible for the team you then create.",
-                "Employee accounts are created by a manager, who receives a generated password "
-                "shown exactly once and is responsible for delivering it securely.",
+                "Signing up opens a manager account. The first admin is appointed by the operator "
+                "of the instance; admins then create the other accounts and choose their roles.",
+                "Accounts an admin creates get a generated password, shown to the admin exactly once; "
+                "the admin is responsible for delivering it securely.",
                 "You must give an accurate name and a working email address, and you must be at "
                 "least 16 years old, or have your guardian's consent, to hold an account.",
                 "You are responsible for everything done under your account. Keep your password "
-                "secret, do not share the account, and tell your manager immediately if you think "
+                "secret, do not share the account, and tell your admin immediately if you think "
                 "someone else has access to it.",
             ],
         },
@@ -191,23 +219,25 @@ TERMS_OF_SERVICE = {
             "heading": "3. Acceptable use",
             "paragraphs": ["You agree not to:"],
             "bullets": [
-                "Access, or try to access, any account, shift or team that is not yours.",
+                "Access, or try to access, any account or data your role does not give you access to.",
                 "Probe, scan or test the security of the instance, or bypass any access control, "
                 "rate limit or authentication check.",
                 "Automate requests in a way that degrades the service for other users.",
                 "Upload or enter unlawful, abusive or deliberately misleading content, including "
-                "false names or scheduling data entered to harm a colleague.",
+                "offensive profile pictures or bios, false names, or scheduling data entered to harm "
+                "a colleague.",
                 "Copy, scrape or redistribute another organisation's data.",
             ],
         },
         {
-            "heading": "4. Managers' responsibilities",
+            "heading": "4. Admins' and managers' responsibilities",
             "paragraphs": [
-                "If you hold a manager account, you decide which personal data about your staff is "
-                "entered into the instance, and you are the data controller for it. You are "
-                "responsible for having a lawful basis to process it, for telling your team that "
-                "PlanShift is in use, and for honouring their requests to access or delete their "
-                "data. Our Privacy Policy explains what the application stores on your behalf.",
+                "Admins and managers act for the organisation running the instance, which is the data "
+                "controller for everything entered into it. They are responsible for entering only "
+                "the personal data the schedule needs, for having a lawful basis to process it, for "
+                "telling the team that PlanShift is in use, and for honouring their requests to "
+                "access, correct or delete their data. Our Privacy Policy explains what the "
+                "application stores.",
             ],
         },
         {
@@ -241,11 +271,12 @@ TERMS_OF_SERVICE = {
         {
             "heading": "8. Suspension and termination",
             "paragraphs": [
-                "A manager may deactivate or delete an employee account at any time, for example "
-                "when someone leaves the team. The operator of the instance may suspend any account "
-                "that breaches these terms. You may stop using the service at any time and ask your "
-                "manager to delete your account; deletion removes your account, assignments and "
-                "unavailability records.",
+                "An admin may delete any account at any time, for example when someone leaves the "
+                "team, and the operator of the instance may suspend any account that breaches these "
+                "terms. You may stop using the service at any time and delete your account yourself "
+                "on the \"Privacy & my data\" page. Deletion removes your account, profile, "
+                "friendships, notifications, assignments and unavailability records; shifts you "
+                "created as a manager stay on the shared schedule.",
             ],
         },
         {

@@ -1,4 +1,5 @@
 import { formatDate, formatDuration, shiftDurationMinutes } from '../../app/dates.js';
+import { shiftTimes } from '../../app/shifts.js';
 import { Modal } from '../../components/Modal.jsx';
 import { ShiftStatusBadge } from '../../components/ShiftStatusBadge.jsx';
 import { t } from '../../i18n/index.js';
@@ -32,7 +33,7 @@ export function ShiftDetailsModal({ shift, assignedNames, editors, onClose, onEd
         <dd>{formatDate(shift.date)}</dd>
         <dt className="text-muted-foreground">{t('shifts.time')}</dt>
         <dd>
-          {shift.start_time}-{shift.end_time} ({formatDuration(shiftDurationMinutes(shift))})
+          {shiftTimes(shift)} ({formatDuration(shiftDurationMinutes(shift))})
         </dd>
         <dt className="text-muted-foreground">{t('shifts.position')}</dt>
         <dd>{shift.position}</dd>

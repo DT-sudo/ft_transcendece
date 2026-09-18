@@ -30,6 +30,7 @@ function NotificationText({ entry }) {
  * Toasts plus the notification history behind the header bell. The history is stored
  * per recipient on the server (`notifications` in the page payload) and grows live over
  * the socket. Toasts are keyed by their content, so a repeat bumps a counter instead of stacking.
+ * Every error toast is also written to the history, so it can still be read once it fades.
  */
 export function ToastProvider({ initialMessages = [], notifications = null, children }) {
   const [toasts, setToasts] = useState([]);
@@ -37,7 +38,7 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
   const timers = useRef(new Map());
   const urls = notifications?.urls;
 
-  const showToast = useCallback((level, title, description = '') => {
+  const raiseToast = useCallback((level, title, description = '') => {
     const key = `${level}|${title}|${description}`;
 
     setToasts((current) =>
@@ -53,6 +54,27 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
     );
   }, []);
 
+  const recordError = useCallback(
+    (title, description) => {
+      if (!urls) return;
+      // A toast with only a title keeps it as the text; the generic "Error" title is left for
+      // the server to write in whatever language the reader has on when they open the bell.
+      const [heading, text] = description ? [title, description] : ['', title];
+      postForm(urls.recordError, { title: heading === t('toast.error') ? '' : heading, text })
+        .then(({ notification }) => setHistory((current) => [notification, ...current]))
+        .catch(() => {});
+    },
+    [urls],
+  );
+
+  const showToast = useCallback(
+    (level, title, description = '') => {
+      raiseToast(level, title, description);
+      if (level === 'error') recordError(title, description);
+    },
+    [raiseToast, recordError],
+  );
+
   const reloadHistory = () =>
     getJSON(urls.list)
       .then((payload) => setHistory(payload.notifications))
@@ -64,7 +86,8 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
       if (event.type !== 'notification') return;
       const entry = event.notification;
       setHistory((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
-      showToast(entry.level, entry.title, entry.description);
+      // Already in the history: raised without recording it a second time.
+      raiseToast(entry.level, entry.title, entry.description);
     },
     // Pushes are not replayed after a dropped connection, so re-read the history.
     { enabled: Boolean(urls), onReconnect: reloadHistory },
@@ -85,7 +108,8 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
   }, [initialMessages, showToast]);
 
   const center = useMemo(() => {
-    const save = (url) => postForm(url, {}).catch(() => showToast('error', t('toast.error'), t('notifications.saveFailed')));
+    // A failed save can't be written to the history either, so it is only raised.
+    const save = (url) => postForm(url, {}).catch(() => raiseToast('error', t('toast.error'), t('notifications.saveFailed')));
     return {
       history,
       markAllRead: () => {
@@ -98,7 +122,7 @@ export function ToastProvider({ initialMessages = [], notifications = null, chil
         save(urls.clear);
       },
     };
-  }, [history, urls, showToast]);
+  }, [history, urls, raiseToast]);
 
   return (
     <ToastContext.Provider value={showToast}>

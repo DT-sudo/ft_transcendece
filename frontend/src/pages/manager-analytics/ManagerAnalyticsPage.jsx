@@ -1,5 +1,4 @@
 import { formatDate, formatHours, formatNow } from '../../app/dates.js';
-import { getBootstrap } from '../../app/http.js';
 import { useLivePageData } from '../../app/live.js';
 import { statusOptions } from '../../app/shifts.js';
 import { AppShell } from '../../components/AppShell.jsx';
@@ -7,7 +6,7 @@ import { DateRangeFields, ShiftFilterSelects } from '../../components/Field.jsx'
 import { ChevronDown } from '../../components/Icons.jsx';
 import { Dropdown } from '../../components/Menus.jsx';
 import { t } from '../../i18n/index.js';
-import { EmptyChart, WorkerHoursChart, XYChart } from './Charts.jsx';
+import { EmptyChart, LineChart, WorkerHoursChart } from './Charts.jsx';
 
 const KPIS = [
   { key: 'shifts', label: 'analytics.shifts', accent: 'var(--color-primary)' },
@@ -51,7 +50,7 @@ function TopList({ items, name, detail }) {
 export function ManagerAnalyticsPage() {
   // Every shift write pushes `shifts.changed`: the page re-reads its data for the same filters.
   // A failed refresh leaves the last numbers on screen.
-  const { positions, workers, filters, urls, analytics } = useLivePageData(getBootstrap().data);
+  const { positions, workers, filters, urls, analytics } = useLivePageData();
 
   const topPositions = [...analytics.by_position].sort((a, b) => b.count - a.count).slice(0, 5);
   const statuses = statusOptions();
@@ -111,8 +110,7 @@ export function ManagerAnalyticsPage() {
 
         <div className="analytics-grid mt-3">
           <ChartCard title={t('analytics.overTime')} wide>
-            <XYChart
-              kind="line"
+            <LineChart
               label={t('analytics.overTime')}
               data={analytics.by_date}
               labelKey="date"

@@ -76,68 +76,77 @@ function Axes({ plot, top, labels }) {
   );
 }
 
-/** Line or bar chart of `data[i][valueKey]`, with a hover tooltip. */
-export function XYChart({ kind, label, data, labelKey, valueKey, formatLabel = String, formatValue = String, color = 'var(--color-primary)' }) {
+/** Which mark the pointer is on: hovered marks stay solid, the others fade. */
+function useHover() {
   const [hovered, setHovered] = useState(null);
-  const max = Math.max(1, ...data.map((item) => item[valueKey]));
-  const plot = usePlot(data.length, max);
+  return {
+    hovered,
+    hover: (index) => ({ onMouseEnter: () => setHovered(index), onMouseLeave: () => setHovered(null) }),
+    opacity: (index) => (hovered === null || hovered === index ? 1 : 0.55),
+  };
+}
 
-  const points = data.map((item, index) => ({ x: plot.center(index), y: BASELINE - plot.height(item[valueKey]), item }));
-  const hover = (index) => ({ onMouseEnter: () => setHovered(index), onMouseLeave: () => setHovered(null) });
-
-  // Every bar is labelled; a line only at its two ends.
-  const labelled = kind === 'bar' || points.length < 2 ? points : [points[0], points.at(-1)];
-  const line = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
-  const tip = points[hovered];
-
+/** The box, the empty state and the tooltip both charts share; `tip` is `{ x, y, children }` in plot units. */
+function ChartFrame({ plot, label, empty, tip, children }) {
   return (
     <div className="chart-wrap" ref={plot.ref}>
-      {data.length === 0 ? (
+      {empty ? (
         <EmptyChart />
       ) : (
         <svg viewBox={`0 0 ${plot.width} ${HEIGHT}`} className="chart-svg" role="img" aria-label={label}>
-          <Axes
-            plot={plot}
-            top={formatValue(max)}
-            labels={labelled.map((point) => {
-              const text = formatLabel(point.item[labelKey]);
-              return { at: point.x, text: kind === 'bar' ? truncate(text) : text };
-            })}
-          />
-
-          {kind === 'line' ? (
-            <>
-              <path d={`${line} L ${points.at(-1).x} ${BASELINE} L ${points[0].x} ${BASELINE} Z`} fill={color} fillOpacity={0.08} />
-              <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
-              {points.map((point, index) => (
-                <circle key={index} cx={point.x} cy={point.y} r={hovered === index ? 5 : 3} fill={color} {...hover(index)} />
-              ))}
-            </>
-          ) : (
-            points.map((point, index) => (
-              <rect
-                key={index}
-                x={point.x - plot.barWidth / 2}
-                y={point.y}
-                width={plot.barWidth}
-                height={BASELINE - point.y}
-                rx={3}
-                fill={color}
-                opacity={hovered === null || hovered === index ? 1 : 0.55}
-                {...hover(index)}
-              />
-            ))
-          )}
+          {children}
         </svg>
       )}
 
       {tip ? (
         <div className="chart-tooltip" style={{ left: `${(tip.x / plot.width) * 100}%`, top: `${(tip.y / HEIGHT) * 100}%` }}>
-          <div className="font-medium">{formatLabel(tip.item[labelKey])}</div>
-          <div>{formatValue(tip.item[valueKey])}</div>
+          {tip.children}
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Line chart of `data[i][valueKey]`, labelled at its two ends, with a hover tooltip. */
+export function LineChart({ label, data, labelKey, valueKey, formatLabel = String, color = 'var(--color-primary)' }) {
+  const { hovered, hover } = useHover();
+  const max = Math.max(1, ...data.map((item) => item[valueKey]));
+  const plot = usePlot(data.length, max);
+
+  const points = data.map((item, index) => ({ x: plot.center(index), y: BASELINE - plot.height(item[valueKey]), item }));
+  const ends = points.length < 2 ? points : [points[0], points.at(-1)];
+  const line = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
+  const tip = points[hovered];
+
+  return (
+    <ChartFrame
+      plot={plot}
+      label={label}
+      empty={data.length === 0}
+      tip={
+        tip && {
+          x: tip.x,
+          y: tip.y,
+          children: (
+            <>
+              <div className="font-medium">{formatLabel(tip.item[labelKey])}</div>
+              <div>{tip.item[valueKey]}</div>
+            </>
+          ),
+        }
+      }
+    >
+      <Axes plot={plot} top={max} labels={ends.map((point) => ({ at: point.x, text: formatLabel(point.item[labelKey]) }))} />
+      {points.length ? (
+        <>
+          <path d={`${line} L ${points.at(-1).x} ${BASELINE} L ${points[0].x} ${BASELINE} Z`} fill={color} fillOpacity={0.08} />
+          <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+        </>
+      ) : null}
+      {points.map((point, index) => (
+        <circle key={index} cx={point.x} cy={point.y} r={hovered === index ? 5 : 3} fill={color} {...hover(index)} />
+      ))}
+    </ChartFrame>
   );
 }
 
@@ -154,11 +163,10 @@ const LEGEND = [
  * over the limit the bar is red and rises past the gray, covering it.
  */
 export function WorkerHoursChart({ label, data, maxHours, formatValue = String }) {
-  const [hovered, setHovered] = useState(null);
+  const { hovered, hover, opacity } = useHover();
   const max = Math.max(1, maxHours, ...data.map((item) => item.hours));
   const plot = usePlot(data.length, max);
 
-  const hover = (index) => ({ onMouseEnter: () => setHovered(index), onMouseLeave: () => setHovered(null) });
   const bars = data.map((item, index) => ({
     item,
     index,
@@ -171,39 +179,42 @@ export function WorkerHoursChart({ label, data, maxHours, formatValue = String }
 
   return (
     <>
-      <div className="chart-wrap" ref={plot.ref}>
-        {data.length === 0 ? (
-          <EmptyChart />
-        ) : (
-          <svg viewBox={`0 0 ${plot.width} ${HEIGHT}`} className="chart-svg" role="img" aria-label={label}>
-            <Axes plot={plot} top={formatValue(max)} labels={bars.map((bar) => ({ at: bar.center, text: truncate(bar.item.worker) }))} />
+      <ChartFrame
+        plot={plot}
+        label={label}
+        empty={data.length === 0}
+        tip={
+          tip && {
+            x: tip.center,
+            y: BASELINE - Math.max(tip.allowed, tip.worked),
+            children: (
+              <>
+                <div className="font-medium">{tip.item.worker}</div>
+                <div>
+                  {formatValue(tip.item.hours)} / {formatValue(maxHours)}
+                  {tip.overtime ? ` · ${t('analytics.overtime')}` : ''}
+                </div>
+              </>
+            ),
+          }
+        }
+      >
+        <Axes plot={plot} top={formatValue(max)} labels={bars.map((bar) => ({ at: bar.center, text: truncate(bar.item.worker) }))} />
 
-            {bars.map(({ index, center, overtime, allowed, worked }) => (
-              <g key={index} opacity={hovered === null || hovered === index ? 1 : 0.55} {...hover(index)}>
-                <rect x={center - plot.barWidth / 2} y={BASELINE - allowed} width={plot.barWidth} height={allowed} rx={3} fill="var(--color-shift-past)" />
-                <rect
-                  x={center - plot.barWidth / 2}
-                  y={BASELINE - worked}
-                  width={plot.barWidth}
-                  height={worked}
-                  rx={3}
-                  fill={overtime ? 'var(--color-destructive)' : 'var(--color-shift-published)'}
-                />
-              </g>
-            ))}
-          </svg>
-        )}
-
-        {tip ? (
-          <div className="chart-tooltip" style={{ left: `${(tip.center / plot.width) * 100}%`, top: `${((BASELINE - Math.max(tip.allowed, tip.worked)) / HEIGHT) * 100}%` }}>
-            <div className="font-medium">{tip.item.worker}</div>
-            <div>
-              {formatValue(tip.item.hours)} / {formatValue(maxHours)}
-              {tip.overtime ? ` · ${t('analytics.overtime')}` : ''}
-            </div>
-          </div>
-        ) : null}
-      </div>
+        {bars.map(({ index, center, overtime, allowed, worked }) => (
+          <g key={index} opacity={opacity(index)} {...hover(index)}>
+            <rect x={center - plot.barWidth / 2} y={BASELINE - allowed} width={plot.barWidth} height={allowed} rx={3} fill="var(--color-shift-past)" />
+            <rect
+              x={center - plot.barWidth / 2}
+              y={BASELINE - worked}
+              width={plot.barWidth}
+              height={worked}
+              rx={3}
+              fill={overtime ? 'var(--color-destructive)' : 'var(--color-shift-published)'}
+            />
+          </g>
+        ))}
+      </ChartFrame>
 
       {data.length > 0 ? (
         <ul className="chart-legend chart-legend-row">

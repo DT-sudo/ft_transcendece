@@ -63,7 +63,10 @@
     "lastSeen": "Last seen {time}"
   },
   "dates": {
-    "justNow": "just now"
+    "justNow": "just now",
+    "placeholder": "DD.MM.YYYY",
+    "format": "Day, month and year, e.g. 19.09.2026",
+    "pick": "Choose a date"
   },
   "status": {
     "draft": "Draft",
@@ -135,14 +138,14 @@
     "title": "Privacy & my data",
     "subtitle": "What PlanShift holds about your account, and your GDPR rights over it.",
     "holdTitle": "What we hold about you",
-    "holdManager": "Your name, email, employee ID and role, your profile picture and bio, your friends, when you were last online, the language you use, and the shifts you have created.",
-    "holdEmployee": "Your name, email, employee ID and role, your profile picture and bio, your friends, when you were last online, the language you use, plus your shift assignments and the days you have marked yourself unavailable.",
+    "holdManager": "Your name, email, employee ID and role, your profile picture and bio, your friends, your notifications and two-factor settings, when you were last online, the language you use, and the shifts you have created.",
+    "holdEmployee": "Your name, email, employee ID, role and position, your profile picture and bio, your friends, your notifications and two-factor settings, when you were last online, the language you use, plus your shift assignments and the days you have marked yourself unavailable.",
     "holdMore": "See the full {policy} for why each piece is collected and who can see it.",
     "requestTitle": "Request your data",
     "requestText": "Download everything above as a single JSON file - readable in any text editor or spreadsheet tool that imports JSON. We also email you a confirmation so you know if a copy of your data was ever downloaded without you.",
     "download": "Download my data",
     "deleteTitle": "Delete your account",
-    "deleteManager": "Permanently deletes your account. If you've created shifts still on the schedule, reassign or remove them first - the schedule keeps a record of who created a published shift, so it can't be deleted out from under it.",
+    "deleteManager": "Permanently deletes your account. The shifts you created stay on the shared schedule, no longer linked to you.",
     "deleteEmployee": "Permanently deletes your account, your shift assignments and your unavailability records.",
     "deleteFinal": "This cannot be undone and there is no archive copy. A confirmation email is sent once it's done.",
     "deleteButton": "Delete my account",
@@ -285,7 +288,7 @@
     "deletePositionLabel": "Delete position {name}",
     "deletePosition": "Delete position",
     "deletePositionMessage": "Delete this position?",
-    "deletePositionNote": "A position still required by a shift cannot be deleted.",
+    "deletePositionNote": "Its upcoming shifts are deleted with it. Shifts that have already started stay on the schedule under its name, and employees who hold it are left without a position.",
     "permanentPosition": "Permanent — can't be deleted"
   },
   "profile": {

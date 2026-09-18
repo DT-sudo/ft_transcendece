@@ -69,15 +69,38 @@ export function Footer({ children }) {
       <div className="flex flex-wrap items-center gap-4">
         <LanguageSwitcher id="footerLanguage" />
         <nav className="flex items-center gap-4" aria-label={t('footer.legal')}>
-          <a className="footer-link" href={urls.privacy}>
-            {t('footer.privacyPolicy')}
-          </a>
+          <PrivacyPolicyLink />
           <a className="footer-link" href={urls.terms}>
             {t('footer.terms')}
           </a>
         </nav>
       </div>
     </footer>
+  );
+}
+
+/** A page's title card: an icon, the title (and `subtitle`), and `children` at the end. */
+export function PageHeader({ icon: Icon, title, subtitle = null, children = null }) {
+  return (
+    <div className="card page-toolbar-card">
+      <div className="flex flex-wrap items-center gap-3">
+        <Icon size={20} className="text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <h1 className="card-title">{title}</h1>
+          {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** The Privacy Policy, linked from running text. */
+export function PrivacyPolicyLink() {
+  return (
+    <a className="footer-link" href={getBootstrap().urls.privacy}>
+      {t('footer.privacyPolicy')}
+    </a>
   );
 }
 

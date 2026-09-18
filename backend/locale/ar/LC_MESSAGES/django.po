@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 14:31+0000\n"
+"POT-Creation-Date: 2026-09-18 18:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,12 +42,6 @@ msgstr "يوجد منصب بهذا الاسم بالفعل."
 
 msgid "Employees need a position."
 msgstr "يجب أن يكون للموظف منصب."
-
-msgid ""
-"Reassign or delete the shifts this manager created before making them an "
-"employee."
-msgstr ""
-"أعد تعيين المناوبات التي أنشأها هذا المدير أو احذفها قبل جعله موظفًا."
 
 msgid "Your role was changed. Please sign in again."
 msgstr "تم تغيير دورك. يرجى تسجيل الدخول مرة أخرى."
@@ -103,13 +97,6 @@ msgid "Two-factor authentication reset for %(name)s."
 msgstr "تمت إعادة تعيين التحقق بخطوتين لـ %(name)s."
 
 #, python-format
-msgid ""
-"Cannot delete %(name)s: they still have shifts. Reassign or delete them "
-"first."
-msgstr ""
-"لا يمكن حذف %(name)s: لا تزال لديه مناوبات. أعد تعيينها أو احذفها أولًا."
-
-#, python-format
 msgid "Deleted %(role)s: %(name)s."
 msgstr "تم حذف (%(role)s): %(name)s."
 
@@ -121,10 +108,7 @@ msgid "Position created: %(name)s."
 msgstr "تم إنشاء المنصب: %(name)s."
 
 msgid "The Manager position can't be deleted."
-msgstr ""
-
-msgid "Cannot delete position: it is referenced by existing data."
-msgstr "لا يمكن حذف المنصب: هناك بيانات قائمة تشير إليه."
+msgstr "لا يمكن حذف منصب المدير."
 
 #, python-format
 msgid "Position deleted: %(name)s."
@@ -169,6 +153,20 @@ msgstr "تم تغيير دورك"
 msgid "%(by)s made you %(role)s."
 msgstr "عيّنك %(by)s بدور %(role)s."
 
+msgid "Your position was changed"
+msgstr "تم تغيير منصبك"
+
+#, python-format
+msgid "%(by)s changed your position to “%(position)s”."
+msgstr "غيّر %(by)s منصبك إلى «%(position)s»."
+
+msgid "Your position was removed"
+msgstr "تمت إزالة منصبك"
+
+#, python-format
+msgid "The position “%(position)s” no longer exists."
+msgstr "لم يعد المنصب «%(position)s» موجودًا."
+
 msgid "Your details were updated"
 msgstr "تم تحديث بياناتك"
 
@@ -183,21 +181,18 @@ msgstr "تمت إعادة تعيين كلمة مرورك"
 msgid "%(by)s set a new password for your account."
 msgstr "عيّن %(by)s كلمة مرور جديدة لحسابك."
 
-msgid "New shift published"
-msgstr "نُشرت مناوبة جديدة"
-
-#, python-format
-msgid "%(count)d new shift published"
-msgid_plural "%(count)d new shifts published"
-msgstr[0] "نُشرت %(count)d مناوبة جديدة"
-msgstr[1] "نُشرت %(count)d مناوبة جديدة"
-msgstr[2] "نُشرت %(count)d مناوبتان جديدتان"
-msgstr[3] "نُشرت %(count)d مناوبات جديدة"
-msgstr[4] "نُشرت %(count)d مناوبة جديدة"
-msgstr[5] "نُشرت %(count)d مناوبة جديدة"
-
 msgid "New shift assigned"
 msgstr "تم تعيين مناوبة جديدة"
+
+#, python-format
+msgid "%(count)d new shift assigned"
+msgid_plural "%(count)d new shifts assigned"
+msgstr[0] "أُسندت إليك %(count)d مناوبة جديدة"
+msgstr[1] "أُسندت إليك %(count)d مناوبة جديدة"
+msgstr[2] "أُسندت إليك %(count)d مناوبتان جديدتان"
+msgstr[3] "أُسندت إليك %(count)d مناوبات جديدة"
+msgstr[4] "أُسندت إليك %(count)d مناوبة جديدة"
+msgstr[5] "أُسندت إليك %(count)d مناوبة جديدة"
 
 msgid "Removed from a shift"
 msgstr "أُزلت من مناوبة"
@@ -238,6 +233,16 @@ msgstr "تم إنشاء منصب"
 msgid "Position deleted"
 msgstr "تم حذف منصب"
 
+#, python-format
+msgid "%(count)d upcoming shift of %(name)s deleted"
+msgid_plural "%(count)d upcoming shifts of %(name)s deleted"
+msgstr[0] "حُذفت %(count)d مناوبة قادمة لمنصب %(name)s"
+msgstr[1] "حُذفت %(count)d مناوبة قادمة لمنصب %(name)s"
+msgstr[2] "حُذفت %(count)d مناوبتان قادمتان لمنصب %(name)s"
+msgstr[3] "حُذفت %(count)d مناوبات قادمة لمنصب %(name)s"
+msgstr[4] "حُذفت %(count)d مناوبة قادمة لمنصب %(name)s"
+msgstr[5] "حُذفت %(count)d مناوبة قادمة لمنصب %(name)s"
+
 msgid "Availability updated"
 msgstr "تم تحديث الإتاحة"
 
@@ -248,6 +253,9 @@ msgstr "%(name)s غير متاح في %(day)s."
 #, python-format
 msgid "%(name)s is available again on %(day)s."
 msgstr "%(name)s متاح مجددًا في %(day)s."
+
+msgid "Error"
+msgstr "خطأ"
 
 msgid "New friend request"
 msgstr "طلب صداقة جديد"
@@ -358,13 +366,6 @@ msgstr "الخصوصية وبياناتي"
 
 msgid "Email or password didn't match - account not deleted."
 msgstr "البريد الإلكتروني أو كلمة المرور غير مطابقة - لم يُحذف الحساب."
-
-msgid ""
-"Your account can't be deleted while you still have shifts on the schedule. "
-"Reassign or delete them first, then try again."
-msgstr ""
-"لا يمكن حذف حسابك ما دامت لديك مناوبات في الجدول. أعد تعيينها أو احذفها "
-"أولًا، ثم حاول مرة أخرى."
 
 msgid "Your account and all associated data have been deleted."
 msgstr "تم حذف حسابك وجميع البيانات المرتبطة به."

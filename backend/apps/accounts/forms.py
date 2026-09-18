@@ -13,19 +13,27 @@ def _split_full_name(full_name: str) -> tuple[str, str]:
     return first, last.strip()
 
 
-def clean_full_name(value: str | None) -> str:
-    full_name = " ".join((value or "").split())
-    if len(full_name) < 2:
-        raise ValidationError(_("Enter your full name."))
-    return full_name
+class NameAndEmailForm(forms.Form):
+    """The full name and email every account form asks for; the email doubles as the login username."""
 
+    full_name = forms.CharField(label=_("Full name"), max_length=150)
 
-def _unique_email(value: str | None, instance: User) -> str:
-    """The lowercased email, refused when another account already signs in with it."""
-    email = (value or "").strip().lower()
-    if User.objects.filter(username=email).exclude(pk=instance.pk).exists():
-        raise ValidationError(_("An account with this email already exists."))
-    return email
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].required = True
+
+    def clean_full_name(self) -> str:
+        full_name = " ".join((self.cleaned_data.get("full_name") or "").split())
+        if len(full_name) < 2:
+            raise ValidationError(_("Enter your full name."))
+        return full_name
+
+    def clean_email(self) -> str:
+        """The lowercased email, refused when another account already signs in with it."""
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if User.objects.filter(username=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError(_("An account with this email already exists."))
+        return email
 
 
 class EmailAuthenticationForm(AuthenticationForm):
@@ -43,7 +51,7 @@ class EmailAuthenticationForm(AuthenticationForm):
         return (self.cleaned_data.get("username") or "").strip().lower()
 
 
-class SignUpForm(BaseUserCreationForm):
+class SignUpForm(NameAndEmailForm, BaseUserCreationForm):
     """Public registration of a manager account.
 
     Employees are provisioned by their manager, so the only account someone can
@@ -51,17 +59,9 @@ class SignUpForm(BaseUserCreationForm):
     two password fields and runs the password validators against the instance.
     """
 
-    full_name = forms.CharField(label=_("Full name"), max_length=150)
-
     class Meta:
         model = User
         fields = ["email"]
-
-    def clean_full_name(self) -> str:
-        return clean_full_name(self.cleaned_data.get("full_name"))
-
-    def clean_email(self) -> str:
-        return _unique_email(self.cleaned_data["email"], self.instance)
 
     def _post_clean(self) -> None:
         # Fill the instance before the password validators run, so a password
@@ -72,17 +72,8 @@ class SignUpForm(BaseUserCreationForm):
         super()._post_clean()
 
 
-class AccountForm(forms.ModelForm):
-    """Base for forms that set an account's name and email; the email doubles as the login username."""
-
-    full_name = forms.CharField(label=_("Full name"), max_length=150)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["email"].required = True
-
-    def clean_email(self) -> str:
-        return _unique_email(self.cleaned_data.get("email"), self.instance)
+class AccountForm(NameAndEmailForm, forms.ModelForm):
+    """Base for forms that save an account's name and email."""
 
     def save(self, commit=True) -> User:
         user = super().save(commit=False)
@@ -126,14 +117,9 @@ class UserForm(AccountForm):
         elif role:
             cleaned["position"] = None
 
-        # Shifts someone is *assigned* to are no obstacle: the view takes them off the
-        # upcoming ones and leaves the worked ones alone (`release_from_future_shifts`).
-        # Shifts someone *created* are: `Shift.created_by` is PROTECT, and an employee has
-        # no calendar to keep a schedule on.
-        # (`self.instance` still holds the saved role here: the posted one is copied onto it after clean().)
-        becomes_employee = self.instance.pk and role == UserRole.EMPLOYEE and not self.instance.is_employee
-        if becomes_employee and self.instance.created_shifts.exists():
-            raise ValidationError(_("Reassign or delete the shifts this manager created before making them an employee."))
+        # Shifts someone is assigned to are no obstacle: the view takes them off the upcoming
+        # ones and leaves the worked ones alone (`release_from_future_shifts`). Shifts someone
+        # wrote stay on the schedule, which every manager shares.
         return cleaned
 
     def save(self, commit=True) -> User:

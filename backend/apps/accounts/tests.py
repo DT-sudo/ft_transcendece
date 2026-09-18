@@ -375,21 +375,24 @@ class RolePermissionTests(TestCase):
     def test_admin_cannot_manage_their_own_account(self):
         self.assertEqual(self._update(self.admin, self.admin, role=UserRole.EMPLOYEE).status_code, 404)
 
-    def test_role_switch_that_would_strand_shifts_is_refused(self):
-        self._shift_by(self.manager)
+    def test_demoting_a_manager_keeps_the_shifts_they_wrote(self):
+        shift = self._shift_by(self.manager)
 
         self._update(self.admin, self.manager, role=UserRole.EMPLOYEE, position=self.position.id)
 
         self.manager.refresh_from_db()
-        self.assertEqual(self.manager.role, UserRole.MANAGER)
+        self.assertEqual(self.manager.role, UserRole.EMPLOYEE)
+        self.assertTrue(Shift.objects.filter(pk=shift.pk).exists())
 
-    def test_manager_with_shifts_cannot_be_deleted(self):
-        self._shift_by(self.manager)
+    def test_deleting_a_manager_keeps_the_shifts_they_wrote(self):
+        shift = self._shift_by(self.manager)
         self.client.force_login(self.admin)
 
         self.client.post(reverse("employee_delete", args=[self.manager.id]))
 
-        self.assertTrue(User.objects.filter(pk=self.manager.pk).exists())
+        self.assertFalse(User.objects.filter(pk=self.manager.pk).exists())
+        shift.refresh_from_db()
+        self.assertIsNone(shift.created_by)
 
     def test_admin_does_not_run_the_schedule(self):
         """Admins only manage accounts: shifts, search and analytics are a manager's job."""

@@ -4,8 +4,8 @@ Every signed-in user - manager or employee - can reach these from the
 account menu: see what personal data is held about them, download it in a
 readable format, and delete their own account. See also
 `apps.legal.documents` for the Privacy Policy text this implements, and
-`apps.accounts.views` for the manager-initiated equivalent (deleting an
-employee's account, which already existed before this module).
+`apps.accounts.views` for the admin-initiated equivalent (deleting an
+account, which already existed before this module).
 """
 
 from __future__ import annotations
@@ -16,7 +16,6 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import ProtectedError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -24,6 +23,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.accounts.services import release_from_upcoming
 from apps.notifications.services import recent_notifications
 from apps.profiles.services import involving
 from apps.scheduling.models import Assignment, EmployeeUnavailability, Shift
@@ -67,7 +67,7 @@ def _collect_user_data(user) -> dict:
     if user.is_employee:
         assignments = (
             Assignment.objects.filter(employee=user)
-            .select_related("shift", "shift__position")
+            .select_related("shift")
             .order_by("shift__date", "shift__start_time")
         )
         data["assigned_shifts"] = [{**shift_fields(a.shift), "status": a.shift.status} for a in assignments]
@@ -78,7 +78,7 @@ def _collect_user_data(user) -> dict:
             )
         ]
     else:
-        created = Shift.objects.filter(created_by=user).select_related("position").order_by("date", "start_time")
+        created = Shift.objects.filter(created_by=user).order_by("date", "start_time")
         data["shifts_created"] = [
             {**shift_fields(shift), "status": shift.status, "capacity": shift.capacity} for shift in created
         ]
@@ -137,23 +137,10 @@ def delete_my_account(request: HttpRequest) -> HttpResponse:
 
     email, name, language = user.email, user.display_name, user.language
 
-    try:
-        user.delete()
-    except ProtectedError:
-        # Shift.created_by is PROTECT: a manager who has created shifts can't
-        # be deleted without orphaning that schedule history. This is the
-        # same "legitimate business record" exception the Privacy Policy
-        # describes, not a bug - the person needs to reassign/remove those
-        # shifts (or hand them to another manager) before they can erase
-        # their account.
-        messages.error(
-            request,
-            _(
-                "Your account can't be deleted while you still have shifts on the schedule. "
-                "Reassign or delete them first, then try again."
-            ),
-        )
-        return redirect("privacy_center")
+    # The managers learn which upcoming shifts just lost a worker. The shifts a manager
+    # wrote stay on the shared schedule, no longer linked to anyone.
+    release_from_upcoming(user, actor=user, tell_account=False)
+    user.delete()
 
     logout(request)
     send_account_deleted_email(email, name, language)

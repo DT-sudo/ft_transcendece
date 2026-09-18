@@ -65,7 +65,10 @@
     "lastSeen": "Naposledy online {time}"
   },
   "dates": {
-    "justNow": "právě teď"
+    "justNow": "právě teď",
+    "placeholder": "DD.MM.RRRR",
+    "format": "Den, měsíc a rok, např. 19.09.2026",
+    "pick": "Vybrat datum"
   },
   "status": {
     "draft": "Koncept",
@@ -137,14 +140,14 @@
     "title": "Soukromí a moje údaje",
     "subtitle": "Jaké údaje o vašem účtu PlanShift uchovává a jaká k nim máte práva podle GDPR.",
     "holdTitle": "Co o vás uchováváme",
-    "holdManager": "Vaše jméno, e-mail, ID zaměstnance a roli, profilovou fotografii a popis, vaše přátele, kdy jste byli naposledy online, jazyk, který používáte, a směny, které jste vytvořili.",
-    "holdEmployee": "Vaše jméno, e-mail, ID zaměstnance a roli, profilovou fotografii a popis, vaše přátele, kdy jste byli naposledy online, jazyk, který používáte, a také vaše přiřazení ke směnám a dny, které jste označili jako nedostupné.",
+    "holdManager": "Vaše jméno, e-mail, ID zaměstnance a role, profilová fotografie a popis, přátelé, oznámení a nastavení dvoufázového ověření, kdy jste byli naposledy online, jazyk, který používáte, a směny, které jste vytvořili.",
+    "holdEmployee": "Vaše jméno, e-mail, ID zaměstnance, role a pozice, profilová fotografie a popis, přátelé, oznámení a nastavení dvoufázového ověření, kdy jste byli naposledy online, jazyk, který používáte, a také vaše přiřazení ke směnám a dny, které jste si označili jako nedostupné.",
     "holdMore": "Proč se jednotlivé údaje shromažďují a kdo je vidí, najdete v dokumentu {policy}.",
     "requestTitle": "Vyžádat si své údaje",
     "requestText": "Stáhněte si vše výše uvedené jako jeden soubor JSON – čitelný v jakémkoli textovém editoru nebo tabulkovém programu, který umí JSON importovat. Zároveň vám pošleme potvrzení e-mailem, abyste věděli, kdyby si kopii vašich údajů někdy stáhl někdo jiný.",
     "download": "Stáhnout moje údaje",
     "deleteTitle": "Smazat účet",
-    "deleteManager": "Trvale smaže váš účet. Pokud jste vytvořili směny, které jsou stále v rozpisu, nejprve je přeřaďte nebo odstraňte – rozpis uchovává záznam o tom, kdo zveřejněnou směnu vytvořil, takže ji nelze jen tak odstranit.",
+    "deleteManager": "Trvale smaže váš účet. Směny, které jste vytvořili, zůstanou ve sdíleném rozpisu, už bez vazby na vás.",
     "deleteEmployee": "Trvale smaže váš účet, vaše přiřazení ke směnám a záznamy o nedostupnosti.",
     "deleteFinal": "Tuto akci nelze vrátit a neexistuje žádná archivní kopie. Po dokončení vám pošleme potvrzovací e-mail.",
     "deleteButton": "Smazat můj účet",
@@ -293,7 +296,7 @@
     "deletePositionLabel": "Smazat pozici {name}",
     "deletePosition": "Smazat pozici",
     "deletePositionMessage": "Smazat tuto pozici?",
-    "deletePositionNote": "Pozici, kterou stále vyžaduje nějaká směna, nelze smazat.",
+    "deletePositionNote": "Spolu s ní se smažou její nadcházející směny. Směny, které už začaly, zůstanou v rozvrhu pod jejím názvem a zaměstnanci, kteří ji mají, zůstanou bez pozice.",
     "permanentPosition": "Trvalá — nelze smazat"
   },
   "profile": {

@@ -25,7 +25,7 @@ def shift_fields(shift: Shift) -> dict:
         "date": shift.date.isoformat(),
         "start_time": shift.start_time.strftime("%H:%M"),
         "end_time": shift.end_time.strftime("%H:%M"),
-        "position": shift.position.name,
+        "position": shift.position_name,
     }
 
 
@@ -59,7 +59,7 @@ def _check_no_overlap(shift: Shift, employee_ids: list[int]) -> None:
             shift__end_time__gt=shift.start_time,
         )
         .exclude(shift_id=shift.id)
-        .select_related("shift__position")
+        .select_related("shift")
         .order_by("shift__start_time")
         .first()
     )
@@ -68,7 +68,7 @@ def _check_no_overlap(shift: Shift, employee_ids: list[int]) -> None:
         raise ValidationError(
             _("Employee already assigned to: %(position)s %(start)s–%(end)s (%(day)s)")
             % {
-                "position": other.position.name,
+                "position": other.position_name,
                 "start": f"{other.start_time:%H:%M}",
                 "end": f"{other.end_time:%H:%M}",
                 "day": date_format(other.date, "j M"),
@@ -115,34 +115,34 @@ def save_shift(shift: Shift, post_data) -> Shift:
 
 
 # ── Past and future ─────────────────────────────────────────────────────────
-# A shift is "past" once it has ended, which `Shift.is_past` works out from its date and
-# end time. There is deliberately no stored past/future flag: it would be wrong from the
-# minute a shift ends until something wrote to the row, so every query would have to
+# A shift is "past" once it has started, which `Shift.is_past` works out from its date and
+# start time. There is deliberately no stored past/future flag: it would be wrong from the
+# minute a shift starts until something wrote to the row, so every query would have to
 # distrust it anyway. The same rule as a queryset filter is below.
 
 
-def not_ended_q(prefix: str = "") -> models.Q:
-    """Shifts that have not ended yet, as a filter over `Shift` (or over a relation, e.g. `"shift__"`).
+def upcoming_q(prefix: str = "") -> models.Q:
+    """Shifts that have not started yet, as a filter over `Shift` (or over a relation, e.g. `"shift__"`).
 
-    The queryset half of `Shift.is_past`: later days, plus today's shifts whose end time is
+    The queryset half of `Shift.is_past`: later days, plus today's shifts whose start time is
     still ahead.
     """
     now = timezone.localtime()
     return models.Q(**{f"{prefix}date__gt": now.date()}) | models.Q(
-        **{f"{prefix}date": now.date(), f"{prefix}end_time__gt": now.time()}
+        **{f"{prefix}date": now.date(), f"{prefix}start_time__gt": now.time()}
     )
 
 
 def release_from_future_shifts(employee_id: int) -> list[Shift]:
-    """Take an employee off every shift that has not ended yet, and return those shifts.
+    """Take an employee off every shift that has not started yet, and return those shifts.
 
-    Worked shifts are history - they say who was actually there - so assignments on shifts
-    that have already ended are left exactly as they are. Used when an account stops being
-    able to work a shift it is booked on: its role or its position changed.
+    Started shifts are history - they say who was actually there - so assignments on them
+    are left exactly as they are. Used when an account stops being
+    able to work a shift it is booked on: its role or its position changed, or it is being deleted.
     """
     assignments = (
-        Assignment.objects.filter(not_ended_q("shift__"), employee_id=employee_id)
-        .select_related("shift__position")
+        Assignment.objects.filter(upcoming_q("shift__"), employee_id=employee_id)
+        .select_related("shift")
     )
     released = [assignment.shift for assignment in assignments]
     if released:
@@ -150,16 +150,26 @@ def release_from_future_shifts(employee_id: int) -> list[Shift]:
     return released
 
 
+def delete_upcoming_shifts_of_position(position_id: int) -> list[Shift]:
+    """Delete the position's shifts that have not started yet; return them, assignments prefetched.
+
+    Called just before the position itself is deleted. Its started shifts stay as history,
+    still named after it (`Shift.position_name`); the upcoming ones can no longer be staffed.
+    """
+    upcoming = list(Shift.objects.filter(upcoming_q(), position_id=position_id).prefetch_related("assignments"))
+    Shift.objects.filter(pk__in=[shift.pk for shift in upcoming]).delete()
+    return upcoming
+
+
 def publish_shift(shift: Shift) -> None:
     shift.status = ShiftStatus.PUBLISHED
     shift.save(update_fields=["status"])
 
 
-def publish_shifts_in_period(*, manager_id: int, start: date, end: date) -> list[Shift]:
-    """Publish the manager's draft shifts in the period; returns them, with their assignments prefetched."""
+def publish_shifts_in_period(*, start: date, end: date) -> list[Shift]:
+    """Publish the draft shifts in the period; returns them, with their assignments prefetched."""
     drafts = list(
-        Shift.objects.filter(created_by_id=manager_id, status=ShiftStatus.DRAFT, date__gte=start, date__lte=end)
-        .select_related("position")
+        Shift.objects.filter(status=ShiftStatus.DRAFT, date__gte=start, date__lte=end)
         .prefetch_related("assignments")
     )
     Shift.objects.filter(pk__in=[shift.pk for shift in drafts]).update(status=ShiftStatus.PUBLISHED)
@@ -170,14 +180,14 @@ def publish_shifts_in_period(*, manager_id: int, start: date, end: date) -> list
 
 def shifts_for_manager(
     *,
-    manager_id: int,
     start: date | None = None,
     end: date | None = None,
     position_id: int | None = None,
     status: str | None = None,
     understaffed_only: bool = False,
 ):
-    qs = Shift.objects.filter(created_by_id=manager_id).select_related("position")
+    """The schedule, filtered. It is one schedule shared by every manager, whoever wrote each shift."""
+    qs = Shift.objects.all()
     if start:
         qs = qs.filter(date__gte=start)
     if end:
@@ -192,14 +202,11 @@ def shifts_for_manager(
 
 
 def shifts_for_employee(*, employee_id: int, start: date, end: date):
-    return (
-        Shift.objects.filter(
-            assignments__employee_id=employee_id,
-            date__gte=start,
-            date__lte=end,
-            status=ShiftStatus.PUBLISHED,
-        )
-        .select_related("position")
+    return Shift.objects.filter(
+        assignments__employee_id=employee_id,
+        date__gte=start,
+        date__lte=end,
+        status=ShiftStatus.PUBLISHED,
     )
 
 
@@ -211,13 +218,13 @@ def _hours(shift: Shift) -> float:
     return duration.total_seconds() / 3600
 
 
-def shift_rows(*, manager_id: int, query: str = "", worker_id: int | None = None, **filters) -> list[dict]:
-    """The manager's shifts with their workers, as plain dicts, for search and analytics.
+def shift_rows(*, query: str = "", worker_id: int | None = None, **filters) -> list[dict]:
+    """The schedule's shifts with their workers, as plain dicts, for search and analytics.
 
     `filters` are those of `shifts_for_manager`. `query` matches the position or an
     assigned worker's name, case-insensitively.
     """
-    shifts = shifts_for_manager(manager_id=manager_id, **filters).prefetch_related(
+    shifts = shifts_for_manager(**filters).prefetch_related(
         models.Prefetch("assignments", queryset=Assignment.objects.select_related("employee"))
     )
     if worker_id:
@@ -226,7 +233,7 @@ def shift_rows(*, manager_id: int, query: str = "", worker_id: int | None = None
     rows = []
     for shift in shifts:
         workers = [{"id": a.employee_id, "name": a.employee.display_name} for a in shift.assignments.all()]
-        if query.lower() not in " ".join([shift.position.name, *(w["name"] for w in workers)]).lower():
+        if query.lower() not in " ".join([shift.position_name, *(w["name"] for w in workers)]).lower():
             continue
         rows.append(
             {

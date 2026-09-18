@@ -62,6 +62,15 @@ export const Bell = ({ size = 18, ...props }) => (
   </Icon>
 );
 
+export const CalendarIcon = ({ size = 16, ...props }) => (
+  <Icon size={size} {...props}>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4" />
+    <path d="M8 2v4" />
+    <path d="M3 10h18" />
+  </Icon>
+);
+
 export const Trash = ({ size = 18, ...props }) => (
   <Icon size={size} {...props}>
     <path d="M3 6h18" />
