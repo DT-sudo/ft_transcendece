@@ -4,7 +4,7 @@
      fill in the Team Information, Features List and Individual Contributions
      tables below. Every team member must appear in all three. -->
 
-# PlanShift
+# transcendence
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
